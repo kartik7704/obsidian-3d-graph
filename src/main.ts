@@ -6,7 +6,9 @@ import Graph from "./graph/Graph";
 import ObsidianTheme from "./util/ObsidianTheme";
 import EventBus from "./util/EventBus";
 import { ResolvedLinkCache } from "./graph/Link";
-import shallowCompare from "./util/ShallowCompare";
+import compare from "./util/ShallowCompare";
+import "@total-typescript/ts-reset";
+import "@total-typescript/ts-reset/dom";
 
 export default class Graph3dPlugin extends Plugin {
 	_resolvedCache: ResolvedLinkCache;
@@ -122,10 +124,7 @@ export default class Graph3dPlugin extends Plugin {
 		// with the resolve event
 		if (
 			this.cacheIsReady.value &&
-			!shallowCompare(
-				this._resolvedCache,
-				this.app.metadataCache.resolvedLinks
-			)
+			!compare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
 		) {
 			this._resolvedCache = structuredClone(
 				this.app.metadataCache.resolvedLinks
@@ -136,7 +135,7 @@ export default class Graph3dPlugin extends Plugin {
 				"changed but ",
 				this.cacheIsReady.value,
 				" and ",
-				shallowCompare(
+				compare(
 					this._resolvedCache,
 					this.app.metadataCache.resolvedLinks
 				)

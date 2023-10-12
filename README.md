@@ -1,4 +1,6 @@
-## Obsidian 3D Graph
+## Obsidian 3D Graph (Yomaru)
+
+> This is a fork from the original https://github.com/AlexW00/obsidian-3d-graph
 
 A 3D Graph for Obsidian!
 
@@ -8,9 +10,10 @@ https://user-images.githubusercontent.com/55558407/190087315-8386feee-b861-4520-
 
 ### ⬇️ Installation
 
-3D-Graph is an official community plugin. You can download by: 
-- clicking [here](https://obsidian.md/plugins?id=3d-graph)
-- searching for "3D Graph" in the Obsidian plugins tab
+3D-Graph is an official community plugin. You can download by:
+
+-   clicking [here](https://obsidian.md/plugins?id=3d-graph)
+-   searching for "3D Graph" in the Obsidian plugins tab
 
 ### 👨‍💻 Development
 

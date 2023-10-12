@@ -26,6 +26,7 @@ export default class Graph {
 	public getNodeById(id: string): Node | null {
 		const index = this.nodeIndex.get(id);
 		if (index !== undefined) {
+			// @ts-ignore
 			return this.nodes[index];
 		}
 		return null;
@@ -40,6 +41,7 @@ export default class Graph {
 		if (sourceLinkMap) {
 			const index = sourceLinkMap.get(targetNodeId);
 			if (index !== undefined) {
+				// @ts-ignore
 				return this.links[index];
 			}
 		}
@@ -50,6 +52,7 @@ export default class Graph {
 	public getLinksFromNode(sourceNodeId: string): Link[] {
 		const sourceLinkMap = this.linkIndex.get(sourceNodeId);
 		if (sourceLinkMap) {
+			// @ts-ignore
 			return Array.from(sourceLinkMap.values()).map(
 				(index) => this.links[index]
 			);

@@ -15,7 +15,13 @@ export class ForceGraph {
 	private instance: ForceGraph3DInstance;
 	private readonly rootHtmlElement: HTMLElement;
 
+	/**
+	 * the node connected to the hover node
+	 */
 	private readonly highlightedNodes: Set<string> = new Set();
+	/**
+	 * the links connected to the hover node
+	 */
 	private readonly highlightedLinks: Set<Link> = new Set();
 	hoveredNode: Node | null;
 
@@ -116,6 +122,14 @@ export class ForceGraph {
 			.nodeColor((node: Node) => this.getNodeColor(node))
 			.nodeVisibility(this.doShowNode)
 			.onNodeHover(this.onNodeHover);
+		// @ts-ignore
+		// .nodeThreeObject((node) => {
+		// 	const sprite = new SpriteText(node.id);
+		// 	sprite.material.depthWrite = false; // make sprite background transparent
+		// 	sprite.color = node.color;
+		// 	sprite.textHeight = 8;
+		// 	return sprite;
+		// });
 	};
 
 	private getNodeColor = (node: Node): string => {
