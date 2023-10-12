@@ -7,6 +7,13 @@ import Graph from "../../graph/Graph";
 import { NodeGroup } from "../../settings/categories/GroupSettings";
 import { rgba } from "polished";
 import EventBus from "../../util/EventBus";
+import {
+	CSS2DObject,
+	CSS2DRenderer,
+} from "three/examples/jsm/renderers/CSS2DRenderer.js";
+
+const LINK_PARTICLE_MULTIPLIER = 2;
+const LINK_ARROW_WIDTH_MULTIPLIER = 5;
 
 // Adapted from https://github.com/vasturiano/3d-force-graph/blob/master/example/highlight/index.html
 // D3.js 3D Force Graph
@@ -62,15 +69,23 @@ export class ForceGraph {
 			this.rootHtmlElement.innerWidth,
 			this.rootHtmlElement.innerHeight,
 		];
-		this.instance = ForceGraph3D()(this.rootHtmlElement)
+		const divEl = document.createElement("div");
+		// set the divEl to have z-index 0
+		divEl.style.zIndex = "0";
+		this.instance = ForceGraph3D({
+			extraRenderers: [
+				// @ts-ignore https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/html-nodes/index.html#L27C9-L29
+				new CSS2DRenderer({
+					element: divEl,
+				}),
+			],
+		})(this.rootHtmlElement)
 			.graphData(this.getGraphData())
-			.nodeLabel(
-				(node: Node) => `<div class="node-label">${node.name}</div>`
-			)
-			.linkDirectionalArrowLength(
-				this.plugin.getSettings().display.linkThickness * 2
-			)
-			.linkDirectionalArrowRelPos(1)
+			// .nodeLabel(
+			// 	(node: Node) => `<div class="node-label">${node.name}</div>`
+			// )
+			// @ts-ignore  we need to return null or empty string because by default it will access the name of node, see https://github.com/vasturiano/3d-force-graph#node-styling
+			.nodeLabel((node: Node) => null)
 			.nodeRelSize(this.plugin.getSettings().display.nodeSize)
 			.backgroundColor(rgba(0, 0, 0, 0.0))
 			.width(width)
@@ -106,8 +121,12 @@ export class ForceGraph {
 				.linkDirectionalParticles((link: Link) =>
 					this.isHighlightedLink(link) ? 4 : 0
 				)
-				.linkDirectionalParticleWidth(data.newValue * 1.2)
-				.linkDirectionalArrowLength(data.newValue * 5)
+				.linkDirectionalParticleWidth(
+					data.newValue * LINK_PARTICLE_MULTIPLIER
+				)
+				.linkDirectionalArrowLength(
+					data.newValue * LINK_ARROW_WIDTH_MULTIPLIER
+				)
 				.linkDirectionalArrowRelPos(1);
 		}
 
@@ -131,15 +150,32 @@ export class ForceGraph {
 		this.instance
 			.nodeColor((node: Node) => this.getNodeColor(node))
 			.nodeVisibility(this.doShowNode)
-			.onNodeHover(this.onNodeHover);
-		// @ts-ignore
-		// .nodeThreeObject((node) => {
-		// 	const sprite = new SpriteText(node.id);
-		// 	sprite.material.depthWrite = false; // make sprite background transparent
-		// 	sprite.color = node.color;
-		// 	sprite.textHeight = 8;
-		// 	return sprite;
-		// });
+			.onNodeHover(this.onNodeHover)
+			.nodeThreeObject((node) => {
+				console.log("nodeThreeObject", node);
+				const nodeEl = document.createElement("div");
+				// @ts-ignore
+				// TODO: the node type is wrong here
+				nodeEl.textContent = String(node.name ?? "undefined");
+				// @ts-ignore
+				nodeEl.style.color = node.color;
+				// .node-label {
+				//   font-size: 12px;
+				//   padding: 1px 4px;
+				//   border-radius: 4px;
+				//   background-color: rgba(0,0,0,0.5);
+				//   user-select: none;
+				// }
+				nodeEl.className = "node-label";
+				nodeEl.style.top = "20px";
+				nodeEl.style.fontSize = "12px";
+				nodeEl.style.padding = "1px 4px";
+				nodeEl.style.borderRadius = "4px";
+				nodeEl.style.backgroundColor = rgba(0, 0, 0, 0.5);
+				nodeEl.style.userSelect = "none";
+				return new CSS2DObject(nodeEl);
+			})
+			.nodeThreeObjectExtend(true);
 	};
 
 	private getNodeColor = (node: Node): string => {
@@ -207,13 +243,16 @@ export class ForceGraph {
 				this.isHighlightedLink(link) ? 4 : 0
 			)
 			.linkDirectionalParticleWidth(
-				this.plugin.getSettings().display.linkThickness * 1.2
+				this.plugin.getSettings().display.linkThickness *
+					LINK_PARTICLE_MULTIPLIER
 			)
 			.linkDirectionalArrowLength(
-				this.plugin.getSettings().display.linkThickness * 5
+				this.plugin.getSettings().display.linkThickness *
+					LINK_ARROW_WIDTH_MULTIPLIER
 			)
 			.linkDirectionalArrowRelPos(1)
 			.onLinkHover(this.onLinkHover)
+
 			.linkColor((link: Link) =>
 				this.isHighlightedLink(link)
 					? this.plugin.theme.textAccent
