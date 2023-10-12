@@ -3,7 +3,7 @@ import SimpleSliderSetting, {
 	DEFAULT_SLIDER_STEP_OPTIONS,
 	SliderOptions,
 } from "../../atomics/SimpleSliderSetting";
-import State from "../../../util/State";
+import { State } from "../../../util/State";
 
 const DisplaySettingsView = (
 	displaySettings: State<DisplaySettings>,
@@ -11,8 +11,6 @@ const DisplaySettingsView = (
 ) => {
 	NodeSizeSetting(displaySettings, containerEl);
 	LinkThicknessSetting(displaySettings, containerEl);
-	ParticleSizeSetting(displaySettings, containerEl);
-	ParticleCountSetting(displaySettings, containerEl);
 };
 
 const NodeSizeSetting = (
@@ -40,34 +38,6 @@ const LinkThicknessSetting = (
 	};
 	return SimpleSliderSetting(containerEl, options, (value) => {
 		displaySettings.value.linkThickness = value;
-	});
-};
-
-const ParticleSizeSetting = (
-	displaySettings: State<DisplaySettings>,
-	containerEl: HTMLElement
-) => {
-	const options: SliderOptions = {
-		name: "Particle Size",
-		value: displaySettings.value.particleSize,
-		stepOptions: DEFAULT_SLIDER_STEP_OPTIONS,
-	};
-	return SimpleSliderSetting(containerEl, options, (value) => {
-		displaySettings.value.particleSize = value;
-	});
-};
-
-const ParticleCountSetting = (
-	displaySettings: State<DisplaySettings>,
-	containerEl: HTMLElement
-) => {
-	const options: SliderOptions = {
-		name: "Particle Count",
-		value: displaySettings.value.particleCount,
-		stepOptions: DEFAULT_SLIDER_STEP_OPTIONS,
-	};
-	return SimpleSliderSetting(containerEl, options, (value) => {
-		displaySettings.value.particleCount = value;
 	});
 };
 

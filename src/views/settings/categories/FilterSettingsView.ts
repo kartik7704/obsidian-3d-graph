@@ -1,6 +1,6 @@
 import { Setting } from "obsidian";
 import { FilterSettings } from "src/settings/categories/FilterSettings";
-import State from "src/util/State";
+import { State } from "src/util/State";
 
 const FilterSettingsView = (
 	filterSettings: State<FilterSettings>,

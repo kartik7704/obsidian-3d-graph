@@ -67,6 +67,10 @@ export class ForceGraph {
 			.nodeLabel(
 				(node: Node) => `<div class="node-label">${node.name}</div>`
 			)
+			.linkDirectionalArrowLength(
+				this.plugin.getSettings().display.linkThickness * 2
+			)
+			.linkDirectionalArrowRelPos(1)
 			.nodeRelSize(this.plugin.getSettings().display.nodeSize)
 			.backgroundColor(rgba(0, 0, 0, 0.0))
 			.width(width)
@@ -87,18 +91,24 @@ export class ForceGraph {
 	};
 
 	private refreshGraphData = () => {
+		console.log("refresh graph data");
 		this.instance.graphData(this.getGraphData());
 	};
 
-	private onSettingsStateChanged = (data: StateChange) => {
+	public onSettingsStateChanged = (data: StateChange) => {
+		console.log("settings changed ", data);
 		if (data.currentPath === "display.nodeSize") {
 			this.instance.nodeRelSize(data.newValue);
-		} else if (data.currentPath === "display.linkWidth") {
-			this.instance.linkWidth(data.newValue);
-		} else if (data.currentPath === "display.particleSize") {
-			this.instance.linkDirectionalParticleWidth(
-				this.plugin.getSettings().display.particleSize
-			);
+		} else if (data.currentPath === "display.linkThickness") {
+			console.log("link width changed");
+			this.instance
+				.linkWidth(data.newValue)
+				.linkDirectionalParticles((link: Link) =>
+					this.isHighlightedLink(link) ? 4 : 0
+				)
+				.linkDirectionalParticleWidth(data.newValue * 1.2)
+				.linkDirectionalArrowLength(data.newValue * 5)
+				.linkDirectionalArrowRelPos(1);
 		}
 
 		this.instance.refresh(); // other settings only need a refresh
@@ -194,13 +204,15 @@ export class ForceGraph {
 					: this.plugin.getSettings().display.linkThickness
 			)
 			.linkDirectionalParticles((link: Link) =>
-				this.isHighlightedLink(link)
-					? this.plugin.getSettings().display.particleCount
-					: 0
+				this.isHighlightedLink(link) ? 4 : 0
 			)
 			.linkDirectionalParticleWidth(
-				this.plugin.getSettings().display.particleSize
+				this.plugin.getSettings().display.linkThickness * 1.2
 			)
+			.linkDirectionalArrowLength(
+				this.plugin.getSettings().display.linkThickness * 5
+			)
+			.linkDirectionalArrowRelPos(1)
 			.onLinkHover(this.onLinkHover)
 			.linkColor((link: Link) =>
 				this.isHighlightedLink(link)

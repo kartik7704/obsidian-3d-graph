@@ -4,7 +4,7 @@ import {
 	NodeGroup,
 } from "src/settings/categories/GroupSettings";
 import ObsidianTheme from "src/util/ObsidianTheme";
-import State, { StateChange } from "src/util/State";
+import { State, StateChange } from "src/util/State";
 import ColorPicker from "src/views/atomics/ColorPicker";
 
 const GroupSettingsView = (

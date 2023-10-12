@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import ObservableSlim from "observable-slim";
 
 // ====================================================== //
@@ -9,7 +8,10 @@ import ObservableSlim from "observable-slim";
 
 export type StateListener = (changeData: StateChange) => void;
 
-export default class State<T> {
+/**
+ *  Wrapper class to make any object/primitive observable
+ */
+export class State<T> {
 	private readonly listeners = new Map<number, StateListener>();
 	private static listener_count = 0;
 

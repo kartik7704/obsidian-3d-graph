@@ -1,20 +1,25 @@
 import { Notice, Plugin } from "obsidian";
 import { Graph3dView } from "./views/graph/Graph3dView";
 import GraphSettings from "./settings/GraphSettings";
-import State from "./util/State";
+import { State } from "./util/State";
 import Graph from "./graph/Graph";
 import ObsidianTheme from "./util/ObsidianTheme";
 import EventBus from "./util/EventBus";
 import { ResolvedLinkCache } from "./graph/Link";
-import compare from "./util/ShallowCompare";
+import { deepCompare } from "./util/deepCompare";
 import "@total-typescript/ts-reset";
 import "@total-typescript/ts-reset/dom";
 
 export default class Graph3dPlugin extends Plugin {
 	_resolvedCache: ResolvedLinkCache;
 
-	// States
+	/**
+	 * the setting of the plugin
+	 */
 	public settingsState: State<GraphSettings>;
+	/**
+	 * the current open file
+	 */
 	public openFileState: State<string | undefined> = new State(undefined);
 	private cacheIsReady: State<boolean> = new State(
 		this.app.metadataCache.resolvedLinks !== undefined
@@ -124,7 +129,10 @@ export default class Graph3dPlugin extends Plugin {
 		// with the resolve event
 		if (
 			this.cacheIsReady.value &&
-			!compare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
+			!deepCompare(
+				this._resolvedCache,
+				this.app.metadataCache.resolvedLinks
+			)
 		) {
 			this._resolvedCache = structuredClone(
 				this.app.metadataCache.resolvedLinks
@@ -135,7 +143,7 @@ export default class Graph3dPlugin extends Plugin {
 				"changed but ",
 				this.cacheIsReady.value,
 				" and ",
-				compare(
+				deepCompare(
 					this._resolvedCache,
 					this.app.metadataCache.resolvedLinks
 				)

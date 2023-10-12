@@ -4,7 +4,7 @@ import { FilterSettings } from "../../settings/categories/FilterSettings";
 import { GroupSettings } from "../../settings/categories/GroupSettings";
 import { DisplaySettings } from "../../settings/categories/DisplaySettings";
 import { ExtraButtonComponent } from "obsidian";
-import State, { StateChange } from "../../util/State";
+import { State, StateChange } from "../../util/State";
 import EventBus from "../../util/EventBus";
 import GroupSettingsView from "./categories/GroupSettingsView";
 import FilterSettingsView from "./categories/FilterSettingsView";
