@@ -55,7 +55,6 @@ export class ForceGraph {
   }
 
   private createGraph() {
-    const settings = this.plugin.getSettings();
     this.createInstance();
     this.createNodes();
     this.createLinks();
@@ -224,7 +223,6 @@ export class ForceGraph {
   };
 
   public handleSettingsChanged = (data: StateChange<unknown, GraphSettings>) => {
-    const settings = this.plugin.getSettings();
     // if the filter settings is change
     if (
       data.currentPath === "filters.searchResult" ||
