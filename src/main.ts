@@ -173,8 +173,8 @@ export default class Graph3dPlugin extends Plugin {
   };
 
   private async loadSettings(): Promise<GraphSettings> {
-    const loadedData = await this.loadData(),
-      settings = getGraphSettingsFromStore(loadedData);
+    const loadedData: unknown = await this.loadData(),
+      settings = getGraphSettingsFromStore(loadedData ?? {});
     console.log("loadSettings:", settings);
     return settings;
   }
