@@ -1,5 +1,5 @@
-import { Link } from '@/graph/Link';
-import { TFile } from 'obsidian';
+import { Link } from "@/graph/Link";
+import { TFile } from "obsidian";
 
 export class Node {
   public readonly id: string;

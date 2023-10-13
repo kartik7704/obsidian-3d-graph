@@ -1,4 +1,4 @@
-import { NodeGroup } from '@/graph/NodeGroup';
+import { NodeGroup } from "@/graph/NodeGroup";
 
 const DEFAULT_NODE_GROUPS: NodeGroup[] = [];
 

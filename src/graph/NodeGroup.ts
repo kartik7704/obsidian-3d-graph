@@ -1,4 +1,4 @@
-import { Node } from '@/graph/Node';
+import { Node } from "@/graph/Node";
 
 export class NodeGroup {
   query: string;
@@ -20,7 +20,7 @@ export class NodeGroup {
 
   static sanitizeQuery(query: string): string {
     const trimmedQuery = query.trim();
-    if (trimmedQuery.startsWith('./')) return trimmedQuery.slice(1);
+    if (trimmedQuery.startsWith("./")) return trimmedQuery.slice(1);
     else return trimmedQuery;
   }
 }

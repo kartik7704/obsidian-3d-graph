@@ -1,16 +1,18 @@
-import ForceGraph3D, { ForceGraph3DInstance } from '3d-force-graph';
-import { Node } from '@/graph/Node';
-import { Link } from '@/graph/Link';
-import { StateChange } from '@/util/State';
-import Graph3dPlugin from '@/main';
-import { Graph } from '@/graph/Graph';
-import { NodeGroup } from '@/graph/NodeGroup';
-import { rgba } from 'polished';
-import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
-import { eventBus } from '@/util/EventBus';
+import ForceGraph3D, { ForceGraph3DInstance } from "3d-force-graph";
+import { Node } from "@/graph/Node";
+import { Link } from "@/graph/Link";
+import { StateChange } from "@/util/State";
+import Graph3dPlugin from "@/main";
+import { Graph } from "@/graph/Graph";
+import { NodeGroup } from "@/graph/NodeGroup";
+import { rgba } from "polished";
+import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { eventBus } from "@/util/EventBus";
+import { GraphSettings } from "@/settings/GraphSettings";
 
 const LINK_PARTICLE_MULTIPLIER = 2;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
+const PARTICLE_FREQUECY = 4;
 
 // Adapted from https://github.com/vasturiano/3d-force-graph/blob/master/example/highlight/index.html
 // D3.js 3D Force Graph
@@ -38,16 +40,16 @@ export class ForceGraph {
     this.isLocalGraph = isLocalGraph;
     this.plugin = plugin;
 
-    console.log('ForceGraph constructor', rootHtmlElement);
+    console.log("ForceGraph constructor", rootHtmlElement);
 
     this.createGraph();
     this.initListeners();
   }
 
   private initListeners() {
-    this.plugin.settingsState.onChange(this.onSettingsStateChanged);
+    this.plugin.settingsState.onChange(this.handleSettingsChanged);
     if (this.isLocalGraph) this.plugin.openFileState.onChange(this.refreshGraphData);
-    eventBus.on('graph-changed', this.refreshGraphData);
+    eventBus.on("graph-changed", this.refreshGraphData);
   }
 
   private createGraph() {
@@ -58,9 +60,9 @@ export class ForceGraph {
 
   private createInstance() {
     const [width, height] = [this.rootHtmlElement.innerWidth, this.rootHtmlElement.innerHeight];
-    const divEl = document.createElement('div');
+    const divEl = document.createElement("div");
     // set the divEl to have z-index 0
-    divEl.style.zIndex = '0';
+    divEl.style.zIndex = "0";
     this.instance = ForceGraph3D({
       extraRenderers: [
         // @ts-ignore https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/html-nodes/index.html#L27C9-L29
@@ -93,22 +95,69 @@ export class ForceGraph {
   };
 
   private refreshGraphData = () => {
-    console.log('refresh graph data');
+    console.log("refresh graph data");
     this.instance.graphData(this.getGraphData());
   };
 
-  public onSettingsStateChanged = (data: StateChange) => {
-    console.log('settings changed ', data);
-    if (data.currentPath === 'display.nodeSize') {
+  public handleSettingsChanged = (data: StateChange<unknown, GraphSettings>) => {
+    console.log("settings changed ", data);
+    if (data.currentPath === "display.nodeSize") {
       this.instance.nodeRelSize(data.newValue as number);
-    } else if (data.currentPath === 'display.linkThickness') {
-      console.log('link width changed');
+    } else if (data.currentPath === "display.linkThickness") {
+      console.log("link width changed");
       this.instance
         .linkWidth(data.newValue as number)
-        .linkDirectionalParticles((link: Link) => (this.isHighlightedLink(link) ? 4 : 0))
+        .linkDirectionalParticles((link: Link) =>
+          this.isHighlightedLink(link) ? PARTICLE_FREQUECY : 0
+        )
         .linkDirectionalParticleWidth((data.newValue as number) * LINK_PARTICLE_MULTIPLIER)
         .linkDirectionalArrowLength((data.newValue as number) * LINK_ARROW_WIDTH_MULTIPLIER)
         .linkDirectionalArrowRelPos(1);
+    } else if (data.currentPath === "display.linkDistance") {
+      // https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/manipulate-link-force/index.html#L50-L55
+      this.instance.d3Force("link")?.distance(data.newValue as number);
+      this.instance.numDimensions(3); // reheat simulation
+    } else if (
+      data.currentPath === "display.showFullPath" ||
+      data.currentPath === "display.showExtension"
+    ) {
+      const settings = this.plugin.getSettings();
+      this.instance
+        .nodeThreeObject((node: Node) => {
+          const nodeEl = document.createElement("div");
+          const fullPath = node.path;
+          const fileNameWithExtension = node.name;
+          const fullPathWithoutExtension = fullPath.substring(0, fullPath.lastIndexOf("."));
+          const fileNameWithoutExtension = fileNameWithExtension.substring(
+            0,
+            fileNameWithExtension.lastIndexOf(".")
+          );
+          nodeEl.textContent = !settings.display.showExtension
+            ? settings.display.showFullPath
+              ? fullPathWithoutExtension
+              : fileNameWithoutExtension
+            : settings.display.showFullPath
+            ? fullPath
+            : fileNameWithExtension;
+          // @ts-ignore
+          nodeEl.style.color = node.color;
+          // .node-label {
+          //   font-size: 12px;
+          //   padding: 1px 4px;
+          //   border-radius: 4px;
+          //   background-color: rgba(0,0,0,0.5);
+          //   user-select: none;
+          // }
+          nodeEl.className = "node-label";
+          nodeEl.style.top = "20px";
+          nodeEl.style.fontSize = "12px";
+          nodeEl.style.padding = "1px 4px";
+          nodeEl.style.borderRadius = "4px";
+          nodeEl.style.backgroundColor = rgba(0, 0, 0, 0.5);
+          nodeEl.style.userSelect = "none";
+          return new CSS2DObject(nodeEl);
+        })
+        .nodeThreeObjectExtend(true);
     }
 
     this.instance.refresh(); // other settings only need a refresh
@@ -125,16 +174,28 @@ export class ForceGraph {
   }
 
   private createNodes = () => {
+    const settings = this.plugin.getSettings();
     this.instance
       .nodeColor((node: Node) => this.getNodeColor(node))
       .nodeVisibility(this.doShowNode)
       .onNodeHover(this.onNodeHover)
-      .nodeThreeObject((node) => {
-        console.log('nodeThreeObject', node);
-        const nodeEl = document.createElement('div');
-        // @ts-ignore
-        // TODO: the node type is wrong here
-        nodeEl.textContent = String(node.name ?? 'undefined');
+
+      .nodeThreeObject((node: Node) => {
+        const nodeEl = document.createElement("div");
+        const fullPath = node.path;
+        const fileNameWithExtension = node.name;
+        const fullPathWithoutExtension = fullPath.substring(0, fullPath.lastIndexOf("."));
+        const fileNameWithoutExtension = fileNameWithExtension.substring(
+          0,
+          fileNameWithExtension.lastIndexOf(".")
+        );
+        nodeEl.textContent = !settings.display.showExtension
+          ? settings.display.showFullPath
+            ? fullPathWithoutExtension
+            : fileNameWithoutExtension
+          : settings.display.showFullPath
+          ? fullPath
+          : fileNameWithExtension;
         // @ts-ignore
         nodeEl.style.color = node.color;
         // .node-label {
@@ -144,27 +205,27 @@ export class ForceGraph {
         //   background-color: rgba(0,0,0,0.5);
         //   user-select: none;
         // }
-        nodeEl.className = 'node-label';
-        nodeEl.style.top = '20px';
-        nodeEl.style.fontSize = '12px';
-        nodeEl.style.padding = '1px 4px';
-        nodeEl.style.borderRadius = '4px';
+        nodeEl.className = "node-label";
+        nodeEl.style.top = "20px";
+        nodeEl.style.fontSize = "12px";
+        nodeEl.style.padding = "1px 4px";
+        nodeEl.style.borderRadius = "4px";
         nodeEl.style.backgroundColor = rgba(0, 0, 0, 0.5);
-        nodeEl.style.userSelect = 'none';
+        nodeEl.style.userSelect = "none";
         return new CSS2DObject(nodeEl);
       })
       .nodeThreeObjectExtend(true);
   };
 
   private getNodeColor = (node: Node): string => {
+    const settings = this.plugin.getSettings();
     if (this.isHighlightedNode(node)) {
-      // Node is highlighted
       return node === this.hoveredNode
-        ? this.plugin.theme.interactiveAccentHover
-        : this.plugin.theme.textAccent;
+        ? settings.display.nodeHoverColor
+        : settings.display.nodeHoverNeighbourColor;
     } else {
       let color = this.plugin.theme.textMuted;
-      this.plugin.getSettings().groups.groups.forEach((group) => {
+      settings.groups.groups.forEach((group) => {
         // multiple groups -> last match wins
         if (NodeGroup.matches(group.query, node)) color = group.color;
       });
@@ -201,25 +262,25 @@ export class ForceGraph {
   };
 
   private createLinks = () => {
+    const settings = this.plugin.getSettings();
     this.instance
       .linkWidth((link: Link) =>
         this.isHighlightedLink(link)
-          ? this.plugin.getSettings().display.linkThickness * 1.5
-          : this.plugin.getSettings().display.linkThickness
+          ? settings.display.linkThickness * 1.5
+          : settings.display.linkThickness
       )
-      .linkDirectionalParticles((link: Link) => (this.isHighlightedLink(link) ? 4 : 0))
-      .linkDirectionalParticleWidth(
-        this.plugin.getSettings().display.linkThickness * LINK_PARTICLE_MULTIPLIER
+      .linkDirectionalParticles((link: Link) =>
+        this.isHighlightedLink(link) ? PARTICLE_FREQUECY : 0
       )
-      .linkDirectionalArrowLength(
-        this.plugin.getSettings().display.linkThickness * LINK_ARROW_WIDTH_MULTIPLIER
-      )
+      .linkDirectionalParticleWidth(settings.display.linkThickness * LINK_PARTICLE_MULTIPLIER)
+      .linkDirectionalArrowLength(settings.display.linkThickness * LINK_ARROW_WIDTH_MULTIPLIER)
       .linkDirectionalArrowRelPos(1)
       .onLinkHover(this.onLinkHover)
-
       .linkColor((link: Link) =>
-        this.isHighlightedLink(link) ? this.plugin.theme.textAccent : this.plugin.theme.textMuted
-      );
+        this.isHighlightedLink(link) ? settings.display.linkHoverColor : this.plugin.theme.textMuted
+      )
+      .d3Force("link")
+      ?.distance(settings.display.linkDistance);
   };
 
   private onLinkHover = (link: Link | null) => {

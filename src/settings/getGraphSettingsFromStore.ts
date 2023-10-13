@@ -1,20 +1,25 @@
-import { NodeGroup } from '@/graph/NodeGroup';
-import { DisplaySettings } from '@/settings/categories/DisplaySettings';
-import { FilterSettings } from '@/settings/categories/FilterSettings';
-import { GroupSettings } from '@/settings/categories/GroupSettings';
-import { GraphSettings } from '@/settings/GraphSettings';
+import { NodeGroup } from "@/graph/NodeGroup";
+import { DisplaySettings } from "@/settings/categories/DisplaySettings";
+import { FilterSettings } from "@/settings/categories/FilterSettings";
+import { GroupSettings } from "@/settings/categories/GroupSettings";
+import { GraphSettings } from "@/settings/GraphSettings";
 
-export const getGraphSettingsFromStore = (store: {
-  filters: { showOrphans?: boolean };
-  groups: { groups?: NodeGroup[] };
-  display: {
-    nodeSize?: number;
-    linkThickness?: number;
-    linkDistance?: number;
-  };
-}) => {
+export const getGraphSettingsFromStore = (
+  // app: App,
+  // TODO: this type need to be fixed
+  store: {
+    filters: { showOrphans?: boolean; searchQuery?: string };
+    groups: { groups?: NodeGroup[] };
+    display: {
+      nodeSize?: number;
+      linkThickness?: number;
+      linkDistance?: number;
+    };
+  }
+) => {
   return new GraphSettings(
-    new FilterSettings(store.filters.showOrphans),
+    // app,
+    new FilterSettings(store.filters.showOrphans, store.filters.searchQuery),
     new GroupSettings(store.groups.groups),
     new DisplaySettings(
       store.display.nodeSize,

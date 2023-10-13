@@ -1,6 +1,6 @@
-import { Link } from '@/graph/Link';
-import { Node } from '@/graph/Node';
-import { App } from 'obsidian';
+import { Link } from "@/graph/Link";
+import { Node } from "@/graph/Node";
+import { App } from "obsidian";
 
 export class Graph {
   public readonly nodes: Node[];

@@ -1,4 +1,4 @@
-import { Events } from 'obsidian';
+import { Events } from "obsidian";
 
 // Event bus for internal Plugin communication
 export class EventBus extends Events {

@@ -1,6 +1,6 @@
-import { DisplaySettings } from '@/settings/categories/DisplaySettings';
-import { FilterSettings } from '@/settings/categories/FilterSettings';
-import { GroupSettings } from '@/settings/categories/GroupSettings';
+import { DisplaySettings } from "@/settings/categories/DisplaySettings";
+import { FilterSettings } from "@/settings/categories/FilterSettings";
+import { GroupSettings } from "@/settings/categories/GroupSettings";
 
 export class GraphSettings {
   filters: FilterSettings;

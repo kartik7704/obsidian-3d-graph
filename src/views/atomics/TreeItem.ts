@@ -17,34 +17,34 @@ export class TreeItem extends HTMLDivElement {
   }
 
   private appendSelf = () => {
-    ['graph-control-section', 'tree-item'].forEach((className) => this.classList.add(className));
+    ["graph-control-section", "tree-item"].forEach((className) => this.classList.add(className));
 
-    const $self = createDiv({ cls: 'tree-item-self' });
+    const $self = createDiv({ cls: "tree-item-self" });
 
-    $self.addEventListener('click', () => {
+    $self.addEventListener("click", () => {
       this.toggleCollapse();
     });
 
-    const $inner = createDiv({ cls: 'tree-item-inner' });
+    const $inner = createDiv({ cls: "tree-item-inner" });
     $inner.append(this.$inner);
     $self.append($inner);
     this.append($self);
   };
 
   private appendChildren = () => {
-    const $children = createDiv({ cls: 'tree-item-children' });
+    const $children = createDiv({ cls: "tree-item-children" });
     this.childrenBuilders.forEach((build: HtmlBuilder) => build($children));
     this.append($children);
   };
 
   private toggleCollapse = (doCollapse?: boolean) => {
     if (doCollapse === undefined) {
-      doCollapse = !this.classList.contains('is-collapsed');
+      doCollapse = !this.classList.contains("is-collapsed");
     }
-    this.classList.toggle('is-collapsed', doCollapse);
+    this.classList.toggle("is-collapsed", doCollapse);
   };
 }
 
-if (typeof customElements.get('tree-item') === 'undefined') {
-  customElements.define('tree-item', TreeItem, { extends: 'div' });
+if (typeof customElements.get("tree-item") === "undefined") {
+  customElements.define("tree-item", TreeItem, { extends: "div" });
 }

@@ -1,4 +1,4 @@
-import ObservableSlim from 'observable-slim';
+import ObservableSlim from "observable-slim";
 
 // ====================================================== //
 // ====================== State ====================== //
@@ -24,7 +24,7 @@ export class State<T> {
     this.id = State.stateCount;
 
     this.val =
-      typeof value === 'object' ? ObservableSlim.create(value, false, this.onValueChange) : value;
+      typeof value === "object" ? ObservableSlim.create(value, false, this.onValueChange) : value;
   }
 
   get value(): T {
@@ -33,17 +33,17 @@ export class State<T> {
 
   set value(val: T) {
     const previousValue = this.val;
-    if (typeof val !== 'object') {
+    if (typeof val !== "object") {
       this.val = val;
     } else {
       this.val = ObservableSlim.create(val, false, this.onValueChange);
     }
     this.onValueChange([
       {
-        type: 'update',
-        property: '',
-        currentPath: '',
-        jsonPointer: '',
+        type: "update",
+        property: "",
+        currentPath: "",
+        jsonPointer: "",
         target: this.val,
         // @ts-ignore
         proxy: (this.val as never).__getProxy,
@@ -62,17 +62,19 @@ export class State<T> {
   /**
    *
    */
-  public createSubState<S>(key: string, type: new (...a: never) => S): State<S> {
-    const subStateKeys = key.split('.');
-
+  public createSubState<S>(
+    key: T extends object ? `value.${NestedKeyof<T>}` : string,
+    type: new (...a: never) => S
+  ): State<S> {
+    const subStateKeys = key.split(".");
     const subStateValue: S = subStateKeys.reduce((obj: Record<string, unknown>, key: string) => {
       const val = obj[key];
       if (val !== undefined) {
         return val as Record<string, unknown>;
       }
       throw new InvalidStateKeyError(key, this);
-    }, this.getRawValue() as Record<string, unknown>) as S;
-    if (typeof subStateValue === 'object') {
+    }, this as Record<string, unknown>) as S;
+    if (typeof subStateValue === "object") {
       // check if is like generic type S
       if (subStateValue instanceof type) {
         // @ts-ignore
@@ -80,11 +82,11 @@ export class State<T> {
       } else {
         throw new Error(`Substate ${key} of state ${this.id} is not of type ${type.name}`);
       }
-    } else throw new Error('SubStates of properties that are Primitives are not supported yet.');
+    } else throw new Error("SubStates of properties that are Primitives are not supported yet.");
   }
 
   public getRawValue(): T {
-    if (typeof this.val === 'object') {
+    if (typeof this.val === "object") {
       // @ts-ignore
       return (this.val as unknown as ProxyConstructor).__getTarget;
     }
@@ -117,16 +119,19 @@ export class InvalidStateKeyError<T> extends Error {
     super();
     this.message = `Key does not exist!
     Detailed error:
-    ${subStateKey} could not be found in "value":${JSON.stringify(state.value)}
+    "${subStateKey}" could not be found in {"value":${JSON.stringify(state.value)}}
     `;
   }
 }
 
-export interface StateChange<T = unknown> {
-  type: 'add' | 'delete' | 'update';
+export type NestedKeyof<T = unknown> = T extends object
+  ? NestedKeyOf<T> | WithPrefixNumber<NestedKeyOf<T>>
+  : string;
+export interface StateChange<T = unknown, ObjectType = unknown> {
+  type: "add" | "delete" | "update";
   property: string; // equals "value" if the whole state is changed
 
-  currentPath: string; // path of the property
+  currentPath: NestedKeyof<ObjectType>; // path of the property
   jsonPointer: string; // path as json pointer syntax
   target: T; // the target object
   proxy?: ProxyConstructor; // the proxy of the object

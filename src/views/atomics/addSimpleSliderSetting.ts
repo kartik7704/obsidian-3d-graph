@@ -1,4 +1,4 @@
-import { Setting } from 'obsidian';
+import { Setting } from "obsidian";
 
 /**
  *
@@ -7,18 +7,19 @@ import { Setting } from 'obsidian';
  * @param onChange
  * @returns
  */
-export const SimpleSliderSetting = (
+export const addSimpleSliderSetting = (
   containerEl: HTMLElement,
   options: SliderOptions,
   onChange: (newValue: number) => void
 ) => {
   const slider = new Setting(containerEl)
     .setName(options.name)
-    .setClass('mod-slider')
+    .setClass("mod-slider")
     .addSlider((slider) => {
-      slider
+      return slider
         .setLimits(options.stepOptions.min, options.stepOptions.max, options.stepOptions.step)
         .setValue(options.value)
+        .setDynamicTooltip()
         .onChange(async (value) => {
           onChange(value);
         });

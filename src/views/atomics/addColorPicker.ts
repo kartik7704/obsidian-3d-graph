@@ -1,10 +1,10 @@
 /**
  * append a color picker to the container element
  */
-export const ColorPicker = (
+export const addColorPicker = (
   containerEl: HTMLElement,
   /**
-   * the current color
+   * the current color, must be hex format
    */
   value: string,
   /**
@@ -12,10 +12,10 @@ export const ColorPicker = (
    */
   onChange: (value: string) => void
 ) => {
-  const input = document.createElement('input');
-  input.type = 'color';
+  const input = document.createElement("input");
+  input.type = "color";
   input.value = value;
-  input.addEventListener('change', () => {
+  input.addEventListener("change", () => {
     onChange(input.value);
   });
   containerEl.appendChild(input);

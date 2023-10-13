@@ -33,9 +33,9 @@ import {
   WorkspaceTabs,
   WorkspaceWindow,
   WorkspaceWindowInitData,
-} from 'obsidian';
-import { EditorView } from '@codemirror/view';
-import { EditorState, Extension } from '@codemirror/state';
+} from "obsidian";
+import { EditorView } from "@codemirror/view";
+import { EditorState, Extension } from "@codemirror/state";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -63,7 +63,7 @@ interface Account {
   /**
    * The license available to the account
    */
-  license: '' | 'insider';
+  license: "" | "insider";
   /**
    * Profile name
    */
@@ -204,7 +204,7 @@ interface ThemeManifest {
    * Version of the theme
    * @remark Defaults to "0.0.0" if no theme manifest was provided in the repository
    */
-  version: '0.0.0' | string;
+  version: "0.0.0" | string;
 }
 
 interface CustomCSS extends Component {
@@ -257,7 +257,7 @@ interface CustomCSS extends Component {
    * Currently active theme, given by its name
    * @remark "" is the default Obsidian theme
    */
-  theme: '' | string;
+  theme: "" | string;
   /**
    * Mapping of theme names to their manifest
    */
@@ -506,35 +506,35 @@ interface HotkeyManager {
 }
 
 type InternalPlugin =
-  | 'audio-recorder'
-  | 'backlink'
-  | 'bookmarks'
-  | 'canvas'
-  | 'command-palette'
-  | 'daily-notes'
-  | 'editor-status'
-  | 'file-explorer'
-  | 'file-recovery'
-  | 'global-search'
-  | 'graph'
-  | 'markdown-importer'
-  | 'note-composer'
-  | 'outgoing-link'
-  | 'outline'
-  | 'page-preview'
-  | 'properties'
-  | 'publish'
-  | 'random-note'
-  | 'slash-command'
-  | 'slides'
-  | 'starred'
-  | 'switcher'
-  | 'sync'
-  | 'tag-pane'
-  | 'templates'
-  | 'word-count'
-  | 'workspaces'
-  | 'zk-prefixer';
+  | "audio-recorder"
+  | "backlink"
+  | "bookmarks"
+  | "canvas"
+  | "command-palette"
+  | "daily-notes"
+  | "editor-status"
+  | "file-explorer"
+  | "file-recovery"
+  | "global-search"
+  | "graph"
+  | "markdown-importer"
+  | "note-composer"
+  | "outgoing-link"
+  | "outline"
+  | "page-preview"
+  | "properties"
+  | "publish"
+  | "random-note"
+  | "slash-command"
+  | "slides"
+  | "starred"
+  | "switcher"
+  | "sync"
+  | "tag-pane"
+  | "templates"
+  | "word-count"
+  | "workspaces"
+  | "zk-prefixer";
 
 interface InternalPlugins extends Events {
   /**
@@ -778,14 +778,14 @@ interface PropertyInfo {
 }
 
 type PropertyWidgetType =
-  | 'aliases'
-  | 'checkbox'
-  | 'date'
-  | 'datetime'
-  | 'multitext'
-  | 'number'
-  | 'tags'
-  | 'text';
+  | "aliases"
+  | "checkbox"
+  | "date"
+  | "datetime"
+  | "multitext"
+  | "number"
+  | "tags"
+  | "text";
 
 interface PropertyWidget {
   /**
@@ -1154,64 +1154,64 @@ interface WindowSelection {
 }
 
 type ConfigItem =
-  | 'accentColor'
-  | 'alwaysUpdateLinks'
-  | 'attachmentFolderPath'
-  | 'autoConvertHtml'
-  | 'autoPairBrackets'
-  | 'autoPairMarkdown'
-  | 'baseFontSize'
-  | 'baseFontSizeAction'
-  | 'cssTheme'
-  | 'defaultViewMode'
-  | 'emacsyKeys'
-  | 'enabledCssSnippets'
-  | 'fileSortOrder'
-  | 'focusNewTab'
-  | 'foldHeading'
-  | 'foldIndent'
-  | 'hotkeys'
-  | 'interfaceFontFamily'
-  | 'legacyEditor'
-  | 'livePreview'
-  | 'mobilePullAction'
-  | 'mobileQuickRibbonItem'
-  | 'mobileToolbarCommands'
-  | 'monospaceFontFamily'
-  | 'nativeMenus'
-  | 'newFileFolderPath'
-  | 'newFileLocation'
-  | 'newLinkFormat'
-  | 'pdfExportSettings'
-  | 'promptDelete'
-  | 'propertiesInDocument'
-  | 'readableLineLength'
-  | 'rightToLeft'
-  | 'showIndentGuide'
-  | 'showInlineTitle'
-  | 'showLineNumber'
-  | 'showUnsupportedFiles'
-  | 'showViewHeader'
-  | 'smartIndentList'
-  | 'spellcheck'
-  | 'spellcheckLanguages'
-  | 'strictLineBreaks'
-  | 'tabSize'
-  | 'textFontFamily'
-  | 'theme'
-  | 'translucency'
-  | 'trashOption'
-  | 'types'
-  | 'useMarkdownLinks'
-  | 'useTab'
-  | 'userIgnoreFilters'
-  | 'vimMode';
+  | "accentColor"
+  | "alwaysUpdateLinks"
+  | "attachmentFolderPath"
+  | "autoConvertHtml"
+  | "autoPairBrackets"
+  | "autoPairMarkdown"
+  | "baseFontSize"
+  | "baseFontSizeAction"
+  | "cssTheme"
+  | "defaultViewMode"
+  | "emacsyKeys"
+  | "enabledCssSnippets"
+  | "fileSortOrder"
+  | "focusNewTab"
+  | "foldHeading"
+  | "foldIndent"
+  | "hotkeys"
+  | "interfaceFontFamily"
+  | "legacyEditor"
+  | "livePreview"
+  | "mobilePullAction"
+  | "mobileQuickRibbonItem"
+  | "mobileToolbarCommands"
+  | "monospaceFontFamily"
+  | "nativeMenus"
+  | "newFileFolderPath"
+  | "newFileLocation"
+  | "newLinkFormat"
+  | "pdfExportSettings"
+  | "promptDelete"
+  | "propertiesInDocument"
+  | "readableLineLength"
+  | "rightToLeft"
+  | "showIndentGuide"
+  | "showInlineTitle"
+  | "showLineNumber"
+  | "showUnsupportedFiles"
+  | "showViewHeader"
+  | "smartIndentList"
+  | "spellcheck"
+  | "spellcheckLanguages"
+  | "strictLineBreaks"
+  | "tabSize"
+  | "textFontFamily"
+  | "theme"
+  | "translucency"
+  | "trashOption"
+  | "types"
+  | "useMarkdownLinks"
+  | "useTab"
+  | "userIgnoreFilters"
+  | "vimMode";
 
 interface AppVaultConfig {
   /**
    * Appearance > Accent color
    */
-  accentColor: '' | string;
+  accentColor: "" | string;
   /**
    * Files & Links > Automatically update internal links
    */
@@ -1219,7 +1219,7 @@ interface AppVaultConfig {
   /**
    * Files & Links > Attachment folder path
    */
-  attachmentFolderPath?: '/' | string;
+  attachmentFolderPath?: "/" | string;
   /**
    * Editor > Auto convert HTML
    */
@@ -1243,20 +1243,20 @@ interface AppVaultConfig {
   /**
    * Community Plugins > Browse > Sort order
    */
-  communityPluginSortOrder: 'download' | 'update' | 'release' | 'alphabetical';
+  communityPluginSortOrder: "download" | "update" | "release" | "alphabetical";
   /**
    * Themes > Browse > Sort order
    */
-  communityThemeSortOrder: 'download' | 'update' | 'release' | 'alphabetical';
+  communityThemeSortOrder: "download" | "update" | "release" | "alphabetical";
   /**
    * Appearance > Theme
    * @remark "" is the default Obsidian theme
    */
-  cssTheme?: '' | string;
+  cssTheme?: "" | string;
   /**
    * Editor > Default view for new tabs
    */
-  defaultViewMode?: 'source' | 'preview';
+  defaultViewMode?: "source" | "preview";
   /**
    *
    */
@@ -1268,7 +1268,7 @@ interface AppVaultConfig {
   /**
    *
    */
-  fileSortOrder?: 'alphabetical';
+  fileSortOrder?: "alphabetical";
   /**
    * Editor > Always focus new tabs
    */
@@ -1289,7 +1289,7 @@ interface AppVaultConfig {
   /**
    * Appearance > Interface font
    */
-  interfaceFontFamily?: '' | string;
+  interfaceFontFamily?: "" | string;
   /**
    * Editor > Use legacy editor
    */
@@ -1301,11 +1301,11 @@ interface AppVaultConfig {
   /**
    * Mobile > Configure mobile Quick Action
    */
-  mobilePullAction?: 'command-palette:open' | string;
+  mobilePullAction?: "command-palette:open" | string;
   /**
    *
    */
-  mobileQuickRibbonItem?: '' | string;
+  mobileQuickRibbonItem?: "" | string;
   /**
    * Mobile > Manage toolbar options
    */
@@ -1313,7 +1313,7 @@ interface AppVaultConfig {
   /**
    *
    */
-  monospaceFontFamily?: '' | string;
+  monospaceFontFamily?: "" | string;
   /**
    * Appearance > Native menus
    */
@@ -1321,22 +1321,22 @@ interface AppVaultConfig {
   /**
    * Files & Links > Default location for new notes | 'folder' > Folder to create new notes in
    */
-  newFileFolderPath?: '/' | string;
+  newFileFolderPath?: "/" | string;
   /**
    * Files & Links > Default location for new notes
    */
-  newFileLocation?: 'root' | 'current' | 'folder';
+  newFileLocation?: "root" | "current" | "folder";
   /**
    * Files & Links > New link format
    */
-  newLinkFormat?: 'shortest' | 'relative' | 'absolute';
+  newLinkFormat?: "shortest" | "relative" | "absolute";
   /**
    * Saved on executing 'Export to PDF' command
    */
   pdfExportSettings?: {
-    pageSize: 'letter' | string;
+    pageSize: "letter" | string;
     landscape: false | boolean;
-    margin: '0' | string;
+    margin: "0" | string;
     downscalePercent: 100 | number;
   };
   /**
@@ -1346,7 +1346,7 @@ interface AppVaultConfig {
   /**
    * Editor > Properties in document
    */
-  propertiesInDocument?: 'visible' | 'hidden' | 'source';
+  propertiesInDocument?: "visible" | "hidden" | "source";
   /**
    * Editor > Readable line length
    */
@@ -1406,13 +1406,13 @@ interface AppVaultConfig {
   /**
    * Appearance > Text font
    */
-  textFontFamily?: '' | string;
+  textFontFamily?: "" | string;
   /**
    * Appearance > Base color scheme
    * @remark Not be confused with cssTheme, this setting is for the light/dark mode
    * @remark "moonstone" is light theme, "obsidian" is dark theme
    */
-  theme?: 'moonstone' | 'obsidian';
+  theme?: "moonstone" | "obsidian";
   /**
    * Appearance > Translucent window
    */
@@ -1420,7 +1420,7 @@ interface AppVaultConfig {
   /**
    * Files & Links > Deleted files
    */
-  trashOption?: 'system' | 'local' | 'none';
+  trashOption?: "system" | "local" | "none";
   /**
    * @deprecated Probably left-over code from old properties type storage
    */
@@ -1464,7 +1464,7 @@ interface FileEntry {
   /**
    * Type of entry
    */
-  type: 'file' | 'folder';
+  type: "file" | "folder";
 }
 
 interface ViewRegistry extends Events {
@@ -1666,7 +1666,7 @@ interface ImportedAttachments {
   name: string;
 }
 
-declare module 'obsidian' {
+declare module "obsidian" {
   interface App {
     /**
      * The account signed in to Obsidian
@@ -1822,7 +1822,7 @@ declare module 'obsidian' {
     /**
      * Sets the accent color of the application (light/dark mode)
      */
-    changeTheme: (theme: 'moonstone' | 'obsidian') => void;
+    changeTheme: (theme: "moonstone" | "obsidian") => void;
     /**
      * Copies Obsidian URI of given file to clipboard
      * @param file File to generate URI for
@@ -1877,7 +1877,7 @@ declare module 'obsidian' {
      * Get the current color scheme of the application
      * @remark Identical to `app.vault.getConfig('theme')`
      */
-    getTheme: () => 'moonstone' | 'obsidian';
+    getTheme: () => "moonstone" | "obsidian";
     /**
      * Import attachments into specified folder
      */
@@ -1965,7 +1965,7 @@ declare module 'obsidian' {
     /**
      * Set the current color scheme of the application and reload the CSS
      */
-    setTheme: (theme: 'moonstone' | 'obsidian') => void;
+    setTheme: (theme: "moonstone" | "obsidian") => void;
     /**
      * Open the OS file picker at path location
      */
@@ -2137,7 +2137,7 @@ declare module 'obsidian' {
     /**
      * Get destination of link path
      */
-    getLinkpathDest: (origin: string = '', path: string) => TFile[];
+    getLinkpathDest: (origin: string = "", path: string) => TFile[];
     /**
      * Get all links within the vault per file
      */
@@ -2301,8 +2301,8 @@ declare module 'obsidian' {
     createNewFile: (
       location: TFolder = null,
       filename: string = null,
-      extension: string = 'md',
-      contents: string = ''
+      extension: string = "md",
+      contents: string = ""
     ) => Promise<TFile>;
     /**
      * Creates a new untitled folder in the vault at specified location
@@ -2315,7 +2315,7 @@ declare module 'obsidian' {
     createNewMarkdownFile: (
       location: TFolder = null,
       filename: string = null,
-      contents: string = ''
+      contents: string = ""
     ) => Promise<TFile>;
     /**
      * Creates a new Markdown file based on linktext and path
@@ -2853,14 +2853,14 @@ declare module 'obsidian' {
      * @param leaf Leaf entry to deserialize
      * @param ribbon Whether the leaf belongs to the left or right ribbon
      */
-    deserializeLayout: (leaf: LeafEntry, ribbon?: 'left' | 'right') => Promise<WorkspaceLeaf>;
+    deserializeLayout: (leaf: LeafEntry, ribbon?: "left" | "right") => Promise<WorkspaceLeaf>;
     /**
      * @internal Reveal leaf in side ribbon with specified view type and state
      * @param type View type of leaf
      * @param ribbon Side ribbon to reveal leaf in
      * @param viewstate Open state of leaf
      */
-    ensureSideLeaf: (type: string, ribbon: 'left' | 'right', viewstate: OpenViewState) => void;
+    ensureSideLeaf: (type: string, ribbon: "left" | "right", viewstate: OpenViewState) => void;
     /**
      * Get active file view if exists
      */
@@ -2875,7 +2875,7 @@ declare module 'obsidian' {
      */
     getAdjacentLeafInDirection: (
       leaf: WorkspaceLeaf,
-      direction: 'top' | 'bottom' | 'left' | 'right'
+      direction: "top" | "bottom" | "left" | "right"
     ) => WorkspaceLeaf | null;
     /**
      * @internal Get the direction where the leaf should be dropped on dragevent
@@ -2883,9 +2883,9 @@ declare module 'obsidian' {
     getDropDirection: (
       e: DragEvent,
       rect: DOMRect,
-      directions: ['left', 'right'],
+      directions: ["left", "right"],
       leaf: WorkspaceLeaf
-    ) => 'left' | 'right' | 'top' | 'bottom' | 'center';
+    ) => "left" | "right" | "top" | "bottom" | "center";
     /**
      * @internal Get the leaf where the leaf should be dropped on dragevent
      * @param e Drag event
@@ -3093,7 +3093,7 @@ declare module 'obsidian' {
      */
     fileMap: Record<string, TAbstractFile>;
 
-    on(name: 'config-changed', callback: () => void, ctx?: any): EventRef;
+    on(name: "config-changed", callback: () => void, ctx?: any): EventRef;
 
     /**
      * @internal Add file as child/parent to respective folders
@@ -3271,7 +3271,7 @@ declare module 'obsidian' {
      */
     addHighlights: (
       ranges: { from: EditorPosition; to: EditorPosition }[],
-      style: 'is-flashing' | 'obsidian-search-match-highlight',
+      style: "is-flashing" | "obsidian-search-match-highlight",
       remove_previous: boolean,
       x: boolean
     ) => void;
@@ -3344,7 +3344,7 @@ declare module 'obsidian' {
      * Applies specified markdown syntax to selected text or word under cursor
      */
     toggleMarkdownFormatting: (
-      syntax: 'bold' | 'italic' | 'strikethrough' | 'highlight' | 'code' | 'math' | 'comment'
+      syntax: "bold" | "italic" | "strikethrough" | "highlight" | "code" | "math" | "comment"
     ) => void;
 
     /**

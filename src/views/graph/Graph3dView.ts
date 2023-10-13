@@ -1,8 +1,8 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
-import { Node } from '@/graph/Node';
-import { ForceGraph } from '@/views/graph/ForceGraph';
-import { GraphSettingsView } from '@/views/settings/GraphSettingsView';
-import Graph3dPlugin from '@/main';
+import { FuzzySuggestModal, ItemView, WorkspaceLeaf } from "obsidian";
+import { Node } from "@/graph/Node";
+import { ForceGraph } from "@/views/graph/ForceGraph";
+import { GraphSettingsView } from "@/views/settings/GraphSettingsView";
+import Graph3dPlugin from "@/main";
 
 export class Graph3dView extends ItemView {
   private forceGraph: ForceGraph;
@@ -21,24 +21,28 @@ export class Graph3dView extends ItemView {
   }
 
   showGraph() {
-    const viewContent = this.containerEl.querySelector('.view-content') as HTMLElement;
+    const viewContent = this.containerEl.querySelector(".view-content") as HTMLElement;
 
     if (viewContent) {
-      viewContent.classList.add('graph-3d-view');
+      viewContent.classList.add("graph-3d-view");
       this.appendGraph(viewContent);
-      const settings = new GraphSettingsView(this.plugin.settingsState, this.plugin.theme);
+      const settings = new GraphSettingsView(
+        this.plugin.settingsState,
+        this.plugin.theme,
+        this.plugin.app
+      );
       viewContent.appendChild(settings);
     } else {
-      console.error('Could not find view content');
+      console.error("Could not find view content");
     }
   }
 
   getDisplayText(): string {
-    return '3D-Graph';
+    return "3D-Graph";
   }
 
   getViewType(): string {
-    return '3d_graph_view';
+    return "3d_graph_view";
   }
 
   onResize() {
@@ -60,5 +64,48 @@ export class Graph3dView extends ItemView {
         }
       }
     });
+
+    this.forceGraph.getInstance().onNodeRightClick((node: Node, mouseEvent: MouseEvent) => {
+      console.log("right click", node, mouseEvent);
+
+      //   show a modal
+      const modal = new ExampleModal(this.app);
+      modal.open();
+    });
+  }
+}
+import { Notice } from "obsidian";
+
+interface Book {
+  title: string;
+  author: string;
+}
+
+const ALL_BOOKS = [
+  {
+    title: "How to Take Smart Notes",
+    author: "Sönke Ahrens",
+  },
+  {
+    title: "Thinking, Fast and Slow",
+    author: "Daniel Kahneman",
+  },
+  {
+    title: "Deep Work",
+    author: "Cal Newport",
+  },
+];
+
+export class ExampleModal extends FuzzySuggestModal<Book> {
+  getItems(): Book[] {
+    return ALL_BOOKS;
+  }
+
+  getItemText(book: Book): string {
+    return book.title;
+  }
+
+  onChooseItem(book: Book, evt: MouseEvent | KeyboardEvent) {
+    new Notice(`Selected ${book.title}`);
   }
 }

@@ -1,4 +1,4 @@
-import { Node } from '@/graph/Node';
+import { Node } from "@/graph/Node";
 
 export type ResolvedLinkCache = Record<string, Record<string, number>>;
 

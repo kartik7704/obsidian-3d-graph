@@ -1,15 +1,15 @@
-import { Notice, Plugin } from 'obsidian';
-import { Graph3dView } from '@/views/graph/Graph3dView';
-import { GraphSettings } from '@/settings/GraphSettings';
-import { State } from '@/util/State';
-import { Graph } from '@/graph/Graph';
-import { ObsidianTheme } from '@/util/ObsidianTheme';
-import { ResolvedLinkCache } from '@/graph/Link';
-import { deepCompare } from '@/util/deepCompare';
-import { getGraphSettingsFromStore } from '@/settings/getGraphSettingsFromStore';
-import '@total-typescript/ts-reset';
-import '@total-typescript/ts-reset/dom';
-import { eventBus } from '@/util/EventBus';
+import { Notice, Plugin } from "obsidian";
+import { Graph3dView } from "@/views/graph/Graph3dView";
+import { GraphSettings } from "@/settings/GraphSettings";
+import { State } from "@/util/State";
+import { Graph } from "@/graph/Graph";
+import { ObsidianTheme } from "@/util/ObsidianTheme";
+import { ResolvedLinkCache } from "@/graph/Link";
+import { deepCompare } from "@/util/deepCompare";
+import { getGraphSettingsFromStore } from "@/settings/getGraphSettingsFromStore";
+import "@total-typescript/ts-reset";
+import "@total-typescript/ts-reset/dom";
+import { eventBus } from "@/util/EventBus";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -35,16 +35,16 @@ export default class Graph3dPlugin extends Plugin {
 
   async onload() {
     await this.init();
-    this.addRibbonIcon('glasses', '3D Graph', this.openGlobalGraph);
+    this.addRibbonIcon("glasses", "3D Graph", this.openGlobalGraph);
     this.addCommand({
-      id: 'open-3d-graph-global',
-      name: 'Open Global 3D Graph',
+      id: "open-3d-graph-global",
+      name: "Open Global 3D Graph",
       callback: this.openGlobalGraph,
     });
 
     this.addCommand({
-      id: 'open-3d-graph-local',
-      name: 'Open Local 3D Graph',
+      id: "open-3d-graph-local",
+      name: "Open Local 3D Graph",
       callback: this.openLocalGraph,
     });
   }
@@ -69,16 +69,16 @@ export default class Graph3dPlugin extends Plugin {
     );
 
     // internal event to reset settings to default
-    eventBus.on('do-reset-settings', this.onDoResetSettings);
+    eventBus.on("do-reset-settings", this.onDoResetSettings);
 
     // show open local graph button in file menu
     this.registerEvent(
-      this.app.workspace.on('file-menu', (menu, file) => {
+      this.app.workspace.on("file-menu", (menu, file) => {
         if (!file) return;
         menu.addItem((item) => {
           item
-            .setTitle('Open in local 3D Graph')
-            .setIcon('glasses')
+            .setTitle("Open in local 3D Graph")
+            .setIcon("glasses")
             .onClick(() => this.openLocalGraph());
         });
       })
@@ -86,7 +86,7 @@ export default class Graph3dPlugin extends Plugin {
 
     // when a file gets opened, update the open file state
     this.registerEvent(
-      this.app.workspace.on('file-open', (file) => {
+      this.app.workspace.on("file-open", (file) => {
         if (file) this.openFileState.value = file.path;
       })
     );
@@ -101,9 +101,9 @@ export default class Graph3dPlugin extends Plugin {
     );
 
     // all files are resolved, so the cache is ready:
-    this.app.metadataCache.on('resolved', this.onGraphCacheReady.bind(this));
+    this.app.metadataCache.on("resolved", this.onGraphCacheReady.bind(this));
     // the cache changed:
-    this.app.metadataCache.on('resolve', this.onGraphCacheChanged.bind(this));
+    this.app.metadataCache.on("resolve", this.onGraphCacheChanged.bind(this));
   }
 
   // opens all queued graphs (graphs get queued if cache isnt ready yet)
@@ -113,7 +113,7 @@ export default class Graph3dPlugin extends Plugin {
   }
 
   private onGraphCacheReady = () => {
-    console.log('Graph cache is ready');
+    console.log("Graph cache is ready");
     this.cacheIsReady.value = true;
     this.onGraphCacheChanged();
   };
@@ -130,9 +130,9 @@ export default class Graph3dPlugin extends Plugin {
       this.globalGraph = Graph.createFromApp(this.app);
     } else {
       console.log(
-        'changed but ',
+        "changed but ",
         this.cacheIsReady.value,
-        ' and ',
+        " and ",
         deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
       );
     }
@@ -140,7 +140,7 @@ export default class Graph3dPlugin extends Plugin {
 
   private onDoResetSettings = () => {
     this.settingsState.value.reset();
-    eventBus.trigger('did-reset-settings');
+    eventBus.trigger("did-reset-settings");
   };
 
   // Opens a local graph view in a new leaf
@@ -151,7 +151,7 @@ export default class Graph3dPlugin extends Plugin {
       this.openFileState.value = newFilePath;
       this.openGraph(true);
     } else {
-      new Notice('No file is currently open');
+      new Notice("No file is currently open");
     }
   };
 
@@ -162,7 +162,7 @@ export default class Graph3dPlugin extends Plugin {
 
   // Open a global or local graph
   private openGraph = (isLocalGraph: boolean) => {
-    const leaf = this.app.workspace.getLeaf(isLocalGraph ? 'split' : false);
+    const leaf = this.app.workspace.getLeaf(isLocalGraph ? "split" : false);
     const graphView = new Graph3dView(this, leaf, isLocalGraph);
     leaf.open(graphView);
     if (this.cacheIsReady.value) {
@@ -175,18 +175,19 @@ export default class Graph3dPlugin extends Plugin {
   private async loadSettings(): Promise<GraphSettings> {
     const loadedData = await this.loadData(),
       settings = getGraphSettingsFromStore(loadedData);
+    console.log("loadSettings:", settings);
     return settings;
   }
 
   async saveSettings() {
-    console.log('saveSettings:', this.settingsState.getRawValue().toObject());
+    console.log("saveSettings:", this.settingsState.getRawValue().toObject());
     await this.saveData(this.settingsState.getRawValue().toObject());
   }
 
   onunload() {
     super.onunload();
     this.callbackUnregisterHandles.forEach((handle) => handle());
-    eventBus.off('do-reset-settings', this.onDoResetSettings);
+    eventBus.off("do-reset-settings", this.onDoResetSettings);
   }
 
   public getSettings(): GraphSettings {
