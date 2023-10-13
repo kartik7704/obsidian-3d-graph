@@ -1,10 +1,10 @@
-import { Events } from "obsidian";
+import { Events } from 'obsidian';
 
 // Event bus for internal Plugin communication
-class EventBus extends Events {
-	constructor() {
-		super();
-	}
+export class EventBus extends Events {
+  constructor() {
+    super();
+  }
 }
 
-export default new EventBus();
+export const eventBus = new EventBus();

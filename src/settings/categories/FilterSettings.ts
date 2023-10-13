@@ -1,17 +1,15 @@
+const DEFAULT_SHOW_ORPHANS = true;
+
 export class FilterSettings {
-	doShowOrphans? = true;
+  showOrphans = DEFAULT_SHOW_ORPHANS;
 
-	constructor(doShowOrphans?: boolean) {
-		this.doShowOrphans = doShowOrphans ?? this.doShowOrphans;
-	}
+  constructor(showOrphans = DEFAULT_SHOW_ORPHANS) {
+    this.showOrphans = showOrphans;
+  }
 
-	public static fromStore(store: any) {
-		return new FilterSettings(store?.doShowOrphans);
-	}
-
-	public toObject() {
-		return {
-			doShowOrphans: this.doShowOrphans,
-		};
-	}
+  public toObject() {
+    return {
+      showOrphans: this.showOrphans,
+    };
+  }
 }

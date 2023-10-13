@@ -1,20 +1,26 @@
+const DEFAULT_NODE_SIZE = 4;
+const DEFAULT_LINK_THICKNESS = 1;
+const DEFAULT_LINK_DISTANCE = 10;
+
 export class DisplaySettings {
-	nodeSize = 4;
-	linkThickness = 5;
+  public nodeSize = DEFAULT_NODE_SIZE;
+  public linkThickness = DEFAULT_LINK_THICKNESS;
+  public linkDistance = DEFAULT_LINK_DISTANCE;
 
-	constructor(nodeSize?: number, linkThickness?: number) {
-		this.nodeSize = nodeSize ?? this.nodeSize;
-		this.linkThickness = linkThickness ?? this.linkThickness;
-	}
+  constructor(
+    nodeSize = DEFAULT_NODE_SIZE,
+    linkThickness = DEFAULT_LINK_THICKNESS,
+    linkDistance = DEFAULT_LINK_DISTANCE
+  ) {
+    this.nodeSize = nodeSize;
+    this.linkThickness = linkThickness;
+    this.linkDistance = linkDistance;
+  }
 
-	public static fromStore(store: any) {
-		return new DisplaySettings(store?.nodeSize, store?.linkThickness);
-	}
-
-	public toObject() {
-		return {
-			nodeSize: this.nodeSize,
-			linkThickness: this.linkThickness,
-		};
-	}
+  public toObject() {
+    return {
+      nodeSize: this.nodeSize,
+      linkThickness: this.linkThickness,
+    };
+  }
 }

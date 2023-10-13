@@ -9,7 +9,8 @@
     "version": "bun version-bump.mjs && git add manifest.json versions.json",
     "build:copy": "npm run build && ./copy_to_vault.sh ~/Desktop/YouTube",
     "prepare": "husky install",
-    "typecheck": " tsc -noEmit -skipLibCheck"
+    "typecheck": "tsc -noEmit -skipLibCheck",
+    "lint": "eslint . --ext .ts --fix"
   },
   "keywords": [
     "obsidian",
@@ -26,15 +27,21 @@
     "@types/d3": "^7.4.0",
     "@types/node": "^16.11.6",
     "@types/three": "^0.157.0",
-    "@typescript-eslint/eslint-plugin": "5.29.0",
-    "@typescript-eslint/parser": "5.29.0",
+    "@types/eslint": "^8.44.4",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
     "builtin-modules": "3.3.0",
     "bun-types": "^1.0.5",
     "esbuild": "0.17.3",
     "husky": "^8.0.3",
     "obsidian": "latest",
     "tslib": "2.4.0",
-    "typescript": "^5.0.5"
+    "eslint": "^8.51.0",
+    "typescript": "^5.0.5",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-unused-imports": "^2.0.0",
+    "prettier": "^2.8.8"
   },
   "dependencies": {
     "3d-force-graph": "^1.72.3",
