@@ -7,10 +7,10 @@ export const getGraphSettingsFromStore = (
   // app: App,
   // TODO: this type need to be fixed
   store: {
-    filters: Prettify<ReturnType<(typeof FilterSettings.prototype)["toObject"]>>;
-    groups: Prettify<ReturnType<(typeof GroupSettings.prototype)["toObject"]>>;
-    display: Prettify<ReturnType<(typeof DisplaySettings.prototype)["toObject"]>>;
-  }
+    filters?: Prettify<ReturnType<(typeof FilterSettings.prototype)["toObject"]>>;
+    groups?: Prettify<ReturnType<(typeof GroupSettings.prototype)["toObject"]>>;
+    display?: Prettify<ReturnType<(typeof DisplaySettings.prototype)["toObject"]>>;
+  } = {}
 ) => {
   return new GraphSettings(
     // app,
