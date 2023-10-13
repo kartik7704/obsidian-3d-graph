@@ -40,7 +40,7 @@ export class Node {
   // Links together two nodes as neighbors (node -> neighbor)
   addNeighbor(neighbor: Node): Link | null {
     if (!this.isNeighborOf(neighbor)) {
-      const link = new Link(this.id, neighbor.id);
+      const link = new Link(this, neighbor);
       this.neighbors.push(neighbor);
       this.addLink(link);
 

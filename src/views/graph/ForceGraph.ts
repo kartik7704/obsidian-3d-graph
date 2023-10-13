@@ -9,6 +9,8 @@ import { rgba } from "polished";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { eventBus } from "@/util/EventBus";
 import { GraphSettings } from "@/settings/GraphSettings";
+import { DagOrientation } from "@/settings/categories/DisplaySettings";
+import * as d3 from "d3";
 
 const LINK_PARTICLE_MULTIPLIER = 2;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
@@ -53,9 +55,11 @@ export class ForceGraph {
   }
 
   private createGraph() {
+    const settings = this.plugin.getSettings();
     this.createInstance();
     this.createNodes();
     this.createLinks();
+    this.updateForce(settings.display.dagOrientation, settings.display.nodeRepulsion);
   }
 
   private createInstance() {
@@ -63,6 +67,7 @@ export class ForceGraph {
     const divEl = document.createElement("div");
     // set the divEl to have z-index 0
     divEl.style.zIndex = "0";
+    const settings = this.plugin.getSettings();
     this.instance = ForceGraph3D({
       extraRenderers: [
         // @ts-ignore https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/html-nodes/index.html#L27C9-L29
@@ -77,109 +82,21 @@ export class ForceGraph {
       // )
       // @ts-ignore  we need to return null or empty string because by default it will access the name of node, see https://github.com/vasturiano/3d-force-graph#node-styling
       .nodeLabel((node: Node) => null)
-      .nodeRelSize(this.plugin.getSettings().display.nodeSize)
+      .nodeRelSize(settings.display.nodeSize)
       .backgroundColor(rgba(0, 0, 0, 0.0))
       .width(width)
-      .height(height);
-  }
-
-  private getGraphData = (): Graph => {
-    if (this.isLocalGraph && this.plugin.openFileState.value) {
-      this.graph = this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);
-      console.log(this.graph);
-    } else {
-      this.graph = this.plugin.globalGraph.clone();
-    }
-
-    return this.graph;
-  };
-
-  private refreshGraphData = () => {
-    console.log("refresh graph data");
-    this.instance.graphData(this.getGraphData());
-  };
-
-  public handleSettingsChanged = (data: StateChange<unknown, GraphSettings>) => {
-    console.log("settings changed ", data);
-    if (data.currentPath === "display.nodeSize") {
-      this.instance.nodeRelSize(data.newValue as number);
-    } else if (data.currentPath === "display.linkThickness") {
-      console.log("link width changed");
-      this.instance
-        .linkWidth(data.newValue as number)
-        .linkDirectionalParticles((link: Link) =>
-          this.isHighlightedLink(link) ? PARTICLE_FREQUECY : 0
-        )
-        .linkDirectionalParticleWidth((data.newValue as number) * LINK_PARTICLE_MULTIPLIER)
-        .linkDirectionalArrowLength((data.newValue as number) * LINK_ARROW_WIDTH_MULTIPLIER)
-        .linkDirectionalArrowRelPos(1);
-    } else if (data.currentPath === "display.linkDistance") {
-      // https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/manipulate-link-force/index.html#L50-L55
-      this.instance.d3Force("link")?.distance(data.newValue as number);
-      this.instance.numDimensions(3); // reheat simulation
-    } else if (
-      data.currentPath === "display.showFullPath" ||
-      data.currentPath === "display.showExtension"
-    ) {
-      const settings = this.plugin.getSettings();
-      this.instance
-        .nodeThreeObject((node: Node) => {
-          const nodeEl = document.createElement("div");
-          const fullPath = node.path;
-          const fileNameWithExtension = node.name;
-          const fullPathWithoutExtension = fullPath.substring(0, fullPath.lastIndexOf("."));
-          const fileNameWithoutExtension = fileNameWithExtension.substring(
-            0,
-            fileNameWithExtension.lastIndexOf(".")
-          );
-          nodeEl.textContent = !settings.display.showExtension
-            ? settings.display.showFullPath
-              ? fullPathWithoutExtension
-              : fileNameWithoutExtension
-            : settings.display.showFullPath
-            ? fullPath
-            : fileNameWithExtension;
-          // @ts-ignore
-          nodeEl.style.color = node.color;
-          // .node-label {
-          //   font-size: 12px;
-          //   padding: 1px 4px;
-          //   border-radius: 4px;
-          //   background-color: rgba(0,0,0,0.5);
-          //   user-select: none;
-          // }
-          nodeEl.className = "node-label";
-          nodeEl.style.top = "20px";
-          nodeEl.style.fontSize = "12px";
-          nodeEl.style.padding = "1px 4px";
-          nodeEl.style.borderRadius = "4px";
-          nodeEl.style.backgroundColor = rgba(0, 0, 0, 0.5);
-          nodeEl.style.userSelect = "none";
-          return new CSS2DObject(nodeEl);
-        })
-        .nodeThreeObjectExtend(true);
-    }
-
-    this.instance.refresh(); // other settings only need a refresh
-  };
-
-  public updateDimensions() {
-    const [width, height] = [this.rootHtmlElement.offsetWidth, this.rootHtmlElement.offsetHeight];
-    this.setDimensions(width, height);
-  }
-
-  public setDimensions(width: number, height: number) {
-    this.instance.width(width);
-    this.instance.height(height);
+      .height(height)
+      //@ts-ignore
+      .dagMode(settings.display.dagOrientation === "null" ? null : settings.display.dagOrientation)
+      .dagLevelDistance(200);
   }
 
   private createNodes = () => {
     const settings = this.plugin.getSettings();
     this.instance
       .nodeColor((node: Node) => this.getNodeColor(node))
-      .nodeVisibility(this.doShowNode)
+      // .nodeVisibility(this.doShowNode)
       .onNodeHover(this.onNodeHover)
-
       .nodeThreeObject((node: Node) => {
         const nodeEl = document.createElement("div");
         const fullPath = node.path;
@@ -198,13 +115,6 @@ export class ForceGraph {
           : fileNameWithExtension;
         // @ts-ignore
         nodeEl.style.color = node.color;
-        // .node-label {
-        //   font-size: 12px;
-        //   padding: 1px 4px;
-        //   border-radius: 4px;
-        //   background-color: rgba(0,0,0,0.5);
-        //   user-select: none;
-        // }
         nodeEl.className = "node-label";
         nodeEl.style.top = "20px";
         nodeEl.style.fontSize = "12px";
@@ -216,6 +126,136 @@ export class ForceGraph {
       })
       .nodeThreeObjectExtend(true);
   };
+
+  private createLinks = () => {
+    const settings = this.plugin.getSettings();
+    this.instance
+      .linkWidth((link: Link) =>
+        this.isHighlightedLink(link)
+          ? settings.display.linkThickness * 1.5
+          : settings.display.linkThickness
+      )
+      // .linkVisibility(this.doShowLink)
+      .linkDirectionalParticles((link: Link) =>
+        this.isHighlightedLink(link) ? PARTICLE_FREQUECY : 0
+      )
+      .linkDirectionalParticleWidth(() => settings.display.linkThickness * LINK_PARTICLE_MULTIPLIER)
+      .linkDirectionalArrowLength(
+        () => settings.display.linkThickness * LINK_ARROW_WIDTH_MULTIPLIER
+      )
+      .linkDirectionalArrowRelPos(1)
+      .onLinkHover(this.onLinkHover)
+      .linkColor((link: Link) =>
+        this.isHighlightedLink(link) ? settings.display.linkHoverColor : this.plugin.theme.textMuted
+      )
+      .d3Force("link")
+      ?.distance(() => settings.display.linkDistance);
+  };
+
+  private updateForce = (dagOrientation: DagOrientation, nodeRepulsion: number) => {
+    const settings = this.plugin.getSettings();
+    const noDag = dagOrientation === "null";
+    if (noDag) {
+      // @ts-ignore
+      this.instance
+        .d3Force(
+          "link",
+          d3.forceLink().distance(() => settings.display.linkDistance)
+        )
+        // this will remove other force
+        // @ts-ignore
+        .d3Force("charge", d3.forceManyBody().strength(-1 * nodeRepulsion));
+
+      this.instance
+        // @ts-ignore
+        .d3Force("collide", null)
+        // @ts-ignore
+        .d3Force("center", null);
+    } else {
+      // @ts-ignore
+      this.instance
+        .d3Force(
+          "link",
+          d3
+            .forceLink()
+            .distance(() => settings.display.linkDistance)
+            .strength(1)
+        )
+        .d3Force("charge", d3.forceManyBody().strength(-1 * nodeRepulsion));
+      this.instance
+        .d3Force("collide", d3.forceCollide(110)) // change this value
+        .d3Force("center", d3.forceCenter(1 / 2, 1 / 2));
+    }
+  };
+
+  private getGraphData = (): Graph => {
+    const settings = this.plugin.getSettings();
+    if (this.isLocalGraph && this.plugin.openFileState.value) {
+      this.graph = this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);
+      console.log(this.graph);
+    } else {
+      console.log(settings.filters.searchResult);
+      this.graph = this.plugin.globalGraph.filter((node) => {
+        return (
+          (settings.filters.searchResult.length === 0 ||
+            settings.filters.searchResult.includes(node.path)) &&
+          // if not show orphans, the node must have at least one link
+          (settings.filters.showOrphans || node.links.length > 0) &&
+          // if not show attachments, the node must be ".md"
+          (settings.filters.showAttachments || node.path.endsWith(".md"))
+        );
+      });
+    }
+
+    return this.graph;
+  };
+
+  private refreshGraphData = () => {
+    console.log("refresh graph data");
+    this.instance.graphData(this.getGraphData());
+  };
+
+  public handleSettingsChanged = (data: StateChange<unknown, GraphSettings>) => {
+    const settings = this.plugin.getSettings();
+    // if the filter settings is change
+    if (
+      data.currentPath === "filters.searchResult" ||
+      data.currentPath === "filters.showOrphans" ||
+      data.currentPath === "filters.showAttachments"
+    ) {
+      // update the graphData
+      this.refreshGraphData();
+    }
+
+    if (data.currentPath === "display.nodeSize") {
+      this.instance.nodeRelSize(data.newValue as number);
+    } else if (data.currentPath === "display.linkDistance") {
+      // https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/manipulate-link-force/index.html#L50-L55
+      this.instance.d3Force("link")?.distance(data.newValue as number);
+      this.instance.numDimensions(3); // reheat simulation
+    } else if (data.currentPath === "display.dagOrientation") {
+      const noDag = (data.newValue as DagOrientation) === "null";
+      // @ts-ignore
+      this.instance.dagMode(noDag ? null : data.newValue);
+      this.updateForce(data.newValue as DagOrientation, settings.display.nodeRepulsion);
+      this.instance.numDimensions(3); // reheat simulation
+    } else if (data.currentPath === "display.nodeRepulsion") {
+      this.instance.d3Force("charge", d3.forceManyBody().strength(-1 * (data.newValue as number)));
+      this.instance.numDimensions(3); // reheat simulation
+    }
+
+    this.instance.refresh(); // other settings only need a refresh
+  };
+
+  public updateDimensions() {
+    const [width, height] = [this.rootHtmlElement.offsetWidth, this.rootHtmlElement.offsetHeight];
+    this.setDimensions(width, height);
+  }
+
+  public setDimensions(width: number, height: number) {
+    this.instance.width(width);
+    this.instance.height(height);
+  }
 
   private getNodeColor = (node: Node): string => {
     const settings = this.plugin.getSettings();
@@ -231,10 +271,6 @@ export class ForceGraph {
       });
       return color;
     }
-  };
-
-  private doShowNode = (node: Node) => {
-    return this.plugin.getSettings().filters.showOrphans || node.links.length > 0;
   };
 
   private onNodeHover = (node: Node | null) => {
@@ -261,35 +297,13 @@ export class ForceGraph {
     return this.highlightedNodes.has(node.id);
   };
 
-  private createLinks = () => {
-    const settings = this.plugin.getSettings();
-    this.instance
-      .linkWidth((link: Link) =>
-        this.isHighlightedLink(link)
-          ? settings.display.linkThickness * 1.5
-          : settings.display.linkThickness
-      )
-      .linkDirectionalParticles((link: Link) =>
-        this.isHighlightedLink(link) ? PARTICLE_FREQUECY : 0
-      )
-      .linkDirectionalParticleWidth(settings.display.linkThickness * LINK_PARTICLE_MULTIPLIER)
-      .linkDirectionalArrowLength(settings.display.linkThickness * LINK_ARROW_WIDTH_MULTIPLIER)
-      .linkDirectionalArrowRelPos(1)
-      .onLinkHover(this.onLinkHover)
-      .linkColor((link: Link) =>
-        this.isHighlightedLink(link) ? settings.display.linkHoverColor : this.plugin.theme.textMuted
-      )
-      .d3Force("link")
-      ?.distance(settings.display.linkDistance);
-  };
-
   private onLinkHover = (link: Link | null) => {
     this.clearHighlights();
 
     if (link) {
       this.highlightedLinks.add(link);
-      this.highlightedNodes.add(link.source);
-      this.highlightedNodes.add(link.target);
+      this.highlightedNodes.add(link.source.id);
+      this.highlightedNodes.add(link.target.id);
     }
     this.updateHighlight();
   };

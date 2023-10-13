@@ -3,22 +3,22 @@ import { Node } from "@/graph/Node";
 export type ResolvedLinkCache = Record<string, Record<string, number>>;
 
 export class Link {
-  public readonly source: string;
-  public readonly target: string;
+  public readonly source: Node;
+  public readonly target: Node;
 
-  constructor(sourceId: string, targetId: string) {
-    this.source = sourceId;
-    this.target = targetId;
+  constructor(source: Node, target: Node) {
+    this.source = source;
+    this.target = target;
   }
 
   // Creates a link index for an array of links
   static createLinkIndex(links: Link[]): Map<string, Map<string, number>> {
     const linkIndex = new Map<string, Map<string, number>>();
     links.forEach((link, index) => {
-      if (!linkIndex.has(link.source)) {
-        linkIndex.set(link.source, new Map<string, number>());
+      if (!linkIndex.has(link.source.id)) {
+        linkIndex.set(link.source.id, new Map<string, number>());
       }
-      linkIndex.get(link.source)?.set(link.target, index);
+      linkIndex.get(link.source.id)?.set(link.target.id, index);
     });
 
     return linkIndex;

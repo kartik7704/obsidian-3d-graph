@@ -68,7 +68,7 @@ export class Graph {
         (link) => link.source.id === nodeId || link.target.id === nodeId
       );
     } else {
-      return this.links.filter((link) => link.source === nodeId || link.target === nodeId);
+      return this.links.filter((link) => link.source.id === nodeId || link.target.id === nodeId);
     }
   }
 
@@ -86,9 +86,13 @@ export class Graph {
 
       nodes.forEach((node, index) => {
         const filteredLinks = node.links
-          .filter((link) => nodeIndex.has(link.target) && nodeIndex.has(link.source))
+          .filter((link) => nodeIndex.has(link.target.id) && nodeIndex.has(link.source.id))
           .map((link) => {
-            if (!links.includes(link) && nodeIndex.has(link.target) && nodeIndex.has(link.source))
+            if (
+              !links.includes(link) &&
+              nodeIndex.has(link.target.id) &&
+              nodeIndex.has(link.source.id)
+            )
               links.push(link);
             return link;
           });
@@ -137,5 +141,25 @@ export class Graph {
     newGraph.linkIndex.forEach((value, key) => {
       this.linkIndex.set(key, value);
     });
+  };
+
+  public filter = (predicate: (node: Node) => boolean) => {
+    const filteredNodes = this.nodes.filter(predicate);
+    const filteredLinks = this.links.filter((link) => {
+      // the source and target nodes of a link must be in the filtered nodes
+      return (
+        filteredNodes.some((node) => link.source.id === node.id) &&
+        filteredNodes.some((node) => link.target.id === node.id)
+      );
+    });
+
+    const nodeIndex = new Map<string, number>();
+    filteredNodes.forEach((node, index) => {
+      nodeIndex.set(node.id, index);
+    });
+
+    const linkIndex = Link.createLinkIndex(filteredLinks);
+
+    return new Graph(filteredNodes, filteredLinks, nodeIndex, linkIndex);
   };
 }

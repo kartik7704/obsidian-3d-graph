@@ -3,11 +3,14 @@ import {
   nodeSize,
   linkDistance,
   linkThickness,
+  DagOrientation,
+  nodeRepulsion,
 } from "@/settings/categories/DisplaySettings";
 import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { State } from "@/util/State";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";
+import { Setting } from "obsidian";
 
 export const DisplaySettingsView = (
   displaySettings: State<DisplaySettings>,
@@ -52,8 +55,18 @@ export const DisplaySettingsView = (
     }
   );
 
-  // add node hover color setting
-  console.log("adding node hover", displaySettings.value.nodeHoverColor);
+  addSimpleSliderSetting(
+    containerEl,
+    {
+      name: "Node Repulsion",
+      value: displaySettings.value.nodeRepulsion,
+      stepOptions: nodeRepulsion,
+    },
+    (value) => {
+      displaySettings.value.nodeRepulsion = value;
+    }
+  );
+
   addColorPickerSetting(
     containerEl,
     {
@@ -102,4 +115,24 @@ export const DisplaySettingsView = (
     },
     (value) => (displaySettings.value.showFullPath = value)
   );
+
+  // add dag orientation setting
+  new Setting(containerEl).setName("DAG Orientation").addDropdown((dropdown) => {
+    dropdown
+      .addOptions({
+        td: "Top Down",
+        bu: "Bottom Up",
+        lr: "Left Right",
+        rl: "Right Left",
+        zout: "Zoom Out",
+        zin: "Zoom In",
+        radialout: "Radial Out",
+        radialin: "Radial In",
+        null: "None",
+      })
+      .setValue(displaySettings.value.dagOrientation)
+      .onChange((value) => {
+        displaySettings.value.dagOrientation = value as DagOrientation;
+      });
+  });
 };

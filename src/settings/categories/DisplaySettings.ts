@@ -1,6 +1,7 @@
 const DEFAULT_NODE_SIZE = 3;
 const DEFAULT_LINK_THICKNESS = 3;
 const DEFAULT_LINK_DISTANCE = 50;
+const DEFAULT_NODE_REPULSION = 25;
 
 export const nodeSize = {
   min: 1,
@@ -23,22 +24,44 @@ export const linkDistance = {
   default: DEFAULT_LINK_DISTANCE, // 50
 };
 
+export const nodeRepulsion = {
+  min: 10,
+  max: 100,
+  step: 1,
+  default: DEFAULT_NODE_REPULSION, // 25
+};
+
+// 'td', 'bu', 'lr', 'rl', 'zout', 'zin', 'radialout', 'radialin', null
+export type DagOrientation =
+  | "td"
+  | "bu"
+  | "lr"
+  | "rl"
+  | "zout"
+  | "zin"
+  | "radialout"
+  | "radialin"
+  | "null";
+
 const DEFAULT_NODE_HOVER_COLOR = "#FF0000";
 const DEFAULT_NODE_HOVER_NEIGHBOUR_COLOR = "#00FF00";
 const DEFAULT_LINK_HOVER_COLOR = "#0000FF";
 const DEFAULT_SHOW_EXTENSION = false;
 const DEFAULT_SHOW_FULL_PATH = false;
+const DEFAULT_DAG_ORIENTATION = "null" as DagOrientation;
 export class DisplaySettings {
   public nodeSize = DEFAULT_NODE_SIZE;
   public linkThickness = DEFAULT_LINK_THICKNESS;
   public linkDistance = DEFAULT_LINK_DISTANCE;
   public nodeHoverColor = DEFAULT_NODE_HOVER_COLOR;
   public nodeHoverNeighbourColor = DEFAULT_NODE_HOVER_NEIGHBOUR_COLOR;
+  public nodeRepulsion = DEFAULT_NODE_REPULSION;
   public linkHoverColor = DEFAULT_LINK_HOVER_COLOR;
   public showExtension = DEFAULT_SHOW_EXTENSION;
   public showFullPath = DEFAULT_SHOW_FULL_PATH;
+  public dagOrientation = DEFAULT_DAG_ORIENTATION;
 
-  constructor(
+  constructor({
     nodeSize = DEFAULT_NODE_SIZE,
     linkThickness = DEFAULT_LINK_THICKNESS,
     linkDistance = DEFAULT_LINK_DISTANCE,
@@ -46,28 +69,37 @@ export class DisplaySettings {
     nodeHoverNeighbourColor = DEFAULT_NODE_HOVER_NEIGHBOUR_COLOR,
     linkHoverColor = DEFAULT_LINK_HOVER_COLOR,
     showExtension = DEFAULT_SHOW_EXTENSION,
-    showFullPath = DEFAULT_SHOW_FULL_PATH
-  ) {
+    showFullPath = DEFAULT_SHOW_FULL_PATH,
+    dagOrientation = DEFAULT_DAG_ORIENTATION,
+    nodeRepulsion = DEFAULT_NODE_REPULSION,
+  }: {
+    nodeSize?: number;
+    linkThickness?: number;
+    linkDistance?: number;
+    nodeHoverColor?: string;
+    nodeHoverNeighbourColor?: string;
+    linkHoverColor?: string;
+    showExtension?: boolean;
+    showFullPath?: boolean;
+    dagOrientation?: DagOrientation;
+    nodeRepulsion?: number;
+  } = {}) {
     this.nodeSize = nodeSize;
     this.linkThickness = linkThickness;
     this.linkDistance = linkDistance;
     this.nodeHoverColor = nodeHoverColor;
     this.nodeHoverNeighbourColor = nodeHoverNeighbourColor;
+    this.nodeRepulsion = nodeRepulsion;
     this.linkHoverColor = linkHoverColor;
     this.showExtension = showExtension;
     this.showFullPath = showFullPath;
+    this.dagOrientation = dagOrientation;
   }
 
   public toObject() {
+    const { toObject: _, ...others } = this;
     return {
-      nodeSize: this.nodeSize,
-      linkThickness: this.linkThickness,
-      linkDistance: this.linkDistance,
-      nodeHoverColor: this.nodeHoverColor,
-      nodeHoverNeighbourColor: this.nodeHoverNeighbourColor,
-      linkHoverColor: this.linkHoverColor,
-      showExtension: this.showExtension,
-      showFullPath: this.showFullPath,
+      ...others,
     };
   }
 }
