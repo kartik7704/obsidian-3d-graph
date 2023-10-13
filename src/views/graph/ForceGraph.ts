@@ -59,7 +59,7 @@ export class ForceGraph {
     this.createInstance();
     this.createNodes();
     this.createLinks();
-    this.updateForce(settings.display.dagOrientation, settings.display.nodeRepulsion);
+    // this.updateForce(settings.display.dagOrientation, settings.display.nodeRepulsion);
   }
 
   private createInstance() {
@@ -166,11 +166,11 @@ export class ForceGraph {
         // @ts-ignore
         .d3Force("charge", d3.forceManyBody().strength(-1 * nodeRepulsion));
 
-      this.instance
-        // @ts-ignore
-        .d3Force("collide", null)
-        // @ts-ignore
-        .d3Force("center", null);
+      // this.instance
+      //   // @ts-ignore
+      //   .d3Force("collide", null)
+      //   // @ts-ignore
+      //   .d3Force("center", null);
     } else {
       // @ts-ignore
       this.instance
@@ -182,9 +182,9 @@ export class ForceGraph {
             .strength(1)
         )
         .d3Force("charge", d3.forceManyBody().strength(-1 * nodeRepulsion));
-      this.instance
-        .d3Force("collide", d3.forceCollide(110)) // change this value
-        .d3Force("center", d3.forceCenter(1 / 2, 1 / 2));
+      // this.instance
+      //   .d3Force("collide", d3.forceCollide(110)) // change this value
+      //   .d3Force("center", d3.forceCenter(1 / 2, 1 / 2));
     }
   };
 
@@ -212,7 +212,15 @@ export class ForceGraph {
 
   private refreshGraphData = () => {
     console.log("refresh graph data");
-    this.instance.graphData(this.getGraphData());
+    const currentDagOrientation = this.plugin.getSettings().display.dagOrientation;
+    this.instance.dagMode("radialout");
+    this.instance.numDimensions(3); // reheat simulation
+    setTimeout(() => {
+      const noDag = currentDagOrientation === "null";
+      // @ts-ignore
+      this.instance.dagMode(noDag ? null : currentDagOrientation);
+      this.instance.graphData(this.getGraphData());
+    }, 300);
   };
 
   public handleSettingsChanged = (data: StateChange<unknown, GraphSettings>) => {
@@ -234,13 +242,18 @@ export class ForceGraph {
       this.instance.d3Force("link")?.distance(data.newValue as number);
       this.instance.numDimensions(3); // reheat simulation
     } else if (data.currentPath === "display.dagOrientation") {
-      const noDag = (data.newValue as DagOrientation) === "null";
-      // @ts-ignore
-      this.instance.dagMode(noDag ? null : data.newValue);
-      this.updateForce(data.newValue as DagOrientation, settings.display.nodeRepulsion);
+      this.instance.dagMode("radialout");
       this.instance.numDimensions(3); // reheat simulation
+      setTimeout(() => {
+        const noDag = (data.newValue as DagOrientation) === "null";
+        // @ts-ignore
+        this.instance.dagMode(noDag ? null : data.newValue);
+        this.instance.d3ReheatSimulation();
+        // this.updateForce(data.newValue as DagOrientation, settings.display.nodeRepulsion);
+        this.instance.numDimensions(3); // reheat simulation
+      }, 300);
     } else if (data.currentPath === "display.nodeRepulsion") {
-      this.instance.d3Force("charge", d3.forceManyBody().strength(-1 * (data.newValue as number)));
+      // this.instance.d3Force("charge", d3.forceManyBody().strength(-1 * (data.newValue as number)));
       this.instance.numDimensions(3); // reheat simulation
     }
 
