@@ -20,7 +20,7 @@ jq --arg version "$NEW_VERSION" '.version = $version' package.json >tmp.json && 
 echo "Changed package.json version to $NEW_VERSION"
 
 bun run version
-echo "Updated version of manifest using bun"
+echo "Updated version of manifest using bun, the current version of manifest.json is $(jq -r '.version' manifest.json)"
 
 git add . && git commit -m "release: $NEW_VERSION"
 git tag -a "$NEW_VERSION" -m "release: $NEW_VERSION"
