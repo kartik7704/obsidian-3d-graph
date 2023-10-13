@@ -1,5 +1,15 @@
+# get the version number in manifest.json
+MANINEST_VERSION=$(jq -r '.version' manifest.json)
+
 # get the package json version
 VERSION=$(node -p -e "require('./package.json').version")
+
+# if version != manifest.json version then exit
+if [ "$VERSION" != "$MANINEST_VERSION" ]; then
+    echo "Version mismatch between package.json and manifest.json"
+    exit 1
+fi
+
 # increate the version by 1 minor
 NEW_VERSION=$(bun semver $VERSION -i patch)
 echo "Current version: $VERSION"
