@@ -1,21 +1,19 @@
 ## Obsidian 3D Graph (Yomaru)
 
 > This is a fork from the original https://github.com/AlexW00/obsidian-3d-graph
+> 
+> ⚠️ This plugin is still under early development. Please open github issue if you have problems. 
 
 A 3D Graph for Obsidian!
 
-### Showcase:
+## Installation 
 
-https://user-images.githubusercontent.com/55558407/190087315-8386feee-b861-4520-bb94-19051c7a46c4.mp4
+### through BRAT 
 
-### ⬇️ Installation
+### Manual installation 
 
-3D-Graph is an official community plugin. You can download by:
+## Showcase:
 
--   clicking [here](https://obsidian.md/plugins?id=3d-graph)
--   searching for "3D Graph" in the Obsidian plugins tab
+https://www.youtube.com/watch?v=HnqXH6z4WrY
 
-### 👨‍💻 Development
 
-The plugin is written in TypeScript and uses D3.js for the graph rendering.
-For more information please, check the [dev docs](docs/dev-docs.md).
