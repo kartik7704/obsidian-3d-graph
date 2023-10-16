@@ -91,8 +91,16 @@ export class GraphSettingsView extends HTMLDivElement {
   };
 
   private appendGraphControlsItems(containerEl: HTMLElement) {
+    this.appendPullButton(containerEl);
     this.appendResetButton(containerEl);
     this.appendMinimizeButton(containerEl);
+  }
+
+  private appendPullButton(containerEl: HTMLElement) {
+    new ExtraButtonComponent(containerEl)
+      .setIcon("refresh-ccw")
+      .setTooltip("Pull node together")
+      .onClick(() => eventBus.trigger("do-pull"));
   }
 
   private appendResetButton(containerEl: HTMLElement) {

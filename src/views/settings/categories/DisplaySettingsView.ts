@@ -4,7 +4,6 @@ import {
   linkDistance,
   linkThickness,
   DagOrientation,
-  nodeRepulsion,
 } from "@/settings/categories/DisplaySettings";
 import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { State } from "@/util/State";
@@ -55,17 +54,17 @@ export const DisplaySettingsView = (
     }
   );
 
-  addSimpleSliderSetting(
-    containerEl,
-    {
-      name: "Node Repulsion",
-      value: displaySettings.value.nodeRepulsion,
-      stepOptions: nodeRepulsion,
-    },
-    (value) => {
-      displaySettings.value.nodeRepulsion = value;
-    }
-  );
+  //   addSimpleSliderSetting(
+  //     containerEl,
+  //     {
+  //       name: "Node Repulsion",
+  //       value: displaySettings.value.nodeRepulsion,
+  //       stepOptions: nodeRepulsion,
+  //     },
+  //     (value) => {
+  //       displaySettings.value.nodeRepulsion = value;
+  //     }
+  //   );
 
   addColorPickerSetting(
     containerEl,
