@@ -76,7 +76,8 @@ export class State<T> {
     }, this as Record<string, unknown>) as S;
     if (typeof subStateValue === "object") {
       // check if is like generic type S
-      if (subStateValue instanceof type) {
+      // @ts-ignore
+      if (subStateValue instanceof type || Boolean(subStateValue?.__getTarget)) {
         // @ts-ignore
         return new State(subStateValue.__getTarget);
       } else {

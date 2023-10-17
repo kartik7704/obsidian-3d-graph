@@ -18,6 +18,7 @@ export const AddNodeGroupItem = (
   });
 
   addColorPicker(groupEl, group.value.color, (value) => {
+    console.log("color changed", value);
     group.value.color = value;
   });
 

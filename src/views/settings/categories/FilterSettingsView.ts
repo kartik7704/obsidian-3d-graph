@@ -1,69 +1,68 @@
-import { App, Notice, Setting, Plugin } from "obsidian";
+import { SearchView, Setting, TFile } from "obsidian";
 import { FilterSettings } from "@/settings/categories/FilterSettings";
 import { State } from "@/util/State";
+import { spawnLeafView } from "@/views/leafView";
+import Graph3dPlugin from "@/main";
 
-interface GlobalSearchPlugin extends Plugin {
-  instance: {
-    getGlobalSearchQuery: () => string;
-    openGlobalSearch: (query: string) => void;
-  };
-}
+const DomLookUpTime = 300;
 
-export const FilterSettingsView = (
+export const FilterSettingsView = async (
   filterSettings: State<FilterSettings>,
   containerEl: HTMLElement,
-  app: App
+  plugin: Graph3dPlugin
 ) => {
-  const instance = (app.internalPlugins.plugins["global-search"] as GlobalSearchPlugin).instance;
-  // add search setting
-  new Setting(containerEl)
-    .setClass("mod-search-setting")
-    .addSearch((search) => {
-      // initialize search with current search query
-      search.inputEl.value = filterSettings.value.searchQuery;
-      filterSettings.onChange((change) => {
-        if (change.currentPath === "searchQuery") {
-          search.inputEl.value = change.newValue as string;
-        }
-      });
-      search.setPlaceholder("Read only");
-      search.inputEl.onclick = (e) => {
-        new Notice("This search is delegated to the global search plugin");
-        const currentSearch = instance.getGlobalSearchQuery();
-        instance.openGlobalSearch(currentSearch);
-      };
-      search.clearButtonEl.onclick = (e) => {
-        filterSettings.value.searchQuery = "";
-        filterSettings.value.searchResult = [];
-      };
-      search.inputEl.readOnly = true;
-      return search;
-    })
-    .addButton((button) => {
-      button.setButtonText("Search").onClick(async (e) => {
-        const currentSearch = instance.getGlobalSearchQuery();
-        instance.openGlobalSearch(currentSearch);
-        const searchLeaf = app.workspace.getLeavesOfType("search")[0];
-        if (searchLeaf) {
-          filterSettings.value.searchQuery = instance.getGlobalSearchQuery();
-          const search = await searchLeaf.open(searchLeaf.view);
-          const rawSearchResult = await new Promise((resolve) =>
-            setTimeout(() => {
-              // @ts-ignore
-              resolve(search.dom.resultDomLookup);
-            }, 300)
-          );
-          // @ts-ignore
-          const files = Array.from(rawSearchResult.keys());
-          console.log(files);
-          // @ts-ignore
-          filterSettings.value.searchResult = files.map((f) => f.path as string);
-          console.log(filterSettings.value.searchResult);
-        } else {
-          new Notice("Please open your search leaf first");
-        }
-      });
-    });
+  const searchEl = containerEl.createDiv({
+    // cls :
+  });
+  const [searchLeaf] = spawnLeafView(plugin, searchEl);
+
+  await searchLeaf.setViewState({
+    type: "search",
+  });
+
+  // add searchEl to containerEl
+  containerEl.appendChild(searchEl);
+
+  const element = searchLeaf.containerEl.querySelector(
+    ".workspace-leaf-content[data-type='search']"
+  ) as HTMLDivElement;
+  // element.style.removeProperty("overflow");
+  const searchRowEl = element.querySelector(".search-row") as HTMLDivElement;
+  searchRowEl.style.margin = "0px";
+  console.log(element);
+  // move the element to the containerEl
+  containerEl.appendChild(searchRowEl);
+  const inputEl = searchRowEl.getElementsByTagName("input")[0]!;
+  const settingIconEl = searchRowEl.querySelector(
+    ".clickable-icon[aria-label='Search settings']"
+  ) as HTMLDivElement;
+  const matchCaseIconEl = searchRowEl.querySelector(
+    "div.search-input-container > div[aria-label='Match case'] "
+  ) as HTMLDivElement;
+  const clearButtonEl = searchRowEl.querySelector(".search-input-clear-button") as HTMLDivElement;
+  settingIconEl?.remove();
+  matchCaseIconEl?.remove();
+  console.log(settingIconEl);
+  inputEl.value = filterSettings.value.searchQuery;
+  inputEl.onkeydown = async (e) => {
+    const currentView = searchLeaf.view as SearchView;
+    const rawSearchResult = await new Promise((resolve) =>
+      setTimeout(() => {
+        // @ts-ignore
+        resolve(currentView.dom.resultDomLookup);
+      }, DomLookUpTime)
+    );
+    // @ts-ignore
+    const files = Array.from(rawSearchResult.keys()) as TFile[];
+
+    filterSettings.value.searchResult = files.map((f) => f.path);
+    filterSettings.value.searchQuery = inputEl.value;
+  };
+
+  clearButtonEl.onclick = async () => {
+    filterSettings.value.searchQuery = "";
+    filterSettings.value.searchResult = [];
+  };
 
   // add show attachments setting
   new Setting(containerEl).setName("Show Attachments").addToggle((toggle) => {

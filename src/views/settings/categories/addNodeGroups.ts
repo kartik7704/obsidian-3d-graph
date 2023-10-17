@@ -9,6 +9,7 @@ export const addNodeGroups = (groupSettings: State<GroupSettings>, containerEl: 
     cls: "graph-color-groups-container",
   });
   groupSettings.value.groups.forEach((group, index) => {
+    console.log(groupSettings.value.groups[0]);
     const groupState = groupSettings.createSubState(`value.groups.${index}`, NodeGroup);
     AddNodeGroupItem(groupState, nodeGroupContainerEl, () => {
       groupSettings.value.groups.splice(index, 1);

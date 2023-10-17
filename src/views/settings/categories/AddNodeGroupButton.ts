@@ -5,6 +5,10 @@ import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { State } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 
+const getRandomColor = () => {
+  return "#" + Math.floor(Math.random() * 16777215).toString(16);
+};
+
 export const addNodeGroupButton = (
   groupSettings: State<GroupSettings>,
   containerEl: HTMLElement,
@@ -20,7 +24,7 @@ export const addNodeGroupButton = (
     .setClass("mod-cta")
     .setButtonText("Add Group")
     .onClick(() => {
-      groupSettings.value.groups.push(new NodeGroup("", theme.textMuted));
+      groupSettings.value.groups.push(new NodeGroup("", getRandomColor()));
       containerEl.empty();
       GroupSettingsView(groupSettings, containerEl, theme);
     });

@@ -11,10 +11,14 @@ import { eventBus } from "@/util/EventBus";
 import { GraphSettings } from "@/settings/GraphSettings";
 import { DagOrientation } from "@/settings/categories/DisplaySettings";
 import * as d3 from "d3";
+import * as THREE from "three";
 
 const LINK_PARTICLE_MULTIPLIER = 2;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
 const PARTICLE_FREQUECY = 4;
+
+const FOCAL_FROM_CAMERA = 400;
+const DISTANCE_FROM_FOCAL = 300;
 
 // Adapted from https://github.com/vasturiano/3d-force-graph/blob/master/example/highlight/index.html
 // D3.js 3D Force Graph
@@ -36,13 +40,15 @@ export class ForceGraph {
   private readonly isLocalGraph: boolean;
   private graph: Graph;
   private readonly plugin: Graph3dPlugin;
+  private myCube: THREE.Mesh;
+  private nodeLabelEl: HTMLDivElement;
 
   constructor(plugin: Graph3dPlugin, rootHtmlElement: HTMLElement, isLocalGraph: boolean) {
     this.rootHtmlElement = rootHtmlElement;
     this.isLocalGraph = isLocalGraph;
     this.plugin = plugin;
 
-    console.log("ForceGraph constructor", rootHtmlElement);
+    // console.log("ForceGraph constructor", rootHtmlElement);
 
     this.createGraph();
     this.initListeners();
@@ -67,15 +73,68 @@ export class ForceGraph {
   }
 
   private createGraph() {
+    const xDir = new THREE.Vector3(1, 0, 0);
+    const yDir = new THREE.Vector3(0, 1, 0);
+    const zDir = new THREE.Vector3(0, 0, 1);
+
+    const myCube = new THREE.Mesh(
+      new THREE.BoxGeometry(30, 30, 30),
+      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    );
+    this.myCube = myCube;
+    myCube.position.set(0, 0, -300);
+    myCube.visible = false;
+
+    xDir.normalize();
+    yDir.normalize();
+    zDir.normalize();
+
+    const origin = new THREE.Vector3(0, 0, 0);
+    const length = 100;
+
+    const xArrow = new THREE.ArrowHelper(xDir, origin, length, 0xff0000);
+    const yArrow = new THREE.ArrowHelper(yDir, origin, length, 0x00ff00);
+    const zArrow = new THREE.ArrowHelper(zDir, origin, length, 0x0000ff);
+
     this.createInstance();
     this.createNodes();
     this.createLinks();
-    // this.updateForce(settings.display.dagOrientation, settings.display.nodeRepulsion);
+    this.instance.scene().add(xArrow).add(yArrow).add(zArrow).add(myCube);
+    const camera = this.instance.camera() as THREE.PerspectiveCamera;
+    const renderer = this.instance.renderer();
+    function onZoom(event: WheelEvent) {
+      // const delta = event.deltaY;
+      // const zoomSpeed = 0.1;
+      const distanceToCenter = camera.position.distanceTo(origin);
+      // console.log(camera.position, distanceToCenter);
+      camera.updateProjectionMatrix();
+      xArrow.setLength(distanceToCenter / 10);
+      yArrow.setLength(distanceToCenter / 10);
+      zArrow.setLength(distanceToCenter / 10);
+    }
+
+    renderer.domElement.addEventListener("wheel", onZoom);
+
+    this.instance.scene().onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
+      const cwd = new THREE.Vector3();
+      camera.getWorldDirection(cwd);
+      cwd.multiplyScalar(FOCAL_FROM_CAMERA);
+      cwd.add(camera.position);
+      myCube.position.set(cwd.x, cwd.y, cwd.z);
+      myCube.setRotationFromQuaternion(camera.quaternion);
+    };
   }
 
   private createInstance() {
     const [width, height] = [this.rootHtmlElement.innerWidth, this.rootHtmlElement.innerHeight];
     const divEl = document.createElement("div");
+    const nodeLabelEl = divEl.createDiv({
+      cls: "node-label",
+      text: "test",
+    });
+    nodeLabelEl.style.opacity = "0";
+    this.nodeLabelEl = nodeLabelEl;
+
     // set the divEl to have z-index 0
     divEl.style.zIndex = "0";
     const settings = this.plugin.getSettings();
@@ -88,9 +147,7 @@ export class ForceGraph {
       ],
     })(this.rootHtmlElement)
       .graphData(this.getGraphData())
-      // .nodeLabel(
-      // 	(node: Node) => `<div class="node-label">${node.name}</div>`
-      // )
+      // .nodeLabel((node: Node) => `<div class="node-label">${node.name}</div>`)
       // @ts-ignore  we need to return null or empty string because by default it will access the name of node, see https://github.com/vasturiano/3d-force-graph#node-styling
       .nodeLabel((node: Node) => null)
       .nodeRelSize(settings.display.nodeSize)
@@ -106,28 +163,35 @@ export class ForceGraph {
     // .d3Force("y", d3.forceY().strength(0.1));
   }
 
-  private createNodes = () => {
+  private getNodeLabelText = (node: Node) => {
     const settings = this.plugin.getSettings();
+    const fullPath = node.path;
+    const fileNameWithExtension = node.name;
+    const fullPathWithoutExtension = fullPath.substring(0, fullPath.lastIndexOf("."));
+    const fileNameWithoutExtension = fileNameWithExtension.substring(
+      0,
+      fileNameWithExtension.lastIndexOf(".")
+    );
+    const text = !settings.display.showExtension
+      ? settings.display.showFullPath
+        ? fullPathWithoutExtension
+        : fileNameWithoutExtension
+      : settings.display.showFullPath
+      ? fullPath
+      : fileNameWithExtension;
+    return text;
+  };
+
+  private createNodes = () => {
     this.instance
       .nodeColor((node: Node) => this.getNodeColor(node))
       // .nodeVisibility(this.doShowNode)
       .onNodeHover(this.onNodeHover)
       .nodeThreeObject((node: Node) => {
         const nodeEl = document.createElement("div");
-        const fullPath = node.path;
-        const fileNameWithExtension = node.name;
-        const fullPathWithoutExtension = fullPath.substring(0, fullPath.lastIndexOf("."));
-        const fileNameWithoutExtension = fileNameWithExtension.substring(
-          0,
-          fileNameWithExtension.lastIndexOf(".")
-        );
-        nodeEl.textContent = !settings.display.showExtension
-          ? settings.display.showFullPath
-            ? fullPathWithoutExtension
-            : fileNameWithoutExtension
-          : settings.display.showFullPath
-          ? fullPath
-          : fileNameWithExtension;
+
+        const text = this.getNodeLabelText(node);
+        nodeEl.textContent = text;
         // @ts-ignore
         nodeEl.style.color = node.color;
         nodeEl.className = "node-label";
@@ -137,7 +201,34 @@ export class ForceGraph {
         nodeEl.style.borderRadius = "4px";
         nodeEl.style.backgroundColor = rgba(0, 0, 0, 0.5);
         nodeEl.style.userSelect = "none";
-        return new CSS2DObject(nodeEl);
+
+        // const sprite = new SpriteText(text);
+        // sprite.color = "#8898aa";
+        // sprite.textHeight = 12;
+        // sprite.position.y = 8;
+        // sprite.material.depthWrite = false;
+        //   sprite.visible
+
+        // return sprite;
+
+        const cssObject = new CSS2DObject(nodeEl);
+        cssObject.onAfterRender = (renderer, scene, camera) => {
+          // get the position of the node
+          // @ts-ignore
+          const obj = node.__threeObj as THREE.Object3D | undefined;
+          const nodePosition = obj?.position as THREE.Vector3;
+          // then get the distance between the node and this.myCube , console.log it
+          const distance = nodePosition.distanceTo(this.myCube.position);
+          // change the opacity of the nodeEl base on the distance
+          // the higher the distance, the lower the opacity
+          // when the distance is 300, the opacity is 0
+          // console.log(distance);
+          const normalizedDistance = Math.min(distance, DISTANCE_FROM_FOCAL) / DISTANCE_FROM_FOCAL;
+          const easedValue = 0.5 - 0.5 * Math.cos(normalizedDistance * Math.PI);
+          nodeEl.style.opacity = `${1 - easedValue}`;
+        };
+
+        return cssObject;
       })
       .nodeThreeObjectExtend(true);
   };
@@ -150,7 +241,6 @@ export class ForceGraph {
           ? settings.display.linkThickness * 1.5
           : settings.display.linkThickness
       )
-      // .linkVisibility(this.doShowLink)
       .linkDirectionalParticles((link: Link) =>
         this.isHighlightedLink(link) ? PARTICLE_FREQUECY : 0
       )
@@ -205,9 +295,9 @@ export class ForceGraph {
     const settings = this.plugin.getSettings();
     if (this.isLocalGraph && this.plugin.openFileState.value) {
       this.graph = this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);
-      console.log(this.graph);
+      // console.log(this.graph);
     } else {
-      console.log(settings.filters.searchResult);
+      // console.log(settings.filters.searchResult);
       this.graph = this.plugin.globalGraph.filter((node) => {
         return (
           (settings.filters.searchResult.length === 0 ||
@@ -224,7 +314,7 @@ export class ForceGraph {
   };
 
   private refreshGraphData = () => {
-    console.log("refresh graph data");
+    // console.log("refresh graph data");
     this.instance.graphData(this.getGraphData());
   };
 
@@ -287,6 +377,17 @@ export class ForceGraph {
 
   private onNodeHover = (node: Node | null) => {
     if ((!node && !this.highlightedNodes.size) || (node && this.hoveredNode === node)) return;
+
+    // set node label text
+    if (node) {
+      const text = this.getNodeLabelText(node);
+      this.nodeLabelEl.textContent = text;
+      // @ts-ignore
+      this.nodeLabelEl.style.color = node.color;
+      this.nodeLabelEl.style.opacity = "1";
+    } else {
+      this.nodeLabelEl.style.opacity = "0";
+    }
 
     this.clearHighlights();
 

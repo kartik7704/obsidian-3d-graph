@@ -3,26 +3,28 @@ import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettings
 import { FilterSettings } from "@/settings/categories/FilterSettings";
 import { GroupSettings } from "@/settings/categories/GroupSettings";
 import { DisplaySettings } from "@/settings/categories/DisplaySettings";
-import { App, ExtraButtonComponent } from "obsidian";
+import { ExtraButtonComponent, WorkspaceLeaf } from "obsidian";
 import { State, StateChange } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 import { FilterSettingsView } from "@/views/settings/categories/FilterSettingsView";
 import { GraphSettings } from "@/settings/GraphSettings";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { eventBus } from "@/util/EventBus";
+import Graph3dPlugin from "@/main";
 
 export class GraphSettingsView extends HTMLDivElement {
-  private app: App;
   private settingsButton: ExtraButtonComponent;
   private graphControls: HTMLDivElement;
   private readonly settingsState: State<GraphSettings>;
   private readonly theme: ObsidianTheme;
+  private readonly plugin: Graph3dPlugin;
+  searchLeaf: WorkspaceLeaf;
 
-  constructor(settingsState: State<GraphSettings>, theme: ObsidianTheme, app: App) {
+  constructor(settingsState: State<GraphSettings>, theme: ObsidianTheme, plugin: Graph3dPlugin) {
     super();
     this.settingsState = settingsState;
     this.theme = theme;
-    this.app = app;
+    this.plugin = plugin;
   }
 
   private isCollapsedState = new State(true);
@@ -40,23 +42,25 @@ export class GraphSettingsView extends HTMLDivElement {
     this.graphControls = this.createDiv({ cls: "graph-controls" });
 
     this.appendGraphControlsItems(this.graphControls.createDiv({ cls: "control-buttons" }));
-    this.appendSetting(
+    this.appendSettingGroup(
       this.settingsState.createSubState("value.filters", FilterSettings),
       "Filters",
-      (...args) => FilterSettingsView(...args, this.app)
+      (...args) => FilterSettingsView(...args, this.plugin)
     );
-    this.appendSetting(
+    this.appendSettingGroup(
       this.settingsState.createSubState("value.groups", GroupSettings),
       "Groups",
       (...args) => GroupSettingsView(...args, this.theme)
     );
-    this.appendSetting(
+    this.appendSettingGroup(
       this.settingsState.createSubState("value.display", DisplaySettings),
       "Display",
       DisplaySettingsView
     );
     this.initListeners();
     this.toggleCollapsed(this.isCollapsedState.value);
+
+    // init search view
   }
 
   private initListeners() {
@@ -111,14 +115,18 @@ export class GraphSettingsView extends HTMLDivElement {
   }
 
   private appendMinimizeButton(containerEl: HTMLElement) {
+    // on close
     new ExtraButtonComponent(containerEl)
       .setIcon("x")
       .setTooltip("Close")
-      .onClick(() => (this.isCollapsedState.value = true));
+      .onClick(() => {
+        this.isCollapsedState.value = true;
+        console.log("graph setting is closed");
+      });
   }
 
   // utility function to append a setting
-  private appendSetting<S>(
+  private appendSettingGroup<S>(
     setting: S,
     title: string,
     view: (setting: S, containerEl: HTMLElement) => void

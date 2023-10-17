@@ -29,7 +29,7 @@ export class Graph3dView extends ItemView {
       const settings = new GraphSettingsView(
         this.plugin.settingsState,
         this.plugin.theme,
-        this.plugin.app
+        this.plugin
       );
       viewContent.appendChild(settings);
     } else {
