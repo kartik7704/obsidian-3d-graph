@@ -49,6 +49,7 @@ const DEFAULT_LINK_HOVER_COLOR = "#0000FF";
 const DEFAULT_SHOW_EXTENSION = false;
 const DEFAULT_SHOW_FULL_PATH = false;
 const DEFAULT_DAG_ORIENTATION = "null" as DagOrientation;
+const DEFAULT_SHOW_CENTER_COORDINATES = false;
 export class DisplaySettings {
   public nodeSize = DEFAULT_NODE_SIZE;
   public linkThickness = DEFAULT_LINK_THICKNESS;
@@ -60,6 +61,7 @@ export class DisplaySettings {
   public showExtension = DEFAULT_SHOW_EXTENSION;
   public showFullPath = DEFAULT_SHOW_FULL_PATH;
   public dagOrientation = DEFAULT_DAG_ORIENTATION;
+  public showCenterCoordinates = DEFAULT_SHOW_CENTER_COORDINATES;
 
   constructor({
     nodeSize = DEFAULT_NODE_SIZE,
@@ -72,6 +74,7 @@ export class DisplaySettings {
     showFullPath = DEFAULT_SHOW_FULL_PATH,
     dagOrientation = DEFAULT_DAG_ORIENTATION,
     nodeRepulsion = DEFAULT_NODE_REPULSION,
+    showCenterCoordinates = DEFAULT_SHOW_CENTER_COORDINATES,
   }: {
     nodeSize?: number;
     linkThickness?: number;
@@ -83,6 +86,7 @@ export class DisplaySettings {
     showFullPath?: boolean;
     dagOrientation?: DagOrientation;
     nodeRepulsion?: number;
+    showCenterCoordinates?: boolean;
   } = {}) {
     this.nodeSize = nodeSize;
     this.linkThickness = linkThickness;
@@ -94,6 +98,7 @@ export class DisplaySettings {
     this.showExtension = showExtension;
     this.showFullPath = showFullPath;
     this.dagOrientation = dagOrientation;
+    this.showCenterCoordinates = showCenterCoordinates;
   }
 
   public toObject() {

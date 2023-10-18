@@ -11,6 +11,7 @@ import { GraphSettings } from "@/settings/GraphSettings";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { eventBus } from "@/util/EventBus";
 import Graph3dPlugin from "@/main";
+import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 
 export class GraphSettingsView extends HTMLDivElement {
   private settingsButton: ExtraButtonComponent;
@@ -56,6 +57,9 @@ export class GraphSettingsView extends HTMLDivElement {
       this.settingsState.createSubState("value.display", DisplaySettings),
       "Display",
       DisplaySettingsView
+    );
+    this.appendSettingGroup(undefined, "Utils", (_, containerEl) =>
+      UtilitySettingsView(containerEl, this.plugin)
     );
     this.initListeners();
     this.toggleCollapsed(this.isCollapsedState.value);

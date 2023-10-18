@@ -22,6 +22,10 @@ export class Graph {
     this.linkIndex = linkIndex || new Map<string, Map<string, number>>();
   }
 
+  public getNodeByPath = (path: string): Node | null => {
+    return this.nodes.find((n) => n.path === path) ?? null;
+  };
+
   // Returns a node by its id
   public getNodeById(id: string): Node | null {
     const index = this.nodeIndex.get(id);

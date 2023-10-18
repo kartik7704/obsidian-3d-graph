@@ -12,16 +12,18 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { eventBus } from "@/util/EventBus";
 import { GraphSettings } from "@/settings/GraphSettings";
 import * as THREE from "three";
-import { ItemView } from "obsidian";
+import { ItemView, TFile } from "obsidian";
 
 /**
  * the Coords type in 3d-force-graph
  */
-type Coords = {
+export type Coords = {
   x: number;
   y: number;
   z: number;
 };
+
+export type GraphNode = Node & Coords;
 
 const LINK_PARTICLE_MULTIPLIER = 2;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
@@ -126,6 +128,20 @@ export class ForceGraph {
         this.instance.numDimensions(3); // reheat simulation
       }, 300);
     });
+    eventBus.on(
+      "search",
+      (
+        file: {
+          file: TFile;
+          type: "file";
+        },
+        event: Event
+      ) => {
+        const targetNode = this.graph.getNodeByPath(file.file.path);
+        console.log("search", file, targetNode);
+        if (targetNode) this.focusOnNode(targetNode as GraphNode);
+      }
+    );
   }
 
   private createCenterCoordinateArrow() {
@@ -142,6 +158,11 @@ export class ForceGraph {
     const xArrow = new THREE.ArrowHelper(xDir, this.origin, length, 0xff0000);
     const yArrow = new THREE.ArrowHelper(yDir, this.origin, length, 0x00ff00);
     const zArrow = new THREE.ArrowHelper(zDir, this.origin, length, 0x0000ff);
+
+    xArrow.visible =
+      yArrow.visible =
+      zArrow.visible =
+        this.plugin.settingsState.value.display.showCenterCoordinates;
 
     this.centerCoordinateArrow = {
       xArrow,
@@ -182,12 +203,14 @@ export class ForceGraph {
     this.createLinks();
     this.createCenterCoordinateArrow();
     this.instance.scene().add(myCube);
+
     const camera = this.instance.camera() as THREE.PerspectiveCamera;
     const renderer = this.instance.renderer();
     const xArrow = this.centerCoordinateArrow.xArrow;
     const yArrow = this.centerCoordinateArrow.yArrow;
     const zArrow = this.centerCoordinateArrow.zArrow;
     const origin = this.origin;
+
     function onZoom(event: WheelEvent) {
       const distanceToCenter = camera.position.distanceTo(origin);
       camera.updateProjectionMatrix();
@@ -210,49 +233,15 @@ export class ForceGraph {
       cwd.add(camera.position);
       myCube.position.set(cwd.x, cwd.y, cwd.z);
       myCube.setRotationFromQuaternion(camera.quaternion);
-
-      if (this.commandDown) {
-        console.log("commandDown");
-      }
-
-      if (this.spaceDown) {
-        console.log("spaceDown");
-      }
     };
 
     this.controls = this.instance.controls() as OrbitControls;
     this.controls.mouseButtons.RIGHT = undefined;
 
-    this.instance.onNodeClick((node: Node & Coords, mouseEvent: MouseEvent) => {
-      if (this.commandDown) {
-        // Aim at node from outside it
-        const distance = FOCAL_FROM_CAMERA;
-        const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
-
-        const newPos =
-          node.x || node.y || node.z
-            ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
-            : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
-
-        this.instance.cameraPosition(
-          newPos, // new position
-          node, // lookAt ({ x, y, z })
-          3000 // ms transition duration
-        );
-
-        return;
-      }
-
-      const clickedNodeFile = this.plugin.app.vault.getFiles().find((f) => f.path === node.path);
-
-      if (clickedNodeFile) {
-        if (this.isLocalGraph) {
-          this.plugin.app.workspace.getLeaf(false).openFile(clickedNodeFile);
-        } else {
-          this.view.leaf.openFile(clickedNodeFile);
-        }
-      }
-    });
+    //  change the nav info text
+    this.rootHtmlElement
+      .querySelector(".scene-nav-info")
+      ?.setText("Left-click: rotate, Mouse-wheel/middle-click: zoom, Cmd + left-click: pan");
   }
 
   private createNodeLabel(rootHtmlElement: HTMLElement) {
@@ -325,10 +314,26 @@ export class ForceGraph {
     // change the opacity of the nodeEl base on the distance
     // the higher the distance, the lower the opacity
     // when the distance is 300, the opacity is 0
-    // console.log(distance);
     const normalizedDistance = Math.min(distance, DISTANCE_FROM_FOCAL) / DISTANCE_FROM_FOCAL;
     const easedValue = 0.5 - 0.5 * Math.cos(normalizedDistance * Math.PI);
     return easedValue;
+  };
+
+  private focusOnNode = (node: Node & Coords) => {
+    // Aim at node from outside it
+    const distance = FOCAL_FROM_CAMERA;
+    const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+
+    const newPos =
+      node.x || node.y || node.z
+        ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
+        : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+
+    this.instance.cameraPosition(
+      newPos, // new position
+      node, // lookAt ({ x, y, z })
+      3000 // ms transition duration
+    );
   };
 
   private createNodes = () => {
@@ -339,7 +344,6 @@ export class ForceGraph {
         const rgba = hexToRGBA(color, (factor - this.getNodeOpacityEasedValue(node)) / factor);
         return rgba;
       })
-      // .nodeVisibility(this.doShowNode)
       .onNodeHover(this.onNodeHover)
       .nodeOpacity(1)
       .nodeThreeObject((node: Node) => {
@@ -357,15 +361,6 @@ export class ForceGraph {
         nodeEl.style.backgroundColor = rgba(0, 0, 0, 0.5);
         nodeEl.style.userSelect = "none";
 
-        // const sprite = new SpriteText(text);
-        // sprite.color = "#8898aa";
-        // sprite.textHeight = 12;
-        // sprite.position.y = 8;
-        // sprite.material.depthWrite = false;
-        //   sprite.visible
-
-        // return sprite;
-
         const cssObject = new CSS2DObject(nodeEl);
         cssObject.onAfterRender = (renderer, scene, camera) => {
           nodeEl.style.opacity = `${1 - this.getNodeOpacityEasedValue(node)}`;
@@ -374,6 +369,23 @@ export class ForceGraph {
         return cssObject;
       })
       .nodeThreeObjectExtend(true);
+
+    this.instance.onNodeClick((node: Node & Coords, mouseEvent: MouseEvent) => {
+      if (this.commandDown) {
+        this.focusOnNode(node);
+        return;
+      }
+
+      const clickedNodeFile = this.plugin.app.vault.getFiles().find((f) => f.path === node.path);
+
+      if (clickedNodeFile) {
+        if (this.isLocalGraph) {
+          this.plugin.app.workspace.getLeaf(false).openFile(clickedNodeFile);
+        } else {
+          this.view.leaf.openFile(clickedNodeFile);
+        }
+      }
+    });
   };
 
   private createLinks = () => {
@@ -449,6 +461,11 @@ export class ForceGraph {
       // @ts-ignore
       this.instance.dagMode(noDag ? null : data.newValue);
       this.instance.numDimensions(3); // reheat simulation
+    } else if (data.currentPath === "display.showCenterCoordinates") {
+      this.centerCoordinateArrow.xArrow.visible =
+        this.centerCoordinateArrow.yArrow.visible =
+        this.centerCoordinateArrow.zArrow.visible =
+          data.newValue as boolean;
     }
     // else if (data.currentPath === "display.nodeRepulsion") {
     // this.instance.d3Force("charge", d3.forceManyBody().strength(-1 * (data.newValue as number)));

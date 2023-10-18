@@ -54,18 +54,6 @@ export const DisplaySettingsView = (
     }
   );
 
-  //   addSimpleSliderSetting(
-  //     containerEl,
-  //     {
-  //       name: "Node Repulsion",
-  //       value: displaySettings.value.nodeRepulsion,
-  //       stepOptions: nodeRepulsion,
-  //     },
-  //     (value) => {
-  //       displaySettings.value.nodeRepulsion = value;
-  //     }
-  //   );
-
   addColorPickerSetting(
     containerEl,
     {
@@ -113,6 +101,15 @@ export const DisplaySettingsView = (
       value: displaySettings.value.showFullPath,
     },
     (value) => (displaySettings.value.showFullPath = value)
+  );
+
+  addToggle(
+    containerEl,
+    {
+      name: "Show Center Coordinates",
+      value: displaySettings.value.showCenterCoordinates,
+    },
+    (value) => (displaySettings.value.showCenterCoordinates = value)
   );
 
   // add dag orientation setting
