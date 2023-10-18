@@ -70,8 +70,8 @@
 }
 
 .graph-3d-view .scene-nav-info {
-  display: none;
-  visibility: hidden;
+  display: block;
+  visibility: visible;
 }
 
 .mod-search-input {

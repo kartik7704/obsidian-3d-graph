@@ -51,19 +51,7 @@ export class Graph3dView extends ItemView {
   }
 
   private appendGraph(viewContent: HTMLElement) {
-    this.forceGraph = new ForceGraph(this.plugin, viewContent, this.isLocalGraph);
-
-    this.forceGraph.getInstance().onNodeClick((node: Node, mouseEvent: MouseEvent) => {
-      const clickedNodeFile = this.app.vault.getFiles().find((f) => f.path === node.path);
-
-      if (clickedNodeFile) {
-        if (this.isLocalGraph) {
-          this.app.workspace.getLeaf(false).openFile(clickedNodeFile);
-        } else {
-          this.leaf.openFile(clickedNodeFile);
-        }
-      }
-    });
+    this.forceGraph = new ForceGraph(this.plugin, viewContent, this.isLocalGraph, this);
 
     this.forceGraph.getInstance().onNodeRightClick((node: Node, mouseEvent: MouseEvent) => {
       console.log("right click", node, mouseEvent);

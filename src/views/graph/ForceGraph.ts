@@ -7,11 +7,21 @@ import { Graph } from "@/graph/Graph";
 import { NodeGroup } from "@/graph/NodeGroup";
 import { rgba } from "polished";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { eventBus } from "@/util/EventBus";
 import { GraphSettings } from "@/settings/GraphSettings";
-import { DagOrientation } from "@/settings/categories/DisplaySettings";
-import * as d3 from "d3";
 import * as THREE from "three";
+import { ItemView } from "obsidian";
+
+/**
+ * the Coords type in 3d-force-graph
+ */
+type Coords = {
+  x: number;
+  y: number;
+  z: number;
+};
 
 const LINK_PARTICLE_MULTIPLIER = 2;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
@@ -19,12 +29,29 @@ const PARTICLE_FREQUECY = 4;
 
 const FOCAL_FROM_CAMERA = 400;
 const DISTANCE_FROM_FOCAL = 300;
+const BASE_NODE_OPACITY = 0.7;
+
+function hexToRGBA(hex: string, alpha: number): string {
+  // Remove the hash symbol if present
+  hex = hex.replace("#", "");
+
+  // Split the hex value into RGB components
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  // Create the RGBA color value
+  const rgba = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  return rgba;
+}
 
 // Adapted from https://github.com/vasturiano/3d-force-graph/blob/master/example/highlight/index.html
 // D3.js 3D Force Graph
 
 export class ForceGraph {
   private instance: ForceGraph3DInstance;
+  private controls: OrbitControls | TrackballControls;
+
   private readonly rootHtmlElement: HTMLElement;
 
   /**
@@ -42,11 +69,26 @@ export class ForceGraph {
   private readonly plugin: Graph3dPlugin;
   private myCube: THREE.Mesh;
   private nodeLabelEl: HTMLDivElement;
+  private centerCoordinateArrow: {
+    xArrow: THREE.ArrowHelper;
+    yArrow: THREE.ArrowHelper;
+    zArrow: THREE.ArrowHelper;
+  };
+  private spaceDown = false;
+  private commandDown = false;
+  private readonly origin = new THREE.Vector3(0, 0, 0);
+  private view: ItemView;
 
-  constructor(plugin: Graph3dPlugin, rootHtmlElement: HTMLElement, isLocalGraph: boolean) {
+  constructor(
+    plugin: Graph3dPlugin,
+    rootHtmlElement: HTMLElement,
+    isLocalGraph: boolean,
+    view: ItemView
+  ) {
     this.rootHtmlElement = rootHtmlElement;
     this.isLocalGraph = isLocalGraph;
     this.plugin = plugin;
+    this.view = view;
 
     // console.log("ForceGraph constructor", rootHtmlElement);
 
@@ -54,11 +96,25 @@ export class ForceGraph {
     this.initListeners();
   }
 
+  private cameraLookAtCenter = () => {
+    const currentCameraPosition = this.instance.cameraPosition();
+
+    this.instance.cameraPosition(
+      currentCameraPosition, // new position
+      { x: 0, y: 0, z: 0 }, // lookAt ({ x, y, z })
+      3000 // ms transition duration
+    );
+  };
+
   private initListeners() {
     this.plugin.settingsState.onChange(this.handleSettingsChanged);
     if (this.isLocalGraph) this.plugin.openFileState.onChange(this.refreshGraphData);
     eventBus.on("graph-changed", this.refreshGraphData);
     eventBus.on("do-pull", () => {
+      // look at the center of the graph
+      this.cameraLookAtCenter();
+
+      // pull together
       const currentDagOrientation = this.plugin.getSettings().display.dagOrientation;
       this.instance.dagMode("radialout");
       this.instance.numDimensions(3); // reheat simulation
@@ -72,41 +128,68 @@ export class ForceGraph {
     });
   }
 
-  private createGraph() {
+  private createCenterCoordinateArrow() {
     const xDir = new THREE.Vector3(1, 0, 0);
     const yDir = new THREE.Vector3(0, 1, 0);
     const zDir = new THREE.Vector3(0, 0, 1);
-
-    const myCube = new THREE.Mesh(
-      new THREE.BoxGeometry(30, 30, 30),
-      new THREE.MeshBasicMaterial({ color: 0xff0000 })
-    );
-    this.myCube = myCube;
-    myCube.position.set(0, 0, -300);
-    myCube.visible = false;
 
     xDir.normalize();
     yDir.normalize();
     zDir.normalize();
 
-    const origin = new THREE.Vector3(0, 0, 0);
     const length = 100;
 
-    const xArrow = new THREE.ArrowHelper(xDir, origin, length, 0xff0000);
-    const yArrow = new THREE.ArrowHelper(yDir, origin, length, 0x00ff00);
-    const zArrow = new THREE.ArrowHelper(zDir, origin, length, 0x0000ff);
+    const xArrow = new THREE.ArrowHelper(xDir, this.origin, length, 0xff0000);
+    const yArrow = new THREE.ArrowHelper(yDir, this.origin, length, 0x00ff00);
+    const zArrow = new THREE.ArrowHelper(zDir, this.origin, length, 0x0000ff);
+
+    this.centerCoordinateArrow = {
+      xArrow,
+      yArrow,
+      zArrow,
+    };
+
+    this.instance.scene().add(xArrow).add(yArrow).add(zArrow);
+  }
+
+  private createGraph() {
+    const myCube = new THREE.Mesh(
+      new THREE.BoxGeometry(30, 30, 30),
+      new THREE.MeshBasicMaterial({ color: 0xff0000 })
+    );
+
+    this.myCube = myCube;
+    myCube.position.set(0, 0, -FOCAL_FROM_CAMERA);
+    myCube.visible = false;
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        this.spaceDown = true;
+        // this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
+      }
+      if (e.metaKey) this.commandDown = true;
+    });
+
+    document.addEventListener("keyup", (e) => {
+      if (e.code === "Space") {
+        this.spaceDown = false;
+        // this.controls.mouseButtons.LEFT = THREE.MOUSE.LEFT;
+      }
+      if (!e.metaKey) this.commandDown = false;
+    });
 
     this.createInstance();
     this.createNodes();
     this.createLinks();
-    this.instance.scene().add(xArrow).add(yArrow).add(zArrow).add(myCube);
+    this.createCenterCoordinateArrow();
+    this.instance.scene().add(myCube);
     const camera = this.instance.camera() as THREE.PerspectiveCamera;
     const renderer = this.instance.renderer();
+    const xArrow = this.centerCoordinateArrow.xArrow;
+    const yArrow = this.centerCoordinateArrow.yArrow;
+    const zArrow = this.centerCoordinateArrow.zArrow;
+    const origin = this.origin;
     function onZoom(event: WheelEvent) {
-      // const delta = event.deltaY;
-      // const zoomSpeed = 0.1;
       const distanceToCenter = camera.position.distanceTo(origin);
-      // console.log(camera.position, distanceToCenter);
       camera.updateProjectionMatrix();
       xArrow.setLength(distanceToCenter / 10);
       yArrow.setLength(distanceToCenter / 10);
@@ -115,30 +198,82 @@ export class ForceGraph {
 
     renderer.domElement.addEventListener("wheel", onZoom);
 
+    const oldOnBeforeRender = this.instance.scene().onBeforeRender;
+
     this.instance.scene().onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
+      // first run the old onBeforeRender
+      oldOnBeforeRender(renderer, scene, camera, geometry, material, group);
+
       const cwd = new THREE.Vector3();
       camera.getWorldDirection(cwd);
       cwd.multiplyScalar(FOCAL_FROM_CAMERA);
       cwd.add(camera.position);
       myCube.position.set(cwd.x, cwd.y, cwd.z);
       myCube.setRotationFromQuaternion(camera.quaternion);
+
+      if (this.commandDown) {
+        console.log("commandDown");
+      }
+
+      if (this.spaceDown) {
+        console.log("spaceDown");
+      }
     };
+
+    this.controls = this.instance.controls() as OrbitControls;
+    this.controls.mouseButtons.RIGHT = undefined;
+
+    this.instance.onNodeClick((node: Node & Coords, mouseEvent: MouseEvent) => {
+      if (this.commandDown) {
+        // Aim at node from outside it
+        const distance = FOCAL_FROM_CAMERA;
+        const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
+
+        const newPos =
+          node.x || node.y || node.z
+            ? { x: node.x * distRatio, y: node.y * distRatio, z: node.z * distRatio }
+            : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
+
+        this.instance.cameraPosition(
+          newPos, // new position
+          node, // lookAt ({ x, y, z })
+          3000 // ms transition duration
+        );
+
+        return;
+      }
+
+      const clickedNodeFile = this.plugin.app.vault.getFiles().find((f) => f.path === node.path);
+
+      if (clickedNodeFile) {
+        if (this.isLocalGraph) {
+          this.plugin.app.workspace.getLeaf(false).openFile(clickedNodeFile);
+        } else {
+          this.view.leaf.openFile(clickedNodeFile);
+        }
+      }
+    });
   }
 
-  private createInstance() {
-    const [width, height] = [this.rootHtmlElement.innerWidth, this.rootHtmlElement.innerHeight];
-    const divEl = document.createElement("div");
-    const nodeLabelEl = divEl.createDiv({
+  private createNodeLabel(rootHtmlElement: HTMLElement) {
+    const nodeLabelEl = rootHtmlElement.createDiv({
       cls: "node-label",
       text: "test",
     });
     nodeLabelEl.style.opacity = "0";
     this.nodeLabelEl = nodeLabelEl;
+  }
 
+  private createInstance() {
+    const [width, height] = [this.rootHtmlElement.innerWidth, this.rootHtmlElement.innerHeight];
     // set the divEl to have z-index 0
+    const divEl = document.createElement("div");
     divEl.style.zIndex = "0";
+    this.createNodeLabel(divEl);
     const settings = this.plugin.getSettings();
+
     this.instance = ForceGraph3D({
+      controlType: "orbit",
       extraRenderers: [
         // @ts-ignore https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/html-nodes/index.html#L27C9-L29
         new CSS2DRenderer({
@@ -157,10 +292,8 @@ export class ForceGraph {
       //@ts-ignore
       .dagMode(settings.display.dagOrientation === "null" ? null : settings.display.dagOrientation)
       .dagLevelDistance(200);
-    // .d3Force("charge", d3.forceManyBody().strength(-50))
-    // .d3Force("center", d3.forceCenter(width / 2, height / 2))
-    // .d3Force("x", d3.forceX().strength(0.1))
-    // .d3Force("y", d3.forceY().strength(0.1));
+
+    this.instance.showNavInfo();
   }
 
   private getNodeLabelText = (node: Node) => {
@@ -182,11 +315,33 @@ export class ForceGraph {
     return text;
   };
 
+  private getNodeOpacityEasedValue = (node: Node) => {
+    // get the position of the node
+    // @ts-ignore
+    const obj = node.__threeObj as THREE.Object3D | undefined;
+    const nodePosition = obj?.position as THREE.Vector3;
+    // then get the distance between the node and this.myCube , console.log it
+    const distance = nodePosition.distanceTo(this.myCube.position);
+    // change the opacity of the nodeEl base on the distance
+    // the higher the distance, the lower the opacity
+    // when the distance is 300, the opacity is 0
+    // console.log(distance);
+    const normalizedDistance = Math.min(distance, DISTANCE_FROM_FOCAL) / DISTANCE_FROM_FOCAL;
+    const easedValue = 0.5 - 0.5 * Math.cos(normalizedDistance * Math.PI);
+    return easedValue;
+  };
+
   private createNodes = () => {
     this.instance
-      .nodeColor((node: Node) => this.getNodeColor(node))
+      .nodeColor((node: Node) => {
+        const color = this.getNodeColor(node);
+        const factor = 1 / (1 - BASE_NODE_OPACITY);
+        const rgba = hexToRGBA(color, (factor - this.getNodeOpacityEasedValue(node)) / factor);
+        return rgba;
+      })
       // .nodeVisibility(this.doShowNode)
       .onNodeHover(this.onNodeHover)
+      .nodeOpacity(1)
       .nodeThreeObject((node: Node) => {
         const nodeEl = document.createElement("div");
 
@@ -213,19 +368,7 @@ export class ForceGraph {
 
         const cssObject = new CSS2DObject(nodeEl);
         cssObject.onAfterRender = (renderer, scene, camera) => {
-          // get the position of the node
-          // @ts-ignore
-          const obj = node.__threeObj as THREE.Object3D | undefined;
-          const nodePosition = obj?.position as THREE.Vector3;
-          // then get the distance between the node and this.myCube , console.log it
-          const distance = nodePosition.distanceTo(this.myCube.position);
-          // change the opacity of the nodeEl base on the distance
-          // the higher the distance, the lower the opacity
-          // when the distance is 300, the opacity is 0
-          // console.log(distance);
-          const normalizedDistance = Math.min(distance, DISTANCE_FROM_FOCAL) / DISTANCE_FROM_FOCAL;
-          const easedValue = 0.5 - 0.5 * Math.cos(normalizedDistance * Math.PI);
-          nodeEl.style.opacity = `${1 - easedValue}`;
+          nodeEl.style.opacity = `${1 - this.getNodeOpacityEasedValue(node)}`;
         };
 
         return cssObject;
@@ -255,40 +398,6 @@ export class ForceGraph {
       )
       .d3Force("link")
       ?.distance(() => settings.display.linkDistance);
-  };
-
-  private updateForce = (dagOrientation: DagOrientation, nodeRepulsion: number) => {
-    const settings = this.plugin.getSettings();
-    const noDag = dagOrientation === "null";
-    if (noDag) {
-      // @ts-ignore
-      this.instance.d3Force(
-        "link",
-        d3.forceLink().distance(() => settings.display.linkDistance)
-      );
-      // this will remove other force
-      // @ts-ignore
-      // .d3Force("charge", d3.forceManyBody().strength(-1 * nodeRepulsion));
-
-      // this.instance
-      //   // @ts-ignore
-      //   .d3Force("collide", null)
-      //   // @ts-ignore
-      //   .d3Force("center", null);
-    } else {
-      // @ts-ignore
-      this.instance.d3Force(
-        "link",
-        d3
-          .forceLink()
-          .distance(() => settings.display.linkDistance)
-          .strength(1)
-      );
-      // .d3Force("charge", d3.forceManyBody().strength(-1 * nodeRepulsion));
-      // this.instance
-      //   .d3Force("collide", d3.forceCollide(110)) // change this value
-      //   .d3Force("center", d3.forceCenter(1 / 2, 1 / 2));
-    }
   };
 
   private getGraphData = (): Graph => {
