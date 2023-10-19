@@ -10,6 +10,7 @@ import { getGraphSettingsFromStore } from "@/settings/getGraphSettingsFromStore"
 import "@total-typescript/ts-reset";
 import "@total-typescript/ts-reset/dom";
 import { eventBus } from "@/util/EventBus";
+import { SearchResultFile } from "@/views/atomics/addSearchInput";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -22,6 +23,16 @@ export default class Graph3dPlugin extends Plugin {
    * the current open file
    */
   public openFileState: State<string | undefined> = new State(undefined);
+  public searchState: State<{
+    filter: {
+      query: string;
+      files: SearchResultFile[];
+    };
+    group: {
+      query: string;
+      files: SearchResultFile[];
+    }[];
+  }> = new State({ filter: { query: "", files: [] }, group: [] });
   private cacheIsReady: State<boolean> = new State(
     this.app.metadataCache.resolvedLinks !== undefined
   );
@@ -32,6 +43,7 @@ export default class Graph3dPlugin extends Plugin {
   // Graphs that are waiting for cache to be ready
   private queuedGraphs: Graph3dView[] = [];
   private callbackUnregisterHandles: (() => void)[] = [];
+  public activeGraphView: Graph3dView;
 
   async onload() {
     await this.init();
@@ -49,6 +61,10 @@ export default class Graph3dPlugin extends Plugin {
     });
   }
 
+  public triggerSearch = () => {
+    eventBus.trigger("trigger-search");
+  };
+
   private async init() {
     await this.initStates();
     this.initListeners();
@@ -57,6 +73,19 @@ export default class Graph3dPlugin extends Plugin {
   private async initStates() {
     const settings = await this.loadSettings();
     this.settingsState = new State<GraphSettings>(settings);
+    // initialize the search states
+    this.searchState = new State({
+      filter: {
+        query: this.settingsState.value.filters.searchQuery,
+        files: [],
+      },
+      group: this.settingsState.value.groups.groups.map((group) => {
+        return {
+          query: group.query,
+          files: [],
+        };
+      }),
+    });
     this.theme = new ObsidianTheme(this.app.workspace.containerEl);
     this.cacheIsReady.value = this.app.metadataCache.resolvedLinks !== undefined;
     this.onGraphCacheChanged();
@@ -140,6 +169,8 @@ export default class Graph3dPlugin extends Plugin {
 
   private onDoResetSettings = () => {
     this.settingsState.value.reset();
+    // search the setting
+    this.searchState.value = { filter: { query: "", files: [] }, group: [] };
     eventBus.trigger("did-reset-settings");
   };
 
@@ -162,9 +193,11 @@ export default class Graph3dPlugin extends Plugin {
 
   // Open a global or local graph
   private openGraph = (isLocalGraph: boolean) => {
+    eventBus.trigger("open-graph");
     const leaf = this.app.workspace.getLeaf(isLocalGraph ? "split" : false);
     const graphView = new Graph3dView(this, leaf, isLocalGraph);
     leaf.open(graphView);
+    this.activeGraphView = graphView;
     if (this.cacheIsReady.value) {
       graphView.showGraph();
     } else {

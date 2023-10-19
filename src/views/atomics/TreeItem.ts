@@ -1,4 +1,4 @@
-export type HtmlBuilder = (containerEl: HTMLElement) => void;
+export type HtmlBuilder = (containerEl: HTMLElement) => void | PromiseLike<void>;
 
 // Collapsable tree item, imitates Obsidian's tree items
 export class TreeItem extends HTMLDivElement {
@@ -13,7 +13,7 @@ export class TreeItem extends HTMLDivElement {
 
   async connectedCallback() {
     this.appendSelf();
-    this.appendChildren();
+    await this.appendChildren();
   }
 
   private appendSelf = () => {
@@ -31,9 +31,10 @@ export class TreeItem extends HTMLDivElement {
     this.append($self);
   };
 
-  private appendChildren = () => {
+  private appendChildren = async () => {
     const $children = createDiv({ cls: "tree-item-children" });
-    this.childrenBuilders.forEach((build: HtmlBuilder) => build($children));
+    const promises = this.childrenBuilders.map((build: HtmlBuilder) => build($children));
+    await Promise.all(promises);
     this.append($children);
   };
 

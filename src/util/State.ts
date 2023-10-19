@@ -64,7 +64,7 @@ export class State<T> {
    */
   public createSubState<S>(
     key: T extends object ? `value.${NestedKeyof<T>}` : string,
-    type: new (...a: never) => S
+    type?: new (...a: never) => S
   ): State<S> {
     const subStateKeys = key.split(".");
     const subStateValue: S = subStateKeys.reduce((obj: Record<string, unknown>, key: string) => {
@@ -74,7 +74,7 @@ export class State<T> {
       }
       throw new InvalidStateKeyError(key, this);
     }, this as Record<string, unknown>) as S;
-    if (typeof subStateValue === "object") {
+    if (typeof subStateValue === "object" && type) {
       // check if is like generic type S
       // @ts-ignore
       if (subStateValue instanceof type || Boolean(subStateValue?.__getTarget)) {

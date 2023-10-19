@@ -12,6 +12,7 @@ import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { eventBus } from "@/util/EventBus";
 import Graph3dPlugin from "@/main";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 
 export class GraphSettingsView extends HTMLDivElement {
   private settingsButton: ExtraButtonComponent;
@@ -20,12 +21,23 @@ export class GraphSettingsView extends HTMLDivElement {
   private readonly theme: ObsidianTheme;
   private readonly plugin: Graph3dPlugin;
   searchLeaf: WorkspaceLeaf;
+  private parentView: Graph3dView;
 
-  constructor(settingsState: State<GraphSettings>, theme: ObsidianTheme, plugin: Graph3dPlugin) {
+  constructor(
+    settingsState: State<GraphSettings>,
+    theme: ObsidianTheme,
+    plugin: Graph3dPlugin,
+    parentView: Graph3dView
+  ) {
     super();
     this.settingsState = settingsState;
     this.theme = theme;
     this.plugin = plugin;
+    this.parentView = parentView;
+  }
+
+  public getParentView() {
+    return this.parentView;
   }
 
   private isCollapsedState = new State(true);
@@ -46,12 +58,12 @@ export class GraphSettingsView extends HTMLDivElement {
     this.appendSettingGroup(
       this.settingsState.createSubState("value.filters", FilterSettings),
       "Filters",
-      (...args) => FilterSettingsView(...args, this.plugin)
+      (...args) => FilterSettingsView(...args, this.parentView)
     );
     this.appendSettingGroup(
       this.settingsState.createSubState("value.groups", GroupSettings),
       "Groups",
-      (...args) => GroupSettingsView(...args, this.theme)
+      (...args) => GroupSettingsView(...args, this.parentView)
     );
     this.appendSettingGroup(
       this.settingsState.createSubState("value.display", DisplaySettings),
@@ -83,7 +95,7 @@ export class GraphSettingsView extends HTMLDivElement {
   };
 
   // toggle the view to collapsed or expanded
-  private toggleCollapsed(collapsed: boolean) {
+  toggleCollapsed(collapsed: boolean) {
     if (collapsed) {
       this.settingsButton.setDisabled(false);
       this.graphControls.classList.add("hidden");

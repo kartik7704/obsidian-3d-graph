@@ -1,22 +1,22 @@
 import { GroupSettings } from "@/settings/categories/GroupSettings";
-import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { State, StateChange } from "@/util/State";
 import { addNodeGroups } from "@/views/settings/categories/addNodeGroups";
 import { addNodeGroupButton } from "@/views/settings/categories/AddNodeGroupButton";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 
-export const GroupSettingsView = (
+export const GroupSettingsView = async (
   groupSettings: State<GroupSettings>,
   containerEl: HTMLElement,
-  theme: ObsidianTheme
+  view: Graph3dView
 ) => {
   // add the nodeGroups
-  addNodeGroups(groupSettings, containerEl);
-  addNodeGroupButton(groupSettings, containerEl, theme);
-  groupSettings.onChange((change: StateChange) => {
+  await addNodeGroups(groupSettings, containerEl, view);
+  addNodeGroupButton(groupSettings, containerEl, view);
+  groupSettings.onChange(async (change: StateChange) => {
     if ((change.currentPath === "groups" && change.type === "add") || change.type === "delete") {
       containerEl.empty();
-      addNodeGroups(groupSettings, containerEl);
-      addNodeGroupButton(groupSettings, containerEl, theme);
+      await addNodeGroups(groupSettings, containerEl, view);
+      addNodeGroupButton(groupSettings, containerEl, view);
     }
   });
 };

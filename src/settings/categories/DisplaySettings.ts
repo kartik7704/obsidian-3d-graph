@@ -1,6 +1,6 @@
 const DEFAULT_NODE_SIZE = 3;
 const DEFAULT_LINK_THICKNESS = 3;
-const DEFAULT_LINK_DISTANCE = 50;
+const DEFAULT_LINK_DISTANCE = 100;
 const DEFAULT_NODE_REPULSION = 25;
 
 export const nodeSize = {
@@ -19,7 +19,7 @@ export const linkThickness = {
 
 export const linkDistance = {
   min: 10,
-  max: 100,
+  max: 200,
   step: 1,
   default: DEFAULT_LINK_DISTANCE, // 50
 };
@@ -50,6 +50,7 @@ const DEFAULT_SHOW_EXTENSION = false;
 const DEFAULT_SHOW_FULL_PATH = false;
 const DEFAULT_DAG_ORIENTATION = "null" as DagOrientation;
 const DEFAULT_SHOW_CENTER_COORDINATES = false;
+const DEFAULT_SHOW_LINK_ARROW = true;
 export class DisplaySettings {
   public nodeSize = DEFAULT_NODE_SIZE;
   public linkThickness = DEFAULT_LINK_THICKNESS;
@@ -62,6 +63,7 @@ export class DisplaySettings {
   public showFullPath = DEFAULT_SHOW_FULL_PATH;
   public dagOrientation = DEFAULT_DAG_ORIENTATION;
   public showCenterCoordinates = DEFAULT_SHOW_CENTER_COORDINATES;
+  public showLinkArrow = DEFAULT_SHOW_LINK_ARROW;
 
   constructor({
     nodeSize = DEFAULT_NODE_SIZE,
@@ -75,6 +77,7 @@ export class DisplaySettings {
     dagOrientation = DEFAULT_DAG_ORIENTATION,
     nodeRepulsion = DEFAULT_NODE_REPULSION,
     showCenterCoordinates = DEFAULT_SHOW_CENTER_COORDINATES,
+    showLinkArrow = DEFAULT_SHOW_LINK_ARROW,
   }: {
     nodeSize?: number;
     linkThickness?: number;
@@ -87,6 +90,7 @@ export class DisplaySettings {
     dagOrientation?: DagOrientation;
     nodeRepulsion?: number;
     showCenterCoordinates?: boolean;
+    showLinkArrow?: boolean;
   } = {}) {
     this.nodeSize = nodeSize;
     this.linkThickness = linkThickness;
@@ -99,6 +103,7 @@ export class DisplaySettings {
     this.showFullPath = showFullPath;
     this.dagOrientation = dagOrientation;
     this.showCenterCoordinates = showCenterCoordinates;
+    this.showLinkArrow = showLinkArrow;
   }
 
   public toObject() {

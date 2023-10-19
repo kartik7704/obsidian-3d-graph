@@ -4,7 +4,6 @@ import { Link } from "@/graph/Link";
 import { StateChange } from "@/util/State";
 import Graph3dPlugin from "@/main";
 import { Graph } from "@/graph/Graph";
-import { NodeGroup } from "@/graph/NodeGroup";
 import { rgba } from "polished";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { TrackballControls } from "three/examples/jsm/controls/TrackballControls.js";
@@ -12,7 +11,10 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { eventBus } from "@/util/EventBus";
 import { GraphSettings } from "@/settings/GraphSettings";
 import * as THREE from "three";
-import { ItemView, TFile } from "obsidian";
+import { ItemView as Graph3dView, TFile } from "obsidian";
+import * as TWEEN from "@tweenjs/tween.js";
+
+const origin = new THREE.Vector3(0, 0, 0);
 
 /**
  * the Coords type in 3d-force-graph
@@ -54,7 +56,7 @@ export class ForceGraph {
   private instance: ForceGraph3DInstance;
   private controls: OrbitControls | TrackballControls;
 
-  private readonly rootHtmlElement: HTMLElement;
+  readonly rootHtmlElement: HTMLElement;
 
   /**
    * the node connected to the hover node
@@ -76,26 +78,111 @@ export class ForceGraph {
     yArrow: THREE.ArrowHelper;
     zArrow: THREE.ArrowHelper;
   };
+  // @ts-ignore
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private tween: { [tweenId: string]: TWEEN.Tween<any> | undefined } = {};
   private spaceDown = false;
   private commandDown = false;
-  private readonly origin = new THREE.Vector3(0, 0, 0);
-  private view: ItemView;
+
+  private view: Graph3dView;
 
   constructor(
     plugin: Graph3dPlugin,
     rootHtmlElement: HTMLElement,
     isLocalGraph: boolean,
-    view: ItemView
+    view: Graph3dView
   ) {
     this.rootHtmlElement = rootHtmlElement;
     this.isLocalGraph = isLocalGraph;
     this.plugin = plugin;
     this.view = view;
 
-    // console.log("ForceGraph constructor", rootHtmlElement);
-
     this.createGraph();
     this.initListeners();
+  }
+
+  private cameraPosition(
+    instance: ForceGraph3DInstance,
+    position: Partial<Coords>,
+    lookAt: Coords | undefined,
+    transitionDuration: number | undefined
+  ) {
+    const camera = instance.camera();
+    const controls = this.controls;
+    const tween = this.tween;
+    if (position === undefined && lookAt === undefined && transitionDuration === undefined) {
+      return {
+        x: camera.position.x,
+        y: camera.position.y,
+        z: camera.position.z,
+      };
+    }
+
+    if (position) {
+      const finalPos = position;
+      const finalLookAt = lookAt || { x: 0, y: 0, z: 0 };
+
+      if (!transitionDuration) {
+        // no animation
+
+        setCameraPos(finalPos);
+        setLookAt(finalLookAt);
+      } else {
+        const camPos = Object.assign({}, camera.position);
+        const camLookAt = getLookAt();
+
+        // create unique id for position tween
+        const posTweenId = Math.random().toString(36).substring(2, 15);
+
+        tween[posTweenId] = new TWEEN.Tween(camPos)
+          .to(finalPos, transitionDuration)
+          .easing(TWEEN.Easing.Quadratic.Out)
+          .onUpdate(setCameraPos)
+          .onComplete(() => {
+            tween[posTweenId] = undefined;
+          })
+          .start();
+
+        // create unique id for lookAt tween
+        const lookAtTweenId = Math.random().toString(36).substring(2, 15);
+
+        // Face direction in 1/3rd of time
+        tween[lookAtTweenId] = new TWEEN.Tween(camLookAt)
+          .to(finalLookAt, transitionDuration / 3)
+          .easing(TWEEN.Easing.Quadratic.Out)
+          .onUpdate(setLookAt)
+          .onComplete(() => {
+            tween[lookAtTweenId] = undefined;
+          })
+          .start();
+      }
+
+      // eslint-disable-next-line no-inner-declarations
+      function setCameraPos(pos: Partial<Coords>) {
+        const { x, y, z } = pos;
+        if (x !== undefined) camera.position.x = x;
+        if (y !== undefined) camera.position.y = y;
+        if (z !== undefined) camera.position.z = z;
+      }
+
+      // eslint-disable-next-line no-inner-declarations
+      function setLookAt(lookAt: Coords) {
+        const lookAtVect = new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z);
+        if (controls.target) {
+          controls.target = lookAtVect;
+        } else {
+          // Fly controls doesn't have target attribute
+          camera.lookAt(lookAtVect); // note: lookAt may be overridden by other controls in some cases
+        }
+      }
+
+      // eslint-disable-next-line no-inner-declarations
+      function getLookAt() {
+        return Object.assign(
+          new THREE.Vector3(0, 0, -1000).applyQuaternion(camera.quaternion).add(camera.position)
+        );
+      }
+    }
   }
 
   private cameraLookAtCenter = () => {
@@ -112,6 +199,7 @@ export class ForceGraph {
     this.plugin.settingsState.onChange(this.handleSettingsChanged);
     if (this.isLocalGraph) this.plugin.openFileState.onChange(this.refreshGraphData);
     eventBus.on("graph-changed", this.refreshGraphData);
+    this.plugin.searchState.onChange(this.refreshGraphData);
     eventBus.on("do-pull", () => {
       // look at the center of the graph
       this.cameraLookAtCenter();
@@ -137,9 +225,9 @@ export class ForceGraph {
         },
         event: Event
       ) => {
-        const targetNode = this.graph.getNodeByPath(file.file.path);
+        const targetNode = this.graph?.getNodeByPath(file.file.path);
         console.log("search", file, targetNode);
-        if (targetNode) this.focusOnNode(targetNode as GraphNode);
+        if (targetNode) this.focusOnCoords(targetNode as GraphNode);
       }
     );
   }
@@ -155,9 +243,9 @@ export class ForceGraph {
 
     const length = 100;
 
-    const xArrow = new THREE.ArrowHelper(xDir, this.origin, length, 0xff0000);
-    const yArrow = new THREE.ArrowHelper(yDir, this.origin, length, 0x00ff00);
-    const zArrow = new THREE.ArrowHelper(zDir, this.origin, length, 0x0000ff);
+    const xArrow = new THREE.ArrowHelper(xDir, origin, length, 0xff0000);
+    const yArrow = new THREE.ArrowHelper(yDir, origin, length, 0x00ff00);
+    const zArrow = new THREE.ArrowHelper(zDir, origin, length, 0x0000ff);
 
     xArrow.visible =
       yArrow.visible =
@@ -172,6 +260,19 @@ export class ForceGraph {
 
     this.instance.scene().add(xArrow).add(yArrow).add(zArrow);
   }
+
+  private onZoomStart = () => {
+    const tweens = Object.keys(this.tween);
+    if (tweens) {
+      Object.values(this.tween).forEach((tween) => {
+        if (tween) {
+          tween.stop();
+        }
+      });
+      // remove the tween
+      this.tween = {};
+    }
+  };
 
   private createGraph() {
     const myCube = new THREE.Mesh(
@@ -206,17 +307,49 @@ export class ForceGraph {
 
     const camera = this.instance.camera() as THREE.PerspectiveCamera;
     const renderer = this.instance.renderer();
+
     const xArrow = this.centerCoordinateArrow.xArrow;
     const yArrow = this.centerCoordinateArrow.yArrow;
     const zArrow = this.centerCoordinateArrow.zArrow;
-    const origin = this.origin;
+
+    // TODO: move to global
+    let isZooming = false;
+    let startZoomTimeout: Timer | undefined;
+    let endZoomTimeout: Timer | undefined;
+
+    const onZoomStart = this.onZoomStart;
 
     function onZoom(event: WheelEvent) {
+      // check if it is start zooming using setTimeout
+      // if it is, then cancel the animation
+      if (!isZooming && !startZoomTimeout) {
+        startZoomTimeout = setTimeout(() => {
+          // console.log("this should only show once");
+          if (!isZooming) {
+            clearTimeout(startZoomTimeout);
+            startZoomTimeout = undefined;
+            isZooming = true;
+            console.log("start zooming");
+            onZoomStart();
+          }
+          return;
+        }, 100);
+      }
+
       const distanceToCenter = camera.position.distanceTo(origin);
       camera.updateProjectionMatrix();
       xArrow.setLength(distanceToCenter / 10);
       yArrow.setLength(distanceToCenter / 10);
       zArrow.setLength(distanceToCenter / 10);
+
+      if (isZooming) {
+        clearTimeout(endZoomTimeout);
+        endZoomTimeout = setTimeout(() => {
+          console.log("end zooming!");
+          endZoomTimeout = undefined;
+          isZooming = false;
+        }, 100);
+      }
     }
 
     renderer.domElement.addEventListener("wheel", onZoom);
@@ -282,7 +415,16 @@ export class ForceGraph {
       .dagMode(settings.display.dagOrientation === "null" ? null : settings.display.dagOrientation)
       .dagLevelDistance(200);
 
+    // @ts-ignore patch the cameraPosition function
+    this.instance.cameraPosition = (...args) => {
+      // @ts-ignore
+      this.cameraPosition(this.instance, ...args);
+    };
     this.instance.showNavInfo();
+  }
+
+  public getTween() {
+    return this.tween;
   }
 
   private getNodeLabelText = (node: Node) => {
@@ -308,7 +450,8 @@ export class ForceGraph {
     // get the position of the node
     // @ts-ignore
     const obj = node.__threeObj as THREE.Object3D | undefined;
-    const nodePosition = obj?.position as THREE.Vector3;
+    if (!obj) return 0;
+    const nodePosition = obj.position;
     // then get the distance between the node and this.myCube , console.log it
     const distance = nodePosition.distanceTo(this.myCube.position);
     // change the opacity of the nodeEl base on the distance
@@ -319,7 +462,7 @@ export class ForceGraph {
     return easedValue;
   };
 
-  private focusOnNode = (node: Node & Coords) => {
+  private focusOnNode = (node: Coords, duration = 3000) => {
     // Aim at node from outside it
     const distance = FOCAL_FROM_CAMERA;
     const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
@@ -332,9 +475,10 @@ export class ForceGraph {
     this.instance.cameraPosition(
       newPos, // new position
       node, // lookAt ({ x, y, z })
-      3000 // ms transition duration
+      duration // ms transition duration
     );
   };
+  private focusOnCoords = this.focusOnNode;
 
   private createNodes = () => {
     this.instance
@@ -372,7 +516,7 @@ export class ForceGraph {
 
     this.instance.onNodeClick((node: Node & Coords, mouseEvent: MouseEvent) => {
       if (this.commandDown) {
-        this.focusOnNode(node);
+        this.focusOnCoords(node);
         return;
       }
 
@@ -418,11 +562,14 @@ export class ForceGraph {
       this.graph = this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);
       // console.log(this.graph);
     } else {
-      // console.log(settings.filters.searchResult);
+      if (settings.filters.searchQuery === "") {
+        this.graph = this.plugin.globalGraph;
+      }
+      const searchResultFilePaths =
+        this.plugin.searchState.value.filter.files.map((file) => file.path) ?? [];
       this.graph = this.plugin.globalGraph.filter((node) => {
         return (
-          (settings.filters.searchResult.length === 0 ||
-            settings.filters.searchResult.includes(node.path)) &&
+          (searchResultFilePaths.length === 0 || searchResultFilePaths.includes(node.path)) &&
           // if not show orphans, the node must have at least one link
           (settings.filters.showOrphans || node.links.length > 0) &&
           // if not show attachments, the node must be ".md"
@@ -442,7 +589,6 @@ export class ForceGraph {
   public handleSettingsChanged = (data: StateChange<unknown, GraphSettings>) => {
     // if the filter settings is change
     if (
-      data.currentPath === "filters.searchResult" ||
       data.currentPath === "filters.showOrphans" ||
       data.currentPath === "filters.showAttachments"
     ) {
@@ -467,10 +613,6 @@ export class ForceGraph {
         this.centerCoordinateArrow.zArrow.visible =
           data.newValue as boolean;
     }
-    // else if (data.currentPath === "display.nodeRepulsion") {
-    // this.instance.d3Force("charge", d3.forceManyBody().strength(-1 * (data.newValue as number)));
-    // this.instance.numDimensions(3); // reheat simulation
-    // }
 
     this.instance.refresh(); // other settings only need a refresh
   };
@@ -493,15 +635,20 @@ export class ForceGraph {
         : settings.display.nodeHoverNeighbourColor;
     } else {
       let color = this.plugin.theme.textMuted;
-      settings.groups.groups.forEach((group) => {
-        // multiple groups -> last match wins
-        if (NodeGroup.matches(group.query, node)) color = group.color;
+      settings.groups.groups.forEach((group, index) => {
+        const searchStateGroup = this.plugin.searchState.value.group[index]!;
+        const searchGroupfilePaths = searchStateGroup.files.map((file) => file.path);
+
+        // if the node path is in the searchGroupfiles, change the color to group.color
+        if (searchGroupfilePaths.includes(node.path)) color = group.color;
       });
       return color;
     }
   };
 
   private onNodeHover = (node: Node | null) => {
+    // TODO: not sure why, this.graph is undefined
+    if (!this.graph) return;
     if ((!node && !this.highlightedNodes.size) || (node && this.hoveredNode === node)) return;
 
     // set node label text
