@@ -380,7 +380,7 @@ export class ForceGraph {
   private createNodeLabel(rootHtmlElement: HTMLElement) {
     const nodeLabelEl = rootHtmlElement.createDiv({
       cls: "node-label",
-      text: "test",
+      text: "",
     });
     nodeLabelEl.style.opacity = "0";
     this.nodeLabelEl = nodeLabelEl;
@@ -545,7 +545,10 @@ export class ForceGraph {
       )
       .linkDirectionalParticleWidth(() => settings.display.linkThickness * LINK_PARTICLE_MULTIPLIER)
       .linkDirectionalArrowLength(
-        () => settings.display.linkThickness * LINK_ARROW_WIDTH_MULTIPLIER
+        () =>
+          settings.display.linkThickness *
+          LINK_ARROW_WIDTH_MULTIPLIER *
+          (settings.display.showLinkArrow ? 1 : 0)
       )
       .linkDirectionalArrowRelPos(1)
       .onLinkHover(this.onLinkHover)
@@ -658,7 +661,9 @@ export class ForceGraph {
       // @ts-ignore
       this.nodeLabelEl.style.color = node.color;
       this.nodeLabelEl.style.opacity = "1";
+      console.log(this.nodeLabelEl);
     } else {
+      console.log("leaving");
       this.nodeLabelEl.style.opacity = "0";
     }
 

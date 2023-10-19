@@ -112,6 +112,15 @@ export const DisplaySettingsView = (
     (value) => (displaySettings.value.showCenterCoordinates = value)
   );
 
+  addToggle(
+    containerEl,
+    {
+      name: "Show Link Arrow",
+      value: displaySettings.value.showLinkArrow,
+    },
+    (value) => (displaySettings.value.showLinkArrow = value)
+  );
+
   // add dag orientation setting
   new Setting(containerEl).setName("DAG Orientation").addDropdown((dropdown) => {
     dropdown
