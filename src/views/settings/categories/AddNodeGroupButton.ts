@@ -24,7 +24,13 @@ export const addNodeGroupButton = (
     .setClass("mod-cta")
     .setButtonText("Add Group")
     .onClick(() => {
+      // add a group to group settings
       groupSettings.value.groups.push(new NodeGroup("", getRandomColor()));
+      // add a group to search state as well
+      view.plugin.searchState.value.group.push({
+        query: "",
+        files: [],
+      });
       containerEl.empty();
       GroupSettingsView(groupSettings, containerEl, view);
     });

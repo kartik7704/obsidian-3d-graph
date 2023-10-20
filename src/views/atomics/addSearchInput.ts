@@ -1,10 +1,11 @@
 import Graph3dPlugin from "@/main";
 import { eventBus } from "@/util/EventBus";
+import { waitFor, waitForStable } from "@/util/waitFor";
 import { spawnLeafView } from "@/views/leafView";
 import { SearchView, TFile } from "obsidian";
 import { pick } from "radash";
 
-const DomLookUpTime = 300;
+const DomLookUpTime = 150;
 
 export type SearchResultFile = ReturnType<typeof getFilesFromSearchResult>[0];
 
@@ -17,13 +18,10 @@ const getFilesFromSearchResult = (rawSearchResult: unknown) => {
   });
 };
 
-const getResultFromSearchView = async (searchView: SearchView) => {
-  return await new Promise((resolve) =>
-    setTimeout(() => {
-      // @ts-ignore
-      resolve(searchView.dom.resultDomLookup);
-    }, DomLookUpTime)
-  );
+const getResultFromSearchView = (searchView: SearchView) => {
+  return waitForStable(() => {
+    return searchView.dom.resultDomLookup;
+  }, {});
 };
 
 export const addSearchInput = async (
@@ -82,6 +80,29 @@ export const addSearchInput = async (
   inputEl.value = value;
   const currentView = searchLeaf.view as SearchView;
   inputEl.onkeydown = async (e) => {
+    // wait for isloading to be added
+    await waitFor(
+      () => {
+        return searchResultContainerEl.classList.contains("is-loading");
+      },
+      {
+        // 5000 ms is the max time for "is-loading" to be added
+        timeout: 1000,
+        interval: DomLookUpTime,
+      }
+    );
+
+    // wait for isloading to be removed
+
+    await waitFor(
+      () => {
+        return !searchResultContainerEl.classList.contains("is-loading");
+      },
+      {
+        timeout: 60000,
+        interval: DomLookUpTime,
+      }
+    );
     const rawSearchResult = await getResultFromSearchView(currentView);
     // @ts-ignore
     const files = getFilesFromSearchResult(rawSearchResult);
@@ -89,27 +110,62 @@ export const addSearchInput = async (
   };
 
   clearButtonEl.onclick = () => {
+    // if inputEl has is-loading, then do nothing
+    if (inputEl.classList.contains("is-loading")) return;
     onChange("", []);
   };
 
   const triggerSearch = async () => {
     plugin.activeGraphView.containerEl.appendChild(searchResultContainerEl);
+
+    // if the input is empty, return empty array
+    if (inputEl.value === "") return [];
+
+    console.log("initiating search...");
+
     inputEl.dispatchEvent(
       new KeyboardEvent("keypress", {
         key: "Enter",
       })
     );
+
+    // when it is initializing, just disable the input
+    inputEl.disabled = true;
+
+    // this should trigger the search and append loading state
+    // wait for the search result to be loaded
+    await waitFor(
+      () => {
+        return searchResultContainerEl.classList.contains("is-loading");
+      },
+      {
+        // 5000 ms is the max time for "is-loading" to be added
+        timeout: 5000,
+        interval: DomLookUpTime,
+      }
+    );
+
+    await waitFor(
+      () => {
+        return !searchResultContainerEl.classList.contains("is-loading");
+      },
+      {
+        timeout: 60000,
+        interval: DomLookUpTime,
+      }
+    );
+
+    console.log("search bar done loading...");
+    inputEl.disabled = false;
+
     const rawSearchResult = await getResultFromSearchView(currentView);
     const files = getFilesFromSearchResult(rawSearchResult);
-    console.log(files);
     onChange(inputEl.value, files);
     parentEl.appendChild(searchResultContainerEl);
     return files;
   };
 
-  eventBus.on("trigger-search", () => {
-    triggerSearch();
-  });
+  eventBus.on("trigger-search", triggerSearch);
 
   return [searchRowEl, triggerSearch] as const;
 };

@@ -1,6 +1,7 @@
 import { DisplaySettings } from "@/settings/categories/DisplaySettings";
 import { FilterSettings } from "@/settings/categories/FilterSettings";
 import { GroupSettings } from "@/settings/categories/GroupSettings";
+import { OtherSettings } from "@/settings/categories/OtherSettings";
 import { GraphSettings } from "@/settings/GraphSettings";
 
 export const getGraphSettingsFromStore = (
@@ -10,12 +11,14 @@ export const getGraphSettingsFromStore = (
     filters?: Prettify<ReturnType<(typeof FilterSettings.prototype)["toObject"]>>;
     groups?: Prettify<ReturnType<(typeof GroupSettings.prototype)["toObject"]>>;
     display?: Prettify<ReturnType<(typeof DisplaySettings.prototype)["toObject"]>>;
+    other?: Prettify<ReturnType<(typeof OtherSettings.prototype)["toObject"]>>;
   } = {}
 ) => {
   return new GraphSettings(
     // app,
     new FilterSettings(store.filters),
     new GroupSettings(store.groups),
-    new DisplaySettings(store.display)
+    new DisplaySettings(store.display),
+    new OtherSettings(store.other)
   );
 };

@@ -52,5 +52,6 @@
         "no-restricted-exports": "off"
       }
     }
-  ]
+  ],
+  "ignorePatterns": ["**/*.d.ts"]
 }

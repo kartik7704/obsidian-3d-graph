@@ -11,10 +11,13 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { eventBus } from "@/util/EventBus";
 import { GraphSettings } from "@/settings/GraphSettings";
 import * as THREE from "three";
-import { ItemView as Graph3dView, TFile } from "obsidian";
+import { Notice, TFile } from "obsidian";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 import * as TWEEN from "@tweenjs/tween.js";
+import { CommandModal } from "@/commands/CommandModal";
 
 const origin = new THREE.Vector3(0, 0, 0);
+const selectedColor = "#CCA700";
 
 /**
  * the Coords type in 3d-force-graph
@@ -84,7 +87,11 @@ export class ForceGraph {
   private spaceDown = false;
   private commandDown = false;
 
+  private selectedNodes = new Set<Node>();
+
   private view: Graph3dView;
+  // private bloomComposer: EffectComposer;
+  // private finalComposer: EffectComposer;
 
   constructor(
     plugin: Graph3dPlugin,
@@ -99,7 +106,18 @@ export class ForceGraph {
 
     this.createGraph();
     this.initListeners();
+    this.instance.onEngineStop(this.onEngineStop);
   }
+
+  /**
+   * Callback function invoked when the simulation engine stops and the layout is frozen.
+   */
+  private onEngineStop = () => {
+    console.log("The engine is stop");
+  };
+  public getGraph = () => {
+    return this.graph;
+  };
 
   private cameraPosition(
     instance: ForceGraph3DInstance,
@@ -186,22 +204,24 @@ export class ForceGraph {
   }
 
   private cameraLookAtCenter = () => {
-    const currentCameraPosition = this.instance.cameraPosition();
-
-    this.instance.cameraPosition(
-      currentCameraPosition, // new position
-      { x: 0, y: 0, z: 0 }, // lookAt ({ x, y, z })
-      3000 // ms transition duration
-    );
+    const cameraPosition = this.instance.camera().position;
+    this.cameraPosition(this.instance, cameraPosition, { x: 0, y: 0, z: 0 }, 1000);
   };
 
   private initListeners() {
     this.plugin.settingsState.onChange(this.handleSettingsChanged);
+    this.plugin.searchState.onChange(() => {
+      // if the dv query is not empty, then don't refresh the graph
+      if (this.plugin.settingsState.value.filters.dvQuery && this.plugin.getDvApi()) {
+        return;
+      }
+      this.refreshGraphData();
+    });
     if (this.isLocalGraph) this.plugin.openFileState.onChange(this.refreshGraphData);
     eventBus.on("graph-changed", this.refreshGraphData);
-    this.plugin.searchState.onChange(this.refreshGraphData);
     eventBus.on("do-pull", () => {
       // look at the center of the graph
+      console.log("pulling graph");
       this.cameraLookAtCenter();
 
       // pull together
@@ -216,6 +236,8 @@ export class ForceGraph {
         this.instance.numDimensions(3); // reheat simulation
       }, 300);
     });
+
+    // the utility buttons
     eventBus.on(
       "search",
       (
@@ -228,9 +250,17 @@ export class ForceGraph {
         const targetNode = this.graph?.getNodeByPath(file.file.path);
         console.log("search", file, targetNode);
         if (targetNode) this.focusOnCoords(targetNode as GraphNode);
+        else new Notice("The node doesn't exist in the graph");
       }
     );
+    eventBus.on("look-at-center", this.cameraLookAtCenter);
+    eventBus.on("remove-selected-nodes", this.removeSelectedNodes);
   }
+
+  public removeSelectedNodes = () => {
+    this.selectedNodes.clear();
+    this.updateHighlight();
+  };
 
   private createCenterCoordinateArrow() {
     const xDir = new THREE.Vector3(1, 0, 0);
@@ -329,7 +359,6 @@ export class ForceGraph {
             clearTimeout(startZoomTimeout);
             startZoomTimeout = undefined;
             isZooming = true;
-            console.log("start zooming");
             onZoomStart();
           }
           return;
@@ -345,7 +374,6 @@ export class ForceGraph {
       if (isZooming) {
         clearTimeout(endZoomTimeout);
         endZoomTimeout = setTimeout(() => {
-          console.log("end zooming!");
           endZoomTimeout = undefined;
           isZooming = false;
         }, 100);
@@ -408,6 +436,10 @@ export class ForceGraph {
       // @ts-ignore  we need to return null or empty string because by default it will access the name of node, see https://github.com/vasturiano/3d-force-graph#node-styling
       .nodeLabel((node: Node) => null)
       .nodeRelSize(settings.display.nodeSize)
+      .nodeVal((node: Node) => {
+        const maxVal = 5;
+        return maxVal * (1 - Math.exp(-node.links.length / 5));
+      })
       .backgroundColor(rgba(0, 0, 0, 0.0))
       .width(width)
       .height(height)
@@ -421,6 +453,8 @@ export class ForceGraph {
       this.cameraPosition(this.instance, ...args);
     };
     this.instance.showNavInfo();
+
+    // setBoundingSpace(this.instance.scene());
   }
 
   public getTween() {
@@ -483,13 +517,13 @@ export class ForceGraph {
   private createNodes = () => {
     this.instance
       .nodeColor((node: Node) => {
+        // return the rgba of yellow
         const color = this.getNodeColor(node);
         const factor = 1 / (1 - BASE_NODE_OPACITY);
         const rgba = hexToRGBA(color, (factor - this.getNodeOpacityEasedValue(node)) / factor);
         return rgba;
       })
       .onNodeHover(this.onNodeHover)
-      .nodeOpacity(1)
       .nodeThreeObject((node: Node) => {
         const nodeEl = document.createElement("div");
 
@@ -514,22 +548,80 @@ export class ForceGraph {
       })
       .nodeThreeObjectExtend(true);
 
-    this.instance.onNodeClick((node: Node & Coords, mouseEvent: MouseEvent) => {
-      if (this.commandDown) {
-        this.focusOnCoords(node);
-        return;
-      }
-
-      const clickedNodeFile = this.plugin.app.vault.getFiles().find((f) => f.path === node.path);
-
-      if (clickedNodeFile) {
-        if (this.isLocalGraph) {
-          this.plugin.app.workspace.getLeaf(false).openFile(clickedNodeFile);
-        } else {
-          this.view.leaf.openFile(clickedNodeFile);
+    this.instance
+      .onNodeClick((node: Node & Coords, event: MouseEvent) => {
+        if (event.shiftKey) {
+          const isSelected = this.selectedNodes.has(node);
+          // multi-selection
+          isSelected ? this.selectedNodes.delete(node) : this.selectedNodes.add(node);
+          // @ts-ignore
+          // if (node.__threeObj)
+          //   onPointerDown(
+          //     // @ts-ignore
+          //     node.__threeObj,
+          //     this.instance.scene(),
+          //     this.bloomComposer,
+          //     this.finalComposer
+          //   );
+          return;
         }
-      }
-    });
+
+        if (this.commandDown || event.ctrlKey) {
+          this.focusOnCoords(node);
+          return;
+        }
+
+        const clickedNodeFile = this.plugin.app.vault.getFiles().find((f) => f.path === node.path);
+
+        if (clickedNodeFile) {
+          if (this.isLocalGraph) {
+            this.plugin.app.workspace.getLeaf(false).openFile(clickedNodeFile);
+          } else {
+            this.view.leaf.openFile(clickedNodeFile);
+          }
+        }
+      })
+      // https://github.com/vasturiano/3d-force-graph/blob/d82ecff3fe278ea46beb6d7a5720b00bd993f5e4/example/multi-selection/index.html#L42C9-L55C12
+      .onNodeDrag((node: Node & Coords, translate) => {
+        if (this.selectedNodes.has(node)) {
+          // moving a selected node
+          [...this.selectedNodes]
+            .filter((selNode) => selNode !== node) // don't touch node being dragged
+            .forEach((node) =>
+              ["x", "y", "z"].forEach(
+                // @ts-ignore
+                (coord) => (node[`f${coord}`] = node[coord] + translate[coord])
+              )
+            ); // translate other nodes by same amount
+        }
+      })
+      .onNodeDragEnd((node: Node & Coords) => {
+        if (this.selectedNodes.has(node)) {
+          // finished moving a selected node
+          [...this.selectedNodes]
+            .filter((selNode) => selNode !== node) // don't touch node being dragged
+            // @ts-ignore
+            .forEach((node) => ["x", "y", "z"].forEach((coord) => (node[`f${coord}`] = undefined))); // unfix controlled nodes
+        }
+      })
+      .onNodeRightClick((node: Node, mouseEvent: MouseEvent) => {
+        console.log("right click", node, mouseEvent);
+        if (!this.selectedNodes.has(node)) {
+          this.selectedNodes.clear();
+          this.selectedNodes.add(node);
+        }
+        //   show a modal
+        const modal = new CommandModal(this.view, this.selectedNodes);
+        const promptEl = modal.containerEl.querySelector(".prompt");
+        const dv = promptEl?.createDiv({
+          text: `Commands will be run for ${this.selectedNodes.size} nodes.`,
+        });
+        dv?.setAttribute("style", "padding: var(--size-4-3); font-size: var(--font-smaller);");
+        modal.open();
+      });
+
+    // post processing
+    // this.instance.postProcessingComposer().addPass(bloomPass);
   };
 
   private createLinks = () => {
@@ -552,72 +644,120 @@ export class ForceGraph {
       )
       .linkDirectionalArrowRelPos(1)
       .onLinkHover(this.onLinkHover)
-      .linkColor((link: Link) =>
-        this.isHighlightedLink(link) ? settings.display.linkHoverColor : this.plugin.theme.textMuted
-      )
+      .linkColor((link: Link) => {
+        return this.isHighlightedLink(link)
+          ? settings.display.linkHoverColor
+          : this.plugin.theme.textMuted;
+      })
       .d3Force("link")
       ?.distance(() => settings.display.linkDistance);
   };
 
+  // TODO: optimise this
   private getGraphData = (): Graph => {
-    const settings = this.plugin.getSettings();
-    if (this.isLocalGraph && this.plugin.openFileState.value) {
-      this.graph = this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);
-      // console.log(this.graph);
-    } else {
-      if (settings.filters.searchQuery === "") {
-        this.graph = this.plugin.globalGraph;
-      }
-      const searchResultFilePaths =
-        this.plugin.searchState.value.filter.files.map((file) => file.path) ?? [];
-      this.graph = this.plugin.globalGraph.filter((node) => {
-        return (
-          (searchResultFilePaths.length === 0 || searchResultFilePaths.includes(node.path)) &&
-          // if not show orphans, the node must have at least one link
-          (settings.filters.showOrphans || node.links.length > 0) &&
-          // if not show attachments, the node must be ".md"
-          (settings.filters.showAttachments || node.path.endsWith(".md"))
-        );
-      });
-    }
+    function getGraph(this: ForceGraph) {
+      const settings = this.plugin.getSettings();
+      if (this.isLocalGraph && this.plugin.openFileState.value) {
+        return this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);
+      } else {
+        // const dvQuery = settings.filters.dvQuery.trim();
+        const searchQuery = settings.filters.searchQuery.trim();
+        // const dv = this.plugin.getDvApi();
 
-    return this.graph;
+        const totalNodeCount = this.plugin.globalGraph.nodes.length;
+
+        // if there is no search query, we will simply return the global graph
+        if (searchQuery === "") {
+          if (totalNodeCount > this.plugin.settingsState.value.other.maxNodeNumber) {
+            const message = `The number of nodes is ${totalNodeCount}, which is larger than the maxNodeNumber ${this.plugin.settingsState.value.other.maxNodeNumber}. The graph will not be shown.`;
+            console.warn(message);
+            new Notice(message);
+            // return an empty graph
+            return new Graph([], [], new Map(), new Map());
+          }
+          return this.plugin.globalGraph;
+        }
+
+        // const resultFilePaths =
+        //   dvQuery !== "" && dv
+        //     ? (() => {
+        //         try {
+        //           return dv.pagePaths(dvQuery);
+        //         } catch (e) {
+        //           return [];
+        //         }
+        //       })()
+        //     : this.plugin.searchState.value.filter.files.map((file) => file.path) ?? [];
+        const resultFilePaths =
+          this.plugin.searchState.value.filter.files.map((file) => file.path) ?? [];
+
+        if (resultFilePaths.length > this.plugin.settingsState.value.other.maxNodeNumber) {
+          const message = `The number of nodes is ${resultFilePaths.length}, which is larger than the maxNodeNumber ${this.plugin.settingsState.value.other.maxNodeNumber}. The graph will not be shown.`;
+          console.warn(message);
+          new Notice(message);
+          // return an empty graph
+          return new Graph([], [], new Map(), new Map());
+        }
+
+        console.log("resultFilePaths", resultFilePaths.length);
+        return this.plugin.globalGraph.filter((node) => {
+          return (
+            resultFilePaths.includes(node.path) &&
+            // if not show orphans, the node must have at least one link
+            (settings.filters.showOrphans || node.links.length > 0) &&
+            // if not show attachments, the node must be ".md"
+            (settings.filters.showAttachments || node.path.endsWith(".md"))
+          );
+        });
+      }
+    }
+    const graph = getGraph.call(this);
+    this.graph = graph;
+    console.log(this.graph);
+    if (this.graph.nodes.length > 0) {
+      this.view.showGraphViewAndHideText();
+    }
+    return graph;
   };
 
-  private refreshGraphData = () => {
+  public refreshGraphData = () => {
     // console.log("refresh graph data");
-    this.instance.graphData(this.getGraphData());
+    try {
+      this.instance.graphData(this.getGraphData());
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   public handleSettingsChanged = (data: StateChange<unknown, GraphSettings>) => {
-    // if the filter settings is change
+    // TODO: This should be organized better
     if (
+      data.currentPath === "filters.dvQuery" ||
       data.currentPath === "filters.showOrphans" ||
       data.currentPath === "filters.showAttachments"
     ) {
-      // update the graphData
       this.refreshGraphData();
-    }
-
-    if (data.currentPath === "display.nodeSize") {
+    } else if (data.currentPath === "display.nodeSize") {
       this.instance.nodeRelSize(data.newValue as number);
+      this.instance.refresh();
     } else if (data.currentPath === "display.linkDistance") {
       // https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/manipulate-link-force/index.html#L50-L55
       this.instance.d3Force("link")?.distance(data.newValue as number);
       this.instance.numDimensions(3); // reheat simulation
+      this.instance.refresh();
     } else if (data.currentPath === "display.dagOrientation") {
       const noDag = data.newValue === "null";
       // @ts-ignore
       this.instance.dagMode(noDag ? null : data.newValue);
       this.instance.numDimensions(3); // reheat simulation
+      this.instance.refresh();
     } else if (data.currentPath === "display.showCenterCoordinates") {
       this.centerCoordinateArrow.xArrow.visible =
         this.centerCoordinateArrow.yArrow.visible =
         this.centerCoordinateArrow.zArrow.visible =
           data.newValue as boolean;
+      this.instance.refresh();
     }
-
-    this.instance.refresh(); // other settings only need a refresh
   };
 
   public updateDimensions() {
@@ -628,23 +768,32 @@ export class ForceGraph {
   public setDimensions(width: number, height: number) {
     this.instance.width(width);
     this.instance.height(height);
+
+    // this.bloomComposer.setSize(width, height);
+    // this.finalComposer.setSize(width, height);
   }
 
   private getNodeColor = (node: Node): string => {
     const settings = this.plugin.getSettings();
+    if (this.selectedNodes.has(node)) {
+      return selectedColor;
+    }
     if (this.isHighlightedNode(node)) {
       return node === this.hoveredNode
         ? settings.display.nodeHoverColor
         : settings.display.nodeHoverNeighbourColor;
     } else {
       let color = this.plugin.theme.textMuted;
-      settings.groups.groups.forEach((group, index) => {
-        const searchStateGroup = this.plugin.searchState.value.group[index]!;
-        const searchGroupfilePaths = searchStateGroup.files.map((file) => file.path);
+      settings.groups.groups
+        // we only want to use the groups that have a query
+        .filter((g) => g.query.trim().length !== 0)
+        .forEach((group, index) => {
+          const searchStateGroup = this.plugin.searchState.value.group[index]!;
+          const searchGroupfilePaths = searchStateGroup.files.map((file) => file.path);
 
-        // if the node path is in the searchGroupfiles, change the color to group.color
-        if (searchGroupfilePaths.includes(node.path)) color = group.color;
-      });
+          // if the node path is in the searchGroupfiles, change the color to group.color
+          if (searchGroupfilePaths.includes(node.path)) color = group.color;
+        });
       return color;
     }
   };
@@ -661,9 +810,7 @@ export class ForceGraph {
       // @ts-ignore
       this.nodeLabelEl.style.color = node.color;
       this.nodeLabelEl.style.opacity = "1";
-      console.log(this.nodeLabelEl);
     } else {
-      console.log("leaving");
       this.nodeLabelEl.style.opacity = "0";
     }
 
@@ -712,7 +859,7 @@ export class ForceGraph {
       .linkDirectionalParticles(this.instance.linkDirectionalParticles());
   }
 
-  getInstance(): ForceGraph3DInstance {
+  getInstance() {
     return this.instance;
   }
 }

@@ -134,7 +134,7 @@ export class Graph {
     const newGraph = Graph.createFromApp(app);
 
     this.nodes.splice(0, this.nodes.length, ...newGraph.nodes);
-    this.links.splice(0, this.nodes.length, ...newGraph.links);
+    this.links.splice(0, this.links.length, ...newGraph.links);
 
     this.nodeIndex.clear();
     newGraph.nodeIndex.forEach((value, key) => {
@@ -147,6 +147,11 @@ export class Graph {
     });
   };
 
+  /**
+   * filter the nodes of the graph, the links will be filtered automatically.
+   * @param predicate this
+   * @returns a new graph
+   */
   public filter = (predicate: (node: Node) => boolean) => {
     const filteredNodes = this.nodes.filter(predicate);
     const filteredLinks = this.links.filter((link) => {

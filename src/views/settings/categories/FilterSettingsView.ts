@@ -23,6 +23,24 @@ export const FilterSettingsView = async (
   );
   graphView.searchTriggers["filter"] = triggerSearch;
 
+  const dv = plugin.getDvApi();
+  // if user have dv installed, they can use dv query
+  if (dv && plugin.settingsState.value.other.useDataView) {
+    const dvQuerySetting = new Setting(containerEl).addText((text) => {
+      text
+        .setValue(filterSettings.value.dvQuery || "")
+        .setPlaceholder("Dv Query")
+        .onChange(async (value) => {
+          filterSettings.value.dvQuery = value;
+        });
+
+      text.inputEl.parentElement?.addClass("search-input-container");
+    });
+
+    const el = dvQuerySetting.infoEl;
+    if (el) el.style.display = "none";
+  }
+
   // add show attachments setting
   new Setting(containerEl).setName("Show Attachments").addToggle((toggle) => {
     toggle.setValue(filterSettings.value.showAttachments || false).onChange(async (value) => {

@@ -1,10 +1,15 @@
-import { FuzzySuggestModal, ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, WorkspaceLeaf } from "obsidian";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import { GraphSettingsView } from "@/views/settings/GraphSettingsView";
 import Graph3dPlugin from "@/main";
+import { SearchResultFile } from "@/views/atomics/addSearchInput";
+import { waitFor } from "@/util/waitFor";
 
 export class Graph3dView extends ItemView {
-  private forceGraph: ForceGraph;
+  /**
+   * this can be undefined because the graph is not ready yet
+   */
+  private forceGraph: ForceGraph | undefined;
   private readonly isLocalGraph: boolean;
   readonly plugin: Graph3dPlugin;
   private settingsView: GraphSettingsView;
@@ -12,15 +17,33 @@ export class Graph3dView extends ItemView {
     [id: string]: () => Promise<SearchResultFile[]>;
   } = {};
 
+  private viewContent: HTMLDivElement;
+  private div: HTMLDivElement;
+
   constructor(plugin: Graph3dPlugin, leaf: WorkspaceLeaf, isLocalGraph = false) {
     super(leaf);
     this.isLocalGraph = isLocalGraph;
     this.plugin = plugin;
+    this.viewContent = this.containerEl.querySelector(".view-content") as HTMLDivElement;
+
+    const div = this.viewContent.createDiv({
+      text: "loading graph...",
+    });
+    this.viewContent.style.display = "flex";
+    this.viewContent.style.alignItems = "center";
+    this.viewContent.style.justifyContent = "center";
+    div.style.margin = "auto";
+    div.style.display = "hidden";
+    this.div = div;
   }
 
   onunload() {
     super.onunload();
     this.forceGraph?.getInstance()._destructor();
+  }
+
+  getForceGraph() {
+    return this.forceGraph;
   }
 
   async showGraph() {
@@ -29,41 +52,43 @@ export class Graph3dView extends ItemView {
       console.error("Could not find view content");
       return;
     }
-    // this.forceGraph.getInstance().renderer().domElement.style.display = "none";
 
     viewContent.classList.add("graph-3d-view");
-    const settings = new GraphSettingsView(
-      this.plugin.settingsState,
-      this.plugin.theme,
-      this.plugin,
-      this
-    );
+    const settings = new GraphSettingsView(this.plugin.settingsState, this);
     this.settingsView = settings;
     viewContent.appendChild(settings);
 
     // if not trigger search
-    if (Object.keys(this.searchTriggers).length === 0) {
-      const div = viewContent.createDiv({
-        text: "loading graph...",
-      });
-      viewContent.style.display = "flex";
-      viewContent.style.alignItems = "center";
-      viewContent.style.justifyContent = "center";
-      div.style.margin = "auto";
-      console.log("waiting for search triggers");
-      await waitFor(() => Object.keys(this.searchTriggers).length > 0);
-      console.log("search triggers", this.searchTriggers, Object.keys(this.searchTriggers).length);
+    if (Object.keys(this.searchTriggers).length === 0 || this.plugin.getIsReady()) {
+      this.div.style.removeProperty("display");
 
+      this.div.setText("Loading ...");
+
+      // hide the settings
+      this.settingsView.style.display = "none";
+
+      this.div.setText("waiting for cache to be ready...");
+      await waitFor(
+        () => {
+          return this.plugin.getIsReady();
+        },
+        { timeout: 60000, interval: 1000 }
+      );
+
+      this.div.setText("waiting for search triggers...");
+      await waitFor(() => Object.keys(this.searchTriggers).length > 0, {});
       const promises = Object.entries(this.searchTriggers).map(([id, trigger]) => {
         console.log("adding trigger", id);
         return trigger();
       });
 
-      console.log(promises);
       const results = await Promise.all(promises);
       console.log("all results", results);
       // remove the loading text
-      div.remove();
+      this.div.style.display = "none";
+
+      // remove the setting style display
+      this.settingsView.style.removeProperty("display");
     }
 
     // the graph needs to be append before the settings
@@ -81,7 +106,7 @@ export class Graph3dView extends ItemView {
 
   onResize() {
     super.onResize();
-    this.forceGraph.updateDimensions();
+    if (this.forceGraph) this.forceGraph.updateDimensions();
   }
 
   getSettingsView(): GraphSettingsView {
@@ -90,48 +115,30 @@ export class Graph3dView extends ItemView {
 
   private appendGraph(viewContent: HTMLElement) {
     this.forceGraph = new ForceGraph(this.plugin, viewContent, this.isLocalGraph, this);
-    this.forceGraph.getInstance().onNodeRightClick((node: Node, mouseEvent: MouseEvent) => {
-      console.log("right click", node, mouseEvent);
-      //   show a modal
-      const modal = new ExampleModal(this.app);
-      modal.open();
-    });
-  }
-}
-import { Notice } from "obsidian";
-import { SearchResultFile } from "@/views/atomics/addSearchInput";
-import { waitFor } from "@/util/waitFor";
-
-interface Book {
-  title: string;
-  author: string;
-}
-
-const ALL_BOOKS = [
-  {
-    title: "How to Take Smart Notes",
-    author: "Sönke Ahrens",
-  },
-  {
-    title: "Thinking, Fast and Slow",
-    author: "Daniel Kahneman",
-  },
-  {
-    title: "Deep Work",
-    author: "Cal Newport",
-  },
-];
-
-export class ExampleModal extends FuzzySuggestModal<Book> {
-  getItems(): Book[] {
-    return ALL_BOOKS;
+    // TODO: adding a loading state
   }
 
-  getItemText(book: Book): string {
-    return book.title;
+  /**
+   * hide the graph view and show the text
+   */
+  public hideGraphViewAndShowText(text?: string) {
+    const sceneContainerEl = this.viewContent.querySelector(".scene-container") as HTMLDivElement;
+    // set display none
+    sceneContainerEl.style.display = "none";
+
+    if (text) {
+      // show the text
+      this.div.style.removeProperty("display");
+      this.div.setText(text);
+    }
   }
 
-  onChooseItem(book: Book, evt: MouseEvent | KeyboardEvent) {
-    new Notice(`Selected ${book.title}`);
+  public showGraphViewAndHideText() {
+    const sceneContainerEl = this.viewContent.querySelector(".scene-container") as HTMLDivElement;
+    // set display none
+    sceneContainerEl.style.removeProperty("display");
+
+    // hide the text
+    this.div.style.display = "none";
   }
 }

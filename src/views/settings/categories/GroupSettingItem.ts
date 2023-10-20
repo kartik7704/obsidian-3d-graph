@@ -24,8 +24,11 @@ export const AddNodeGroupItem = async (
     (value, files) => {
       group.value.query = value;
       // they must exist
-      plugin.searchState.value.group[index]!.query = value;
-      plugin.searchState.value.group[index]!.files = files;
+      const g = plugin.searchState.value.group[index];
+      if (g) {
+        g.query = value;
+        g.files = files;
+      }
     },
     plugin
   );

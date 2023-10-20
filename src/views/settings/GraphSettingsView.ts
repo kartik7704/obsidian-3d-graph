@@ -8,9 +8,7 @@ import { State, StateChange } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 import { FilterSettingsView } from "@/views/settings/categories/FilterSettingsView";
 import { GraphSettings } from "@/settings/GraphSettings";
-import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { eventBus } from "@/util/EventBus";
-import Graph3dPlugin from "@/main";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 
@@ -18,21 +16,12 @@ export class GraphSettingsView extends HTMLDivElement {
   private settingsButton: ExtraButtonComponent;
   private graphControls: HTMLDivElement;
   private readonly settingsState: State<GraphSettings>;
-  private readonly theme: ObsidianTheme;
-  private readonly plugin: Graph3dPlugin;
   searchLeaf: WorkspaceLeaf;
   private parentView: Graph3dView;
 
-  constructor(
-    settingsState: State<GraphSettings>,
-    theme: ObsidianTheme,
-    plugin: Graph3dPlugin,
-    parentView: Graph3dView
-  ) {
+  constructor(settingsState: State<GraphSettings>, parentView: Graph3dView) {
     super();
     this.settingsState = settingsState;
-    this.theme = theme;
-    this.plugin = plugin;
     this.parentView = parentView;
   }
 
@@ -71,7 +60,7 @@ export class GraphSettingsView extends HTMLDivElement {
       DisplaySettingsView
     );
     this.appendSettingGroup(undefined, "Utils", (_, containerEl) =>
-      UtilitySettingsView(containerEl, this.plugin)
+      UtilitySettingsView(containerEl, this.parentView)
     );
     this.initListeners();
     this.toggleCollapsed(this.isCollapsedState.value);
@@ -161,6 +150,7 @@ export class GraphSettingsView extends HTMLDivElement {
   }
 }
 
+// TODO: this has a problem that cause illegal constructor error
 if (typeof customElements.get("graph-settings-view") === "undefined") {
   customElements.define("graph-settings-view", GraphSettingsView, {
     extends: "div",

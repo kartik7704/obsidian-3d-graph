@@ -11,6 +11,8 @@ import "@total-typescript/ts-reset";
 import "@total-typescript/ts-reset/dom";
 import { eventBus } from "@/util/EventBus";
 import { SearchResultFile } from "@/views/atomics/addSearchInput";
+import { getAPI, DataviewApi } from "obsidian-dataview";
+import { SettingTab } from "@/settings/pluginSettings";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -36,6 +38,7 @@ export default class Graph3dPlugin extends Plugin {
   private cacheIsReady: State<boolean> = new State(
     this.app.metadataCache.resolvedLinks !== undefined
   );
+  private isReady = false;
 
   // Other properties
   public globalGraph: Graph;
@@ -44,6 +47,10 @@ export default class Graph3dPlugin extends Plugin {
   private queuedGraphs: Graph3dView[] = [];
   private callbackUnregisterHandles: (() => void)[] = [];
   public activeGraphView: Graph3dView;
+
+  getDvApi = () => {
+    return getAPI(this.app) as DataviewApi | undefined;
+  };
 
   async onload() {
     await this.init();
@@ -59,6 +66,8 @@ export default class Graph3dPlugin extends Plugin {
       name: "Open Local 3D Graph",
       callback: this.openLocalGraph,
     });
+
+    this.addSettingTab(new SettingTab(this.app, this));
   }
 
   public triggerSearch = () => {
@@ -90,6 +99,10 @@ export default class Graph3dPlugin extends Plugin {
     this.cacheIsReady.value = this.app.metadataCache.resolvedLinks !== undefined;
     this.onGraphCacheChanged();
   }
+
+  public getIsReady = () => {
+    return this.isReady;
+  };
 
   private initListeners() {
     this.callbackUnregisterHandles.push(
@@ -144,10 +157,11 @@ export default class Graph3dPlugin extends Plugin {
   private onGraphCacheReady = () => {
     console.log("Graph cache is ready");
     this.cacheIsReady.value = true;
+    this.isReady = true;
     this.onGraphCacheChanged();
   };
 
-  private onGraphCacheChanged = () => {
+  public onGraphCacheChanged = () => {
     // check if the cache actually updated
     // Obsidian API sends a lot of (for this plugin) unnecessary stuff
     // with the resolve event
@@ -156,6 +170,7 @@ export default class Graph3dPlugin extends Plugin {
       !deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
     ) {
       this._resolvedCache = structuredClone(this.app.metadataCache.resolvedLinks);
+      // TODO: this needs to be optimized??
       this.globalGraph = Graph.createFromApp(this.app);
     } else {
       console.log(
@@ -206,8 +221,9 @@ export default class Graph3dPlugin extends Plugin {
   };
 
   private async loadSettings(): Promise<GraphSettings> {
-    const loadedData: unknown = await this.loadData(),
-      settings = getGraphSettingsFromStore(!loadedData ? {} : loadedData);
+    // TODO: zod parse the data
+    const loadedData: unknown = await this.loadData();
+    const settings = getGraphSettingsFromStore(!loadedData ? {} : loadedData);
     console.log("loadSettings:", settings);
     return settings;
   }
