@@ -3,6 +3,7 @@ import {
   nodeSize,
   linkDistance,
   linkThickness,
+  nodeRepulsion,
   DagOrientation,
 } from "@/settings/categories/DisplaySettings";
 import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
@@ -51,6 +52,18 @@ export const DisplaySettingsView = (
     },
     (value) => {
       displaySettings.value.linkDistance = value;
+    }
+  );
+
+  addSimpleSliderSetting(
+    containerEl,
+    {
+      name: "Node Repulsion",
+      value: displaySettings.value.nodeRepulsion,
+      stepOptions: nodeRepulsion,
+    },
+    (value) => {
+      displaySettings.value.nodeRepulsion = value;
     }
   );
 
@@ -119,6 +132,15 @@ export const DisplaySettingsView = (
       value: displaySettings.value.showLinkArrow,
     },
     (value) => (displaySettings.value.showLinkArrow = value)
+  );
+
+  addToggle(
+    containerEl,
+    {
+      name: "Don't Move When Drag",
+      value: displaySettings.value.dontMoveWhenDrag,
+    },
+    (value) => (displaySettings.value.dontMoveWhenDrag = value)
   );
 
   // add dag orientation setting

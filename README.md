@@ -37,6 +37,8 @@ You can do zooming (scroll you wheel), rotating (drag the scene) and panning (ct
 
 ### Local Graph
 
+> ⚠️ Local graph currently has some problem. I want to focus on global graph first and therefore I disable it.
+
 In a note, you can run command `Open local 3D graph` to open a local graph. A local graph will only show nodes that connect to this nodes.
 
 ### Filter Node on global graph
@@ -51,6 +53,25 @@ In a note, you can run command `Open local 3D graph` to open a local graph. A lo
 
 you can use query to color nodes on a global graph
 
+### Label fade
+
+When you are closer to the node, the label will appear. When you move away from the node, the node will fade away.
+
+### Changing display setting
+
+You can change the following:
+
+1. Node size
+   1. Node size also scale with degree of connection. The more links a node has, the bigger it is.
+2. Link thickness
+3. Link distance
+4. Node repulsion
+5. node hover color, node hover neighbour color, link hover color
+6. show file extension, show full path on label
+7. show center coordination
+8. show link arrow
+9. don't node move on drag
+
 ### Focus on node
 
 hold `Ctrl`/`cmd` and click on a node will fly and focus on a node. It is the perfect way to navigate on large graph.
@@ -59,7 +80,7 @@ hold `Ctrl`/`cmd` and click on a node will fly and focus on a node. It is the pe
 
 You can search and focus on a node in the graph
 
-### Multiple selection
+### Multiple selection and batch commands
 
 hold `shift` and click on nodes to select multiple nodes. Then right click on one of the selected nodes to open commands. You can run batched commands on the selected nodes.
 
@@ -67,9 +88,7 @@ hold `shift` and click on nodes to select multiple nodes. Then right click on on
 
 You can see DAG(Directed acyclic graph) orientation on a graph.
 
-### Node size scale with degree of connection
-
-The more links a node has, the bigger it is.
+> ⚠️ Currently Dag mode has some issue, it cannot handle circular nodes and links but the plugin doesn't reflect that.
 
 ### Feature roadmap
 

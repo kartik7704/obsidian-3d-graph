@@ -15,6 +15,7 @@ import { Notice, TFile } from "obsidian";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import * as TWEEN from "@tweenjs/tween.js";
 import { CommandModal } from "@/commands/CommandModal";
+import * as d3 from "d3-force-3d";
 
 const origin = new THREE.Vector3(0, 0, 0);
 const selectedColor = "#CCA700";
@@ -220,23 +221,6 @@ export class ForceGraph {
     });
     if (this.isLocalGraph) this.plugin.openFileState.onChange(this.refreshGraphData);
     eventBus.on("graph-changed", this.refreshGraphData);
-    eventBus.on("do-pull", () => {
-      // look at the center of the graph
-      console.log("pulling graph");
-      this.cameraLookAtCenter();
-
-      // pull together
-      const currentDagOrientation = this.plugin.getSettings().display.dagOrientation;
-      this.instance.dagMode("radialout");
-      this.instance.numDimensions(3); // reheat simulation
-      setTimeout(() => {
-        const noDag = currentDagOrientation === "null";
-        // @ts-ignore
-        this.instance.dagMode(noDag ? null : currentDagOrientation);
-        this.instance.graphData(this.getGraphData());
-        this.instance.numDimensions(3); // reheat simulation
-      }, 300);
-    });
 
     // the utility buttons
     eventBus.on(
@@ -452,7 +436,13 @@ export class ForceGraph {
       .height(height)
       //@ts-ignore
       .dagMode(settings.display.dagOrientation === "null" ? null : settings.display.dagOrientation)
-      .dagLevelDistance(200);
+      .dagLevelDistance(200)
+      // https://github.com/vasturiano/3d-force-graph/issues/279#issuecomment-584819525
+      .d3Force("charge", d3.forceManyBody().strength(-1000))
+      .d3Force("collide", d3.forceCollide(5))
+      .d3Force("x", d3.forceX(0).strength(0.1))
+      .d3Force("y", d3.forceY(0).strength(0.1))
+      .d3Force("z", d3.forceZ(0).strength(0.1));
 
     // @ts-ignore patch the cameraPosition function
     this.instance.cameraPosition = (...args) => {
@@ -591,6 +581,9 @@ export class ForceGraph {
       })
       // https://github.com/vasturiano/3d-force-graph/blob/d82ecff3fe278ea46beb6d7a5720b00bd993f5e4/example/multi-selection/index.html#L42C9-L55C12
       .onNodeDrag((node: Node & Coords, translate) => {
+        // https://github.com/vasturiano/3d-force-graph/issues/279#issuecomment-587135032
+        if (this.plugin.settingsState.value.display.dontMoveWhenDrag)
+          this.instance.cooldownTicks(0);
         if (this.selectedNodes.has(node)) {
           // moving a selected node
           [...this.selectedNodes]
@@ -604,6 +597,9 @@ export class ForceGraph {
         }
       })
       .onNodeDragEnd((node: Node & Coords) => {
+        // https://github.com/vasturiano/3d-force-graph/issues/279#issuecomment-587135032
+        if (this.plugin.settingsState.value.display.dontMoveWhenDrag)
+          this.instance.cooldownTicks(Infinity);
         if (this.selectedNodes.has(node)) {
           // finished moving a selected node
           [...this.selectedNodes]
@@ -765,6 +761,14 @@ export class ForceGraph {
         this.centerCoordinateArrow.zArrow.visible =
           data.newValue as boolean;
       this.instance.refresh();
+    } else if (data.currentPath === "display.nodeRepulsion") {
+      const nodeRepulsion = data.newValue as number;
+      this.instance
+        .d3Force("charge", d3.forceManyBody().strength(-nodeRepulsion))
+        .d3Force("x", d3.forceX(0).strength(1 - nodeRepulsion / 3000 + 0.001))
+        .d3Force("y", d3.forceY(0).strength(1 - nodeRepulsion / 3000 + 0.001))
+        .d3Force("z", d3.forceZ(0).strength(1 - nodeRepulsion / 3000 + 0.001));
+      this.instance.numDimensions(3); // reheat simulation
     }
   };
 

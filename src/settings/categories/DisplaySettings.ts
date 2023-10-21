@@ -1,7 +1,7 @@
 const DEFAULT_NODE_SIZE = 3;
 const DEFAULT_LINK_THICKNESS = 3;
 const DEFAULT_LINK_DISTANCE = 100;
-const DEFAULT_NODE_REPULSION = 25;
+const DEFAULT_NODE_REPULSION = 1000;
 
 export const nodeSize = {
   min: 1,
@@ -25,9 +25,9 @@ export const linkDistance = {
 };
 
 export const nodeRepulsion = {
-  min: 10,
-  max: 100,
-  step: 1,
+  min: 1500,
+  max: 3000,
+  step: 100,
   default: DEFAULT_NODE_REPULSION, // 25
 };
 
@@ -51,6 +51,7 @@ const DEFAULT_SHOW_FULL_PATH = false;
 const DEFAULT_DAG_ORIENTATION = "null" as DagOrientation;
 const DEFAULT_SHOW_CENTER_COORDINATES = false;
 const DEFAULT_SHOW_LINK_ARROW = true;
+const DEFAULT_DONT_MOVE_WHEN_DRAG = false;
 export class DisplaySettings {
   public nodeSize = DEFAULT_NODE_SIZE;
   public linkThickness = DEFAULT_LINK_THICKNESS;
@@ -64,6 +65,7 @@ export class DisplaySettings {
   public dagOrientation = DEFAULT_DAG_ORIENTATION;
   public showCenterCoordinates = DEFAULT_SHOW_CENTER_COORDINATES;
   public showLinkArrow = DEFAULT_SHOW_LINK_ARROW;
+  public dontMoveWhenDrag = DEFAULT_DONT_MOVE_WHEN_DRAG;
 
   constructor({
     nodeSize = DEFAULT_NODE_SIZE,
@@ -78,6 +80,7 @@ export class DisplaySettings {
     nodeRepulsion = DEFAULT_NODE_REPULSION,
     showCenterCoordinates = DEFAULT_SHOW_CENTER_COORDINATES,
     showLinkArrow = DEFAULT_SHOW_LINK_ARROW,
+    dontMoveWhenDrag = DEFAULT_DONT_MOVE_WHEN_DRAG,
   }: {
     nodeSize?: number;
     linkThickness?: number;
@@ -91,6 +94,7 @@ export class DisplaySettings {
     nodeRepulsion?: number;
     showCenterCoordinates?: boolean;
     showLinkArrow?: boolean;
+    dontMoveWhenDrag?: boolean;
   } = {}) {
     this.nodeSize = nodeSize;
     this.linkThickness = linkThickness;
@@ -104,6 +108,7 @@ export class DisplaySettings {
     this.dagOrientation = dagOrientation;
     this.showCenterCoordinates = showCenterCoordinates;
     this.showLinkArrow = showLinkArrow;
+    this.dontMoveWhenDrag = dontMoveWhenDrag;
   }
 
   public toObject() {
