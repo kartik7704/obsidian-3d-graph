@@ -11,7 +11,11 @@ export class Link {
     this.target = target;
   }
 
-  // Creates a link index for an array of links
+  /**
+   * Creates a link index for an array of links
+   * @param links
+   * @returns
+   */
   static createLinkIndex(links: Link[]): Map<string, Map<string, number>> {
     const linkIndex = new Map<string, Map<string, number>>();
     links.forEach((link, index) => {
@@ -24,7 +28,14 @@ export class Link {
     return linkIndex;
   }
 
-  // Creates an array of links + index from an array of nodes and the Obsidian API cache
+  /**
+   * Creates an array of links + index from an array of nodes and the Obsidian API cache
+   *
+   * @param cache the Obsidian API cache
+   * @param nodes the array of nodes
+   * @param nodeIndex the index of the nodes
+   * @returns an array of links and an index of the links
+   */
   static createFromCache(
     cache: ResolvedLinkCache,
     nodes: Node[],

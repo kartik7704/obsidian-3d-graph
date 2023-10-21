@@ -13,6 +13,7 @@ import { eventBus } from "@/util/EventBus";
 import { SearchResultFile } from "@/views/atomics/addSearchInput";
 import { getAPI, DataviewApi } from "obsidian-dataview";
 import { SettingTab } from "@/settings/pluginSettings";
+import { config } from "@/config";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -54,7 +55,8 @@ export default class Graph3dPlugin extends Plugin {
 
   async onload() {
     await this.init();
-    this.addRibbonIcon("glasses", "3D Graph", this.openGlobalGraph);
+    this.addRibbonIcon(config.icon, config.displayText.global, this.openGlobalGraph);
+
     this.addCommand({
       id: "open-3d-graph-global",
       name: "Open Global 3D Graph",
@@ -68,6 +70,18 @@ export default class Graph3dPlugin extends Plugin {
     });
 
     this.addSettingTab(new SettingTab(this.app, this));
+
+    // register global view
+    this.registerView(config.viewType.global, (leaf) => {
+      this.activeGraphView = new Graph3dView(this, leaf, false);
+      return this.activeGraphView;
+    });
+
+    // register local view
+    this.registerView(config.viewType.local, (leaf) => {
+      this.activeGraphView = new Graph3dView(this, leaf, true);
+      return this.activeGraphView;
+    });
   }
 
   public triggerSearch = () => {
@@ -120,7 +134,7 @@ export default class Graph3dPlugin extends Plugin {
         menu.addItem((item) => {
           item
             .setTitle("Open in local 3D Graph")
-            .setIcon("glasses")
+            .setIcon(config.icon)
             .onClick(() => this.openLocalGraph());
         });
       })
@@ -137,7 +151,7 @@ export default class Graph3dPlugin extends Plugin {
       // when the cache is ready, open the queued graphs
       this.cacheIsReady.onChange((isReady) => {
         if (isReady) {
-          this.openQueuedGraphs();
+          // this.openQueuedGraphs();
         }
       })
     );
@@ -149,10 +163,10 @@ export default class Graph3dPlugin extends Plugin {
   }
 
   // opens all queued graphs (graphs get queued if cache isnt ready yet)
-  private openQueuedGraphs() {
-    this.queuedGraphs.forEach((view) => view.showGraph());
-    this.queuedGraphs = [];
-  }
+  // private openQueuedGraphs() {
+  //   this.queuedGraphs.forEach((view) => view.showGraph());
+  //   this.queuedGraphs = [];
+  // }
 
   private onGraphCacheReady = () => {
     console.log("Graph cache is ready");
@@ -207,17 +221,14 @@ export default class Graph3dPlugin extends Plugin {
   };
 
   // Open a global or local graph
-  private openGraph = (isLocalGraph: boolean) => {
+  private openGraph = async (isLocalGraph: boolean) => {
     eventBus.trigger("open-graph");
     const leaf = this.app.workspace.getLeaf(isLocalGraph ? "split" : false);
-    const graphView = new Graph3dView(this, leaf, isLocalGraph);
-    leaf.open(graphView);
-    this.activeGraphView = graphView;
-    if (this.cacheIsReady.value) {
-      graphView.showGraph();
-    } else {
-      this.queuedGraphs.push(graphView);
-    }
+    // const graphView = new Graph3dView(this, leaf, isLocalGraph);
+    await leaf.setViewState({
+      type: isLocalGraph ? config.viewType.local : config.viewType.global,
+      active: true,
+    });
   };
 
   private async loadSettings(): Promise<GraphSettings> {
@@ -234,6 +245,7 @@ export default class Graph3dPlugin extends Plugin {
   }
 
   onunload() {
+    console.log("unloading plugin");
     super.onunload();
     this.callbackUnregisterHandles.forEach((handle) => handle());
     eventBus.off("do-reset-settings", this.onDoResetSettings);

@@ -25,7 +25,13 @@ export class GraphSettings {
     Object.assign(this.filters, new FilterSettings());
     Object.assign(this.groups, new GroupSettings());
     Object.assign(this.display, new DisplaySettings());
-    Object.assign(this.other, new OtherSettings());
+    Object.assign(
+      this.other,
+      new OtherSettings({
+        // this will not be reset
+        maxNodeNumber: this.other.maxNodeNumber,
+      })
+    );
   }
 
   public toObject() {

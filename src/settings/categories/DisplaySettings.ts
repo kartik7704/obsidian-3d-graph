@@ -5,7 +5,7 @@ const DEFAULT_NODE_REPULSION = 25;
 
 export const nodeSize = {
   min: 1,
-  max: 5,
+  max: 10,
   step: 0.1,
   default: DEFAULT_NODE_SIZE, // 3
 };

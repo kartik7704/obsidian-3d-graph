@@ -114,6 +114,7 @@ export class ForceGraph {
    */
   private onEngineStop = () => {
     console.log("The engine is stop");
+    // this.view.appendGraph();
   };
   public getGraph = () => {
     return this.graph;
@@ -255,6 +256,13 @@ export class ForceGraph {
     );
     eventBus.on("look-at-center", this.cameraLookAtCenter);
     eventBus.on("remove-selected-nodes", this.removeSelectedNodes);
+  }
+
+  public search(file: TFile, event: Event) {
+    const targetNode = this.graph?.getNodeByPath(file.path);
+    console.log("search", file, targetNode);
+    if (targetNode) this.focusOnCoords(targetNode as GraphNode);
+    else new Notice("The node doesn't exist in the graph");
   }
 
   public removeSelectedNodes = () => {
@@ -437,8 +445,7 @@ export class ForceGraph {
       .nodeLabel((node: Node) => null)
       .nodeRelSize(settings.display.nodeSize)
       .nodeVal((node: Node) => {
-        const maxVal = 5;
-        return maxVal * (1 - Math.exp(-node.links.length / 5));
+        return node.links.length;
       })
       .backgroundColor(rgba(0, 0, 0, 0.0))
       .width(width)
@@ -541,6 +548,7 @@ export class ForceGraph {
 
         const cssObject = new CSS2DObject(nodeEl);
         cssObject.onAfterRender = (renderer, scene, camera) => {
+          nodeEl.textContent = text;
           nodeEl.style.opacity = `${1 - this.getNodeOpacityEasedValue(node)}`;
         };
 
@@ -671,7 +679,7 @@ export class ForceGraph {
           if (totalNodeCount > this.plugin.settingsState.value.other.maxNodeNumber) {
             const message = `The number of nodes is ${totalNodeCount}, which is larger than the maxNodeNumber ${this.plugin.settingsState.value.other.maxNodeNumber}. The graph will not be shown.`;
             console.warn(message);
-            new Notice(message);
+            // new Notice(message);
             // return an empty graph
             return new Graph([], [], new Map(), new Map());
           }
@@ -694,7 +702,7 @@ export class ForceGraph {
         if (resultFilePaths.length > this.plugin.settingsState.value.other.maxNodeNumber) {
           const message = `The number of nodes is ${resultFilePaths.length}, which is larger than the maxNodeNumber ${this.plugin.settingsState.value.other.maxNodeNumber}. The graph will not be shown.`;
           console.warn(message);
-          new Notice(message);
+          // new Notice(message);
           // return an empty graph
           return new Graph([], [], new Map(), new Map());
         }

@@ -18,6 +18,7 @@ const commands = [
 export class CommandModal extends FuzzySuggestModal<Command> {
   private nodes: Set<Node>;
   private view: Graph3dView;
+
   constructor(view: Graph3dView, selectedNodes: Set<Node>) {
     super(view.app);
     this.nodes = selectedNodes;

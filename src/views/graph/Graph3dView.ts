@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import { GraphSettingsView } from "@/views/settings/GraphSettingsView";
 import Graph3dPlugin from "@/main";
+import { config } from "@/config";
 import { SearchResultFile } from "@/views/atomics/addSearchInput";
 import { waitFor } from "@/util/waitFor";
 
@@ -10,7 +11,7 @@ export class Graph3dView extends ItemView {
    * this can be undefined because the graph is not ready yet
    */
   private forceGraph: ForceGraph | undefined;
-  private readonly isLocalGraph: boolean;
+  private isLocalGraph: boolean = false;
   readonly plugin: Graph3dPlugin;
   private settingsView: GraphSettingsView;
   public searchTriggers: {
@@ -22,8 +23,8 @@ export class Graph3dView extends ItemView {
 
   constructor(plugin: Graph3dPlugin, leaf: WorkspaceLeaf, isLocalGraph = false) {
     super(leaf);
-    this.isLocalGraph = isLocalGraph;
     this.plugin = plugin;
+    this.isLocalGraph = isLocalGraph;
     this.viewContent = this.containerEl.querySelector(".view-content") as HTMLDivElement;
 
     const div = this.viewContent.createDiv({
@@ -46,7 +47,7 @@ export class Graph3dView extends ItemView {
     return this.forceGraph;
   }
 
-  async showGraph() {
+  async onload() {
     const viewContent = this.containerEl.querySelector(".view-content") as HTMLElement;
     if (!viewContent) {
       console.error("Could not find view content");
@@ -76,7 +77,13 @@ export class Graph3dView extends ItemView {
       );
 
       this.div.setText("waiting for search triggers...");
-      await waitFor(() => Object.keys(this.searchTriggers).length > 0, {});
+      await waitFor(
+        () => {
+          console.log("waiting for search triggers", this.searchTriggers);
+          return Object.keys(this.searchTriggers).length > 0;
+        },
+        { timeout: 3000, interval: 1000 }
+      );
       const promises = Object.entries(this.searchTriggers).map(([id, trigger]) => {
         console.log("adding trigger", id);
         return trigger();
@@ -91,17 +98,24 @@ export class Graph3dView extends ItemView {
       this.settingsView.style.removeProperty("display");
     }
 
+    // TODO: for now simply hide the setting in local graph
+    if (this.isLocalGraph) this.settingsView.style.display = "none";
+
     // the graph needs to be append before the settings
-    this.appendGraph(viewContent);
+    this.appendGraph();
     viewContent.appendChild(settings);
   }
 
   getDisplayText(): string {
-    return "3D-Graph";
+    return config.displayText[this.isLocalGraph ? "local" : "global"];
   }
 
   getViewType(): string {
-    return "3d_graph_view";
+    return config.viewType[this.isLocalGraph ? "local" : "global"];
+  }
+
+  getIcon(): string {
+    return config.icon;
   }
 
   onResize() {
@@ -113,9 +127,13 @@ export class Graph3dView extends ItemView {
     return this.settingsView;
   }
 
-  private appendGraph(viewContent: HTMLElement) {
-    this.forceGraph = new ForceGraph(this.plugin, viewContent, this.isLocalGraph, this);
-    // TODO: adding a loading state
+  /**
+   * append the graph to the view content
+   */
+  appendGraph() {
+    if (this.forceGraph) this.forceGraph.getInstance()._destructor();
+    this.forceGraph = new ForceGraph(this.plugin, this.viewContent, this.isLocalGraph, this);
+    this.viewContent.append(this.settingsView);
   }
 
   /**

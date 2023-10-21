@@ -23,8 +23,15 @@ interface OpenViewState {
   active?: boolean;
 }
 
+type SwitcherReturnType =
+  | {
+      downranked: boolean;
+      file?: TFile;
+      type: "file";
+    }
+  | undefined;
 declare class QuickSwitcherModal extends SuggestModal<TFile> {
-  getSuggestions(query: string): TFile[] | Promise<TFile[]>;
+  getSuggestions(query: string): SwitcherReturnType[] | Promise<SwitcherReturnType[]>;
 
   renderSuggestion(value: TFile, el: HTMLElement): unknown;
 

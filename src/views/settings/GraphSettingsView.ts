@@ -11,6 +11,7 @@ import { GraphSettings } from "@/settings/GraphSettings";
 import { eventBus } from "@/util/EventBus";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { Graph3dView } from "@/views/graph/Graph3dView";
+import { SavedSettingsView } from "@/views/settings/categories/SavedSettingsView";
 
 export class GraphSettingsView extends HTMLDivElement {
   private settingsButton: ExtraButtonComponent;
@@ -61,6 +62,10 @@ export class GraphSettingsView extends HTMLDivElement {
     );
     this.appendSettingGroup(undefined, "Utils", (_, containerEl) =>
       UtilitySettingsView(containerEl, this.parentView)
+    );
+
+    this.appendSettingGroup(undefined, "Saved settings", (_, containerEl) =>
+      SavedSettingsView(containerEl, this.parentView)
     );
     this.initListeners();
     this.toggleCollapsed(this.isCollapsedState.value);

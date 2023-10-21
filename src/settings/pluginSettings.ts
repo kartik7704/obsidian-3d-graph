@@ -16,7 +16,7 @@ export class SettingTab extends PluginSettingTab {
 
     containerEl.empty();
 
-    new Setting(containerEl).setName("Generate ending tag metadata").addText((text) => {
+    new Setting(containerEl).setName("Maximum node number in graph").addText((text) => {
       text
         .setPlaceholder(`${DEFAULT_NUMBER}`)
         .setValue(String(this.plugin.settingsState.value.other.maxNodeNumber ?? DEFAULT_NUMBER))

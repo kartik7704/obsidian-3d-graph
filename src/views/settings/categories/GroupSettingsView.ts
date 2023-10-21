@@ -12,6 +12,7 @@ export const GroupSettingsView = async (
   // add the nodeGroups
   await addNodeGroups(groupSettings, containerEl, view);
   addNodeGroupButton(groupSettings, containerEl, view);
+
   groupSettings.onChange(async (change: StateChange) => {
     if ((change.currentPath === "groups" && change.type === "add") || change.type === "delete") {
       containerEl.empty();
