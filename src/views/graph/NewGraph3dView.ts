@@ -78,9 +78,15 @@ export class NewGraph3dView extends ItemView {
     this.settingManager = new GraphSettingManager(this);
   }
 
+  onload(): void {
+    super.onload();
+    this.plugin.activeGraphViews.push(this);
+  }
+
   onunload(): void {
     super.onunload();
     this.forceGraph.getInstance()._destructor();
+    this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter((view) => view !== this);
   }
 
   getDisplayText(): string {

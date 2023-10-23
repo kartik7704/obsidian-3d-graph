@@ -45,16 +45,18 @@ export const addSaveSettingGroupItem = (
     .setIcon("pencil")
     .setTooltip("Update")
     .onClick(async () => {
-      createNotice(`Updating saved settings ${savedSetting.title}`);
+      if (confirm(`Are you sure you want to update: ${savedSetting.title}?`)) {
+        createNotice(`Updating saved settings ${savedSetting.title}`);
 
-      // update the setting
-      view.plugin.settingManager.updateSettings((settings) => {
-        const setting = settings.savedSettings.find((setting) => setting.id === savedSetting.id);
-        if (setting) {
-          setting.setting = view.settingManager.getCurrentSetting();
-        }
-        return settings;
-      });
+        // update the setting
+        view.plugin.settingManager.updateSettings((settings) => {
+          const setting = settings.savedSettings.find((setting) => setting.id === savedSetting.id);
+          if (setting) {
+            setting.setting = view.settingManager.getCurrentSetting();
+          }
+          return settings;
+        });
+      }
     });
 
   const trashButton = new ExtraButtonComponent(innerEl);
@@ -62,16 +64,18 @@ export const addSaveSettingGroupItem = (
     .setIcon("trash")
     .setTooltip("Delete")
     .onClick(async () => {
-      // remove from UI
-      innerEl.remove();
+      if (confirm(`Are you sure you want to delete: ${savedSetting.title}?`)) {
+        // remove from UI
+        innerEl.remove();
 
-      // remove from settings
-      view.plugin.settingManager.updateSettings((settings) => {
-        settings.savedSettings = settings.savedSettings.filter(
-          (setting) => setting.id !== savedSetting.id
-        );
-        return settings;
-      });
+        // remove from settings
+        view.plugin.settingManager.updateSettings((settings) => {
+          settings.savedSettings = settings.savedSettings.filter(
+            (setting) => setting.id !== savedSetting.id
+          );
+          return settings;
+        });
+      }
     });
   trashButton.extraSettingsEl.style.color = "red";
 };

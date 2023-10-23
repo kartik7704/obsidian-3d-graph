@@ -1,5 +1,6 @@
 import Graph3dPlugin from "@/main";
 import { spawnLeafView } from "@/views/leafView";
+import { TextComponent } from "obsidian";
 
 /**
  * @remarks
@@ -25,6 +26,18 @@ export const addSearchInput = async (
   const searchEl = containerEl.createDiv({
     // cls :
   });
+  if (!plugin.fileManager.searchEngine.useBuiltInSearchInput) {
+    const text = new TextComponent(searchEl).setValue(value).onChange((value) => {
+      onChange(value);
+    });
+
+    text.inputEl.parentElement?.addClasses([
+      "search-input-container",
+      "global-search-input-container",
+    ]);
+    return;
+  }
+
   const [searchLeaf] = spawnLeafView(plugin, searchEl);
 
   await searchLeaf.setViewState({

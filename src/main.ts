@@ -1,5 +1,4 @@
 import { Plugin } from "obsidian";
-import { Graph3dView } from "@/views/graph/Graph3dView";
 import { State } from "@/util/State";
 import { Graph } from "@/graph/Graph";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
@@ -29,11 +28,11 @@ export default class Graph3dPlugin extends Plugin {
   public globalGraph: Graph;
   public theme: ObsidianTheme;
 
-  public activeGraphView: Graph3dView;
-
   public fileManager: MyFileManager;
   public settingManager: MySettingManager;
   public searchManager: SearchManager;
+
+  public activeGraphViews: NewGraph3dView[] = [];
 
   /**
    * initialize all the things here
