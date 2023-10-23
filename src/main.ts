@@ -1,60 +1,69 @@
-import { Notice, Plugin } from "obsidian";
+import { Plugin } from "obsidian";
 import { Graph3dView } from "@/views/graph/Graph3dView";
-import { GraphSettings } from "@/settings/GraphSettings";
 import { State } from "@/util/State";
 import { Graph } from "@/graph/Graph";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { ResolvedLinkCache } from "@/graph/Link";
 import { deepCompare } from "@/util/deepCompare";
-import { getGraphSettingsFromStore } from "@/settings/getGraphSettingsFromStore";
 import "@total-typescript/ts-reset";
 import "@total-typescript/ts-reset/dom";
 import { eventBus } from "@/util/EventBus";
-import { SearchResultFile } from "@/views/atomics/addSearchInput";
-import { getAPI, DataviewApi } from "obsidian-dataview";
-import { SettingTab } from "@/settings/pluginSettings";
+import { SettingTab } from "@/settings/SettingTab";
 import { config } from "@/config";
+import { MyFileManager } from "@/FileManager";
+import { BasicSearchEngine } from "@/BasicSearchEngine";
+import { DvSearchEngine } from "@/DvSearchEngine";
+import { MySettingManager } from "@/SettingManager";
+import { GraphType, SearchEngineType } from "@/SettingsSchemas";
+import { SearchManager } from "@/SearchManager";
+import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
-
-  /**
-   * the setting of the plugin
-   */
-  public settingsState: State<GraphSettings>;
-  /**
-   * the current open file
-   */
-  public openFileState: State<string | undefined> = new State(undefined);
-  public searchState: State<{
-    filter: {
-      query: string;
-      files: SearchResultFile[];
-    };
-    group: {
-      query: string;
-      files: SearchResultFile[];
-    }[];
-  }> = new State({ filter: { query: "", files: [] }, group: [] });
   private cacheIsReady: State<boolean> = new State(
     this.app.metadataCache.resolvedLinks !== undefined
   );
-  private isReady = false;
-
-  // Other properties
+  /**
+   *  we keep a global graph here because we dont want to create a new graph every time we open a graph view
+   */
   public globalGraph: Graph;
   public theme: ObsidianTheme;
-  // Graphs that are waiting for cache to be ready
-  private queuedGraphs: Graph3dView[] = [];
-  private callbackUnregisterHandles: (() => void)[] = [];
+
   public activeGraphView: Graph3dView;
 
-  getDvApi = () => {
-    return getAPI(this.app) as DataviewApi | undefined;
-  };
+  public fileManager: MyFileManager;
+  public settingManager: MySettingManager;
+  public searchManager: SearchManager;
 
+  /**
+   * initialize all the things here
+   */
   async onload() {
-    await this.init();
+    // initialize the setting manager
+    this.settingManager = new MySettingManager(this);
+
+    // load the setting using setting manager
+    const settings = await this.settingManager.loadSettings();
+
+    // get the setting from setting manager
+    // const setting = this.settingManager.getSetting("test");
+
+    // initalise the file manager
+    this.fileManager = new MyFileManager(
+      this,
+      settings.pluginSetting.searchEngine === SearchEngineType.dataview
+        ? new DvSearchEngine(this)
+        : new BasicSearchEngine(this)
+    );
+
+    // init the theme
+    this.theme = new ObsidianTheme(this.app.workspace.containerEl);
+    this.cacheIsReady.value = this.app.metadataCache.resolvedLinks !== undefined;
+    this.onGraphCacheChanged();
+
+    // init listeners
+    this.initListeners();
+
     this.addRibbonIcon(config.icon, config.displayText.global, this.openGlobalGraph);
 
     this.addCommand({
@@ -73,59 +82,20 @@ export default class Graph3dPlugin extends Plugin {
 
     // register global view
     this.registerView(config.viewType.global, (leaf) => {
-      this.activeGraphView = new Graph3dView(this, leaf, false);
-      return this.activeGraphView;
+      return new NewGraph3dView(this, leaf, GraphType.global);
     });
 
     // register local view
     this.registerView(config.viewType.local, (leaf) => {
-      this.activeGraphView = new Graph3dView(this, leaf, true);
-      return this.activeGraphView;
+      return new NewGraph3dView(this, leaf, GraphType.local);
     });
   }
-
-  public triggerSearch = () => {
-    eventBus.trigger("trigger-search");
-  };
-
-  private async init() {
-    await this.initStates();
-    this.initListeners();
-  }
-
-  private async initStates() {
-    const settings = await this.loadSettings();
-    this.settingsState = new State<GraphSettings>(settings);
-    // initialize the search states
-    this.searchState = new State({
-      filter: {
-        query: this.settingsState.value.filters.searchQuery,
-        files: [],
-      },
-      group: this.settingsState.value.groups.groups.map((group) => {
-        return {
-          query: group.query,
-          files: [],
-        };
-      }),
-    });
-    this.theme = new ObsidianTheme(this.app.workspace.containerEl);
-    this.cacheIsReady.value = this.app.metadataCache.resolvedLinks !== undefined;
-    this.onGraphCacheChanged();
-  }
-
-  public getIsReady = () => {
-    return this.isReady;
-  };
 
   private initListeners() {
-    this.callbackUnregisterHandles.push(
-      // save settings on change
-      this.settingsState.onChange(() => this.saveSettings())
-    );
-
-    // internal event to reset settings to default
-    eventBus.on("do-reset-settings", this.onDoResetSettings);
+    // all files are resolved, so the cache is ready:
+    this.app.metadataCache.on("resolved", this.onGraphCacheReady);
+    // the cache changed:
+    this.app.metadataCache.on("resolve", this.onGraphCacheChanged);
 
     // show open local graph button in file menu
     this.registerEvent(
@@ -139,39 +109,11 @@ export default class Graph3dPlugin extends Plugin {
         });
       })
     );
-
-    // when a file gets opened, update the open file state
-    this.registerEvent(
-      this.app.workspace.on("file-open", (file) => {
-        if (file) this.openFileState.value = file.path;
-      })
-    );
-
-    this.callbackUnregisterHandles.push(
-      // when the cache is ready, open the queued graphs
-      this.cacheIsReady.onChange((isReady) => {
-        if (isReady) {
-          // this.openQueuedGraphs();
-        }
-      })
-    );
-
-    // all files are resolved, so the cache is ready:
-    this.app.metadataCache.on("resolved", this.onGraphCacheReady.bind(this));
-    // the cache changed:
-    this.app.metadataCache.on("resolve", this.onGraphCacheChanged.bind(this));
   }
-
-  // opens all queued graphs (graphs get queued if cache isnt ready yet)
-  // private openQueuedGraphs() {
-  //   this.queuedGraphs.forEach((view) => view.showGraph());
-  //   this.queuedGraphs = [];
-  // }
 
   private onGraphCacheReady = () => {
     console.log("Graph cache is ready");
     this.cacheIsReady.value = true;
-    this.isReady = true;
     this.onGraphCacheChanged();
   };
 
@@ -184,7 +126,6 @@ export default class Graph3dPlugin extends Plugin {
       !deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
     ) {
       this._resolvedCache = structuredClone(this.app.metadataCache.resolvedLinks);
-      // TODO: this needs to be optimized??
       this.globalGraph = Graph.createFromApp(this.app);
     } else {
       console.log(
@@ -196,62 +137,29 @@ export default class Graph3dPlugin extends Plugin {
     }
   };
 
-  private onDoResetSettings = () => {
-    this.settingsState.value.reset();
-    // search the setting
-    this.searchState.value = { filter: { query: "", files: [] }, group: [] };
-    eventBus.trigger("did-reset-settings");
-  };
-
-  // Opens a local graph view in a new leaf
+  /**
+   * Opens a local graph view in a new leaf
+   */
   private openLocalGraph = () => {
-    const newFilePath = this.app.workspace.getActiveFile()?.path;
-
-    if (newFilePath) {
-      this.openFileState.value = newFilePath;
-      this.openGraph(true);
-    } else {
-      new Notice("No file is currently open");
-    }
+    this.openGraph(GraphType.local);
   };
 
-  // Opens a global graph view in the current leaf
+  /**
+   * Opens a global graph view in the current leaf
+   */
   private openGlobalGraph = () => {
-    this.openGraph(false);
+    this.openGraph(GraphType.global);
   };
 
-  // Open a global or local graph
-  private openGraph = async (isLocalGraph: boolean) => {
+  /**
+   * this function will open a graph view in the current leaf
+   */
+  private openGraph = async (graphType: GraphType) => {
     eventBus.trigger("open-graph");
-    const leaf = this.app.workspace.getLeaf(isLocalGraph ? "split" : false);
-    // const graphView = new Graph3dView(this, leaf, isLocalGraph);
+    const leaf = this.app.workspace.getLeaf(graphType === GraphType.local ? "split" : false);
     await leaf.setViewState({
-      type: isLocalGraph ? config.viewType.local : config.viewType.global,
+      type: graphType === GraphType.local ? config.viewType.local : config.viewType.global,
       active: true,
     });
   };
-
-  private async loadSettings(): Promise<GraphSettings> {
-    // TODO: zod parse the data
-    const loadedData: unknown = await this.loadData();
-    const settings = getGraphSettingsFromStore(!loadedData ? {} : loadedData);
-    console.log("loadSettings:", settings);
-    return settings;
-  }
-
-  async saveSettings() {
-    console.log("saveSettings:", this.settingsState.getRawValue().toObject());
-    await this.saveData(this.settingsState.getRawValue().toObject());
-  }
-
-  onunload() {
-    console.log("unloading plugin");
-    super.onunload();
-    this.callbackUnregisterHandles.forEach((handle) => handle());
-    eventBus.off("do-reset-settings", this.onDoResetSettings);
-  }
-
-  public getSettings(): GraphSettings {
-    return this.settingsState.value;
-  }
 }

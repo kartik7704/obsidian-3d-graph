@@ -1,51 +1,51 @@
 export type HtmlBuilder = (containerEl: HTMLElement) => void | PromiseLike<void>;
 
-// Collapsable tree item, imitates Obsidian's tree items
-export class TreeItem extends HTMLDivElement {
+export class TreeItem {
   private readonly $inner: HTMLElement;
   private readonly childrenBuilders: HtmlBuilder[];
+  private $treeItem: HTMLDivElement;
+  private $self: HTMLDivElement;
+  private $innerWrapper: HTMLDivElement;
 
   constructor($inner: HTMLElement, children: HtmlBuilder[]) {
-    super();
     this.$inner = $inner;
     this.childrenBuilders = children;
+    this.$treeItem = document.createElement("div");
+    this.toggleCollapse(true);
+    this.$self = document.createElement("div");
+    this.$innerWrapper = document.createElement("div");
   }
 
-  async connectedCallback() {
-    this.appendSelf();
-    await this.appendChildren();
-  }
+  async render(containerEl: HTMLElement) {
+    this.$treeItem.classList.add("graph-control-section", "tree-item");
 
-  private appendSelf = () => {
-    ["graph-control-section", "tree-item"].forEach((className) => this.classList.add(className));
-
-    const $self = createDiv({ cls: "tree-item-self" });
-
-    $self.addEventListener("click", () => {
+    this.$self.classList.add("tree-item-self");
+    this.$self.addEventListener("click", () => {
       this.toggleCollapse();
     });
 
-    const $inner = createDiv({ cls: "tree-item-inner" });
-    $inner.append(this.$inner);
-    $self.append($inner);
-    this.append($self);
-  };
+    this.$innerWrapper.classList.add("tree-item-inner");
+    this.$innerWrapper.appendChild(this.$inner);
+    this.$self.appendChild(this.$innerWrapper);
+    this.$treeItem.appendChild(this.$self);
+    containerEl.appendChild(this.$treeItem);
 
-  private appendChildren = async () => {
-    const $children = createDiv({ cls: "tree-item-children" });
+    await this.renderChildren();
+  }
+
+  private async renderChildren() {
+    const $children = document.createElement("div");
+    $children.classList.add("tree-item-children");
+    this.$treeItem.appendChild($children);
+
     const promises = this.childrenBuilders.map((build: HtmlBuilder) => build($children));
     await Promise.all(promises);
-    this.append($children);
-  };
+  }
 
-  private toggleCollapse = (doCollapse?: boolean) => {
+  private toggleCollapse(doCollapse?: boolean) {
     if (doCollapse === undefined) {
-      doCollapse = !this.classList.contains("is-collapsed");
+      doCollapse = !this.$treeItem.classList.contains("is-collapsed");
     }
-    this.classList.toggle("is-collapsed", doCollapse);
-  };
-}
-
-if (typeof customElements.get("tree-item") === "undefined") {
-  customElements.define("tree-item", TreeItem, { extends: "div" });
+    this.$treeItem.classList.toggle("is-collapsed", doCollapse);
+  }
 }

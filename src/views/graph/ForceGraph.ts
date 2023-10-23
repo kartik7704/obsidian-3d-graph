@@ -1,3 +1,4 @@
+// @ts-nocheck
 import ForceGraph3D, { ForceGraph3DInstance } from "3d-force-graph";
 import { Node } from "@/graph/Node";
 import { Link } from "@/graph/Link";
@@ -16,18 +17,11 @@ import { Graph3dView } from "@/views/graph/Graph3dView";
 import * as TWEEN from "@tweenjs/tween.js";
 import { CommandModal } from "@/commands/CommandModal";
 import * as d3 from "d3-force-3d";
+import { hexToRGBA } from "@/util/hexToRGBA";
+import { CenterCoordinates } from "@/views/graph/CenterCoordinates";
 
 const origin = new THREE.Vector3(0, 0, 0);
 const selectedColor = "#CCA700";
-
-/**
- * the Coords type in 3d-force-graph
- */
-export type Coords = {
-  x: number;
-  y: number;
-  z: number;
-};
 
 export type GraphNode = Node & Coords;
 
@@ -38,20 +32,6 @@ const PARTICLE_FREQUECY = 4;
 const FOCAL_FROM_CAMERA = 400;
 const DISTANCE_FROM_FOCAL = 300;
 const BASE_NODE_OPACITY = 0.7;
-
-function hexToRGBA(hex: string, alpha: number): string {
-  // Remove the hash symbol if present
-  hex = hex.replace("#", "");
-
-  // Split the hex value into RGB components
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-
-  // Create the RGBA color value
-  const rgba = `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  return rgba;
-}
 
 // Adapted from https://github.com/vasturiano/3d-force-graph/blob/master/example/highlight/index.html
 // D3.js 3D Force Graph
@@ -77,11 +57,7 @@ export class ForceGraph {
   private readonly plugin: Graph3dPlugin;
   private myCube: THREE.Mesh;
   private nodeLabelEl: HTMLDivElement;
-  private centerCoordinateArrow: {
-    xArrow: THREE.ArrowHelper;
-    yArrow: THREE.ArrowHelper;
-    zArrow: THREE.ArrowHelper;
-  };
+  private centerCoordinateArrow: CenterCoordinates;
   // @ts-ignore
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private tween: { [tweenId: string]: TWEEN.Tween<any> | undefined } = {};
@@ -108,6 +84,8 @@ export class ForceGraph {
     this.createGraph();
     this.initListeners();
     this.instance.onEngineStop(this.onEngineStop);
+
+    console.log(this.getGraph2());
   }
 
   /**
@@ -254,35 +232,6 @@ export class ForceGraph {
     this.updateHighlight();
   };
 
-  private createCenterCoordinateArrow() {
-    const xDir = new THREE.Vector3(1, 0, 0);
-    const yDir = new THREE.Vector3(0, 1, 0);
-    const zDir = new THREE.Vector3(0, 0, 1);
-
-    xDir.normalize();
-    yDir.normalize();
-    zDir.normalize();
-
-    const length = 100;
-
-    const xArrow = new THREE.ArrowHelper(xDir, origin, length, 0xff0000);
-    const yArrow = new THREE.ArrowHelper(yDir, origin, length, 0x00ff00);
-    const zArrow = new THREE.ArrowHelper(zDir, origin, length, 0x0000ff);
-
-    xArrow.visible =
-      yArrow.visible =
-      zArrow.visible =
-        this.plugin.settingsState.value.display.showCenterCoordinates;
-
-    this.centerCoordinateArrow = {
-      xArrow,
-      yArrow,
-      zArrow,
-    };
-
-    this.instance.scene().add(xArrow).add(yArrow).add(zArrow);
-  }
-
   private onZoomStart = () => {
     const tweens = Object.keys(this.tween);
     if (tweens) {
@@ -324,15 +273,13 @@ export class ForceGraph {
     this.createInstance();
     this.createNodes();
     this.createLinks();
-    this.createCenterCoordinateArrow();
-    this.instance.scene().add(myCube);
+    this.centerCoordinateArrow = new CenterCoordinates(
+      this.plugin.settingsState.value.display.showCenterCoordinates
+    );
+    this.instance.scene().add(myCube).add(this.centerCoordinateArrow.arrowsGroup);
 
     const camera = this.instance.camera() as THREE.PerspectiveCamera;
     const renderer = this.instance.renderer();
-
-    const xArrow = this.centerCoordinateArrow.xArrow;
-    const yArrow = this.centerCoordinateArrow.yArrow;
-    const zArrow = this.centerCoordinateArrow.zArrow;
 
     // TODO: move to global
     let isZooming = false;
@@ -341,6 +288,7 @@ export class ForceGraph {
 
     const onZoomStart = this.onZoomStart;
 
+    const centerCoordinates = this.centerCoordinateArrow;
     function onZoom(event: WheelEvent) {
       // check if it is start zooming using setTimeout
       // if it is, then cancel the animation
@@ -359,9 +307,7 @@ export class ForceGraph {
 
       const distanceToCenter = camera.position.distanceTo(origin);
       camera.updateProjectionMatrix();
-      xArrow.setLength(distanceToCenter / 10);
-      yArrow.setLength(distanceToCenter / 10);
-      zArrow.setLength(distanceToCenter / 10);
+      centerCoordinates.setLength(distanceToCenter / 10);
 
       if (isZooming) {
         clearTimeout(endZoomTimeout);
@@ -664,23 +610,23 @@ export class ForceGraph {
       if (this.isLocalGraph && this.plugin.openFileState.value) {
         return this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);
       } else {
-        // const dvQuery = settings.filters.dvQuery.trim();
-        const searchQuery = settings.filters.searchQuery.trim();
-        // const dv = this.plugin.getDvApi();
+        // // const dvQuery = settings.filters.dvQuery.trim();
+        // const searchQuery = settings.filters.searchQuery.trim();
+        // // const dv = this.plugin.getDvApi();
 
-        const totalNodeCount = this.plugin.globalGraph.nodes.length;
+        // const totalNodeCount = this.plugin.globalGraph.nodes.length;
 
-        // if there is no search query, we will simply return the global graph
-        if (searchQuery === "") {
-          if (totalNodeCount > this.plugin.settingsState.value.other.maxNodeNumber) {
-            const message = `The number of nodes is ${totalNodeCount}, which is larger than the maxNodeNumber ${this.plugin.settingsState.value.other.maxNodeNumber}. The graph will not be shown.`;
-            console.warn(message);
-            // new Notice(message);
-            // return an empty graph
-            return new Graph([], [], new Map(), new Map());
-          }
-          return this.plugin.globalGraph;
-        }
+        // // if there is no search query, we will simply return the global graph
+        // if (searchQuery === "") {
+        //   if (totalNodeCount > this.plugin.settingsState.value.other.maxNodeNumber) {
+        //     const message = `The number of nodes is ${totalNodeCount}, which is larger than the maxNodeNumber ${this.plugin.settingsState.value.other.maxNodeNumber}. The graph will not be shown.`;
+        //     console.warn(message);
+        //     // new Notice(message);
+        //     // return an empty graph
+        //     return new Graph([], [], new Map(), new Map());
+        //   }
+        return this.plugin.globalGraph;
+        // }
 
         // const resultFilePaths =
         //   dvQuery !== "" && dv
@@ -718,9 +664,6 @@ export class ForceGraph {
     const graph = getGraph.call(this);
     this.graph = graph;
     console.log(this.graph);
-    if (this.graph.nodes.length > 0) {
-      this.view.showGraphViewAndHideText();
-    }
     return graph;
   };
 
@@ -756,10 +699,7 @@ export class ForceGraph {
       this.instance.numDimensions(3); // reheat simulation
       this.instance.refresh();
     } else if (data.currentPath === "display.showCenterCoordinates") {
-      this.centerCoordinateArrow.xArrow.visible =
-        this.centerCoordinateArrow.yArrow.visible =
-        this.centerCoordinateArrow.zArrow.visible =
-          data.newValue as boolean;
+      this.centerCoordinateArrow.setVisibility(data.newValue as boolean);
       this.instance.refresh();
     } else if (data.currentPath === "display.nodeRepulsion") {
       const nodeRepulsion = data.newValue as number;
@@ -774,15 +714,8 @@ export class ForceGraph {
 
   public updateDimensions() {
     const [width, height] = [this.rootHtmlElement.offsetWidth, this.rootHtmlElement.offsetHeight];
-    this.setDimensions(width, height);
-  }
-
-  public setDimensions(width: number, height: number) {
     this.instance.width(width);
     this.instance.height(height);
-
-    // this.bloomComposer.setSize(width, height);
-    // this.finalComposer.setSize(width, height);
   }
 
   private getNodeColor = (node: Node): string => {
@@ -873,5 +806,12 @@ export class ForceGraph {
 
   getInstance() {
     return this.instance;
+  }
+
+  public getGraph2() {
+    return {
+      graph: this.graph,
+      graph2: this.instance.graphData(),
+    };
   }
 }

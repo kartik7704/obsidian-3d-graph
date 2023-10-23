@@ -76,7 +76,11 @@ export class Graph {
     }
   }
 
-  // Returns the local graph of a node
+  /**
+   *
+   * @param nodeId
+   * @returns the local graph of a node
+   */
   public getLocalGraph(nodeId: string): Graph {
     const node = this.getNodeById(nodeId);
     if (node) {

@@ -38,8 +38,17 @@ export function waitForStable<T = unknown>(
     minDelay = 100,
     interval = 100,
   }: {
+    /**
+     * at most wait for timeout milliseconds
+     */
     timeout?: number;
+    /**
+     * start after reaching minDelay
+     */
     minDelay?: number;
+    /**
+     * check every interval milliseconds
+     */
     interval?: number;
   }
 ) {

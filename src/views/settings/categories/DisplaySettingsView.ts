@@ -1,31 +1,36 @@
 import {
-  DisplaySettings,
   nodeSize,
   linkDistance,
   linkThickness,
   nodeRepulsion,
-  DagOrientation,
 } from "@/settings/categories/DisplaySettings";
+import { GlobalGraphSettings, LocalDisplaySettings, LocalGraphSettings } from "@/SettingManager";
 import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
-import { State } from "@/util/State";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";
-import { Setting } from "obsidian";
+import { DropdownComponent, Setting } from "obsidian";
+import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
+import { DagOrientation, GraphType } from "@/SettingsSchemas";
 
 export const DisplaySettingsView = (
-  displaySettings: State<DisplaySettings>,
-  containerEl: HTMLElement
+  graphSetting: GlobalGraphSettings | LocalGraphSettings,
+  containerEl: HTMLElement,
+  settingManager: NewGraph3dView["settingManager"]
 ) => {
+  const displaySettings = graphSetting.display;
   // add the node size setting
   addSimpleSliderSetting(
     containerEl,
     {
       name: "Node Size",
-      value: displaySettings.value.nodeSize,
+      value: displaySettings.nodeSize,
       stepOptions: nodeSize,
     },
     (value) => {
-      displaySettings.value.nodeSize = value;
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.nodeSize = value;
+        return setting;
+      });
     }
   );
 
@@ -34,11 +39,14 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Link Thickness",
-      value: displaySettings.value.linkThickness,
+      value: displaySettings.linkThickness,
       stepOptions: linkThickness,
     },
     (value) => {
-      displaySettings.value.linkThickness = value;
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.linkThickness = value;
+        return setting;
+      });
     }
   );
 
@@ -47,11 +55,14 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Link Distance",
-      value: displaySettings.value.linkDistance,
+      value: displaySettings.linkDistance,
       stepOptions: linkDistance,
     },
     (value) => {
-      displaySettings.value.linkDistance = value;
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.linkDistance = value;
+        return setting;
+      });
     }
   );
 
@@ -59,11 +70,14 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Node Repulsion",
-      value: displaySettings.value.nodeRepulsion,
+      value: displaySettings.nodeRepulsion,
       stepOptions: nodeRepulsion,
     },
     (value) => {
-      displaySettings.value.nodeRepulsion = value;
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.nodeRepulsion = value;
+        return setting;
+      });
     }
   );
 
@@ -71,9 +85,14 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Node Hover Color",
-      value: displaySettings.value.nodeHoverColor,
+      value: displaySettings.nodeHoverColor,
     },
-    (value) => (displaySettings.value.nodeHoverColor = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.nodeHoverColor = value;
+        return setting;
+      });
+    }
   );
 
   // add node hover color setting
@@ -81,9 +100,14 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Node Hover Neighbour Color",
-      value: displaySettings.value.nodeHoverNeighbourColor,
+      value: displaySettings.nodeHoverNeighbourColor,
     },
-    (value) => (displaySettings.value.nodeHoverNeighbourColor = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.nodeHoverNeighbourColor = value;
+        return setting;
+      });
+    }
   );
 
   // add link hover color setting
@@ -91,9 +115,14 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Link Hover Color",
-      value: displaySettings.value.linkHoverColor,
+      value: displaySettings.linkHoverColor,
     },
-    (value) => (displaySettings.value.linkHoverColor = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.linkHoverColor = value;
+        return setting;
+      });
+    }
   );
 
   // add show extension setting
@@ -101,9 +130,14 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Show File Extension",
-      value: displaySettings.value.showExtension,
+      value: displaySettings.showExtension,
     },
-    (value) => (displaySettings.value.showExtension = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.showExtension = value;
+        return setting;
+      });
+    }
   );
 
   // add show full path setting
@@ -111,55 +145,113 @@ export const DisplaySettingsView = (
     containerEl,
     {
       name: "Show Note Full Path",
-      value: displaySettings.value.showFullPath,
+      value: displaySettings.showFullPath,
     },
-    (value) => (displaySettings.value.showFullPath = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.showFullPath = value;
+        return setting;
+      });
+    }
   );
 
   addToggle(
     containerEl,
     {
       name: "Show Center Coordinates",
-      value: displaySettings.value.showCenterCoordinates,
+      value: displaySettings.showCenterCoordinates,
     },
-    (value) => (displaySettings.value.showCenterCoordinates = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.showCenterCoordinates = value;
+        return setting;
+      });
+    }
   );
 
   addToggle(
     containerEl,
     {
       name: "Show Link Arrow",
-      value: displaySettings.value.showLinkArrow,
+      value: displaySettings.showLinkArrow,
     },
-    (value) => (displaySettings.value.showLinkArrow = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.showLinkArrow = value;
+        return setting;
+      });
+    }
   );
 
   addToggle(
     containerEl,
     {
       name: "Don't Move When Drag",
-      value: displaySettings.value.dontMoveWhenDrag,
+      value: displaySettings.dontMoveWhenDrag,
     },
-    (value) => (displaySettings.value.dontMoveWhenDrag = value)
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.display.dontMoveWhenDrag = value;
+        return setting;
+      });
+    }
   );
 
-  // add dag orientation setting
-  new Setting(containerEl).setName("DAG Orientation").addDropdown((dropdown) => {
-    dropdown
-      .addOptions({
-        td: "Top Down",
-        bu: "Bottom Up",
-        lr: "Left Right",
-        rl: "Right Left",
-        zout: "Zoom Out",
-        zin: "Zoom In",
-        radialout: "Radial Out",
-        radialin: "Radial In",
-        null: "None",
-      })
-      .setValue(displaySettings.value.dagOrientation)
-      .onChange((value) => {
-        displaySettings.value.dagOrientation = value as DagOrientation;
+  const localDisplaySettings = displaySettings as LocalDisplaySettings;
+  const dagDropDown = new Setting(containerEl).setName("Dag Orientation");
+
+  const dropdown = new DropdownComponent(dagDropDown.settingEl)
+    .addOptions(DagOrientation)
+    // the default value will be null
+    .setValue(localDisplaySettings.dagOrientation ?? DagOrientation.null)
+    .onChange(async (value) => {
+      settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
+        setting.display.dagOrientation = value as LocalDisplaySettings["dagOrientation"];
+        return setting;
       });
-  });
+    });
+
+  if (
+    settingManager.getGraphView().graphType === GraphType.global ||
+    (graphSetting as LocalGraphSettings).filter.linkType === "both"
+  ) {
+    // hide the dag orientation setting
+    dagDropDown.settingEl.hide();
+  }
+
+  const hideDagOrientationSetting = () => {
+    // if the link type is both, then we need to hide the dag orientation setting
+    dagDropDown.settingEl.hide();
+    // set the dag orientation to null
+    settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
+      setting.display.dagOrientation = DagOrientation.null;
+      return setting;
+    });
+
+    // set the UI as well
+    dropdown.setValue(DagOrientation.null);
+  };
+
+  const showDagOrientationSetting = () => {
+    // if the link type is either inlink or outlink, then we need to add the dag orientation setting
+    dagDropDown.settingEl.show();
+    // set the dag orientation to null
+    settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
+      setting.display.dagOrientation = DagOrientation.null;
+      return setting;
+    });
+
+    // set the UI as well
+    dropdown.setValue(DagOrientation.null);
+  };
+
+  const isDropdownHidden = () => {
+    return dagDropDown.settingEl.style.display === "none";
+  };
+
+  return {
+    hideDagOrientationSetting,
+    showDagOrientationSetting,
+    isDropdownHidden,
+  };
 };

@@ -1,37 +1,41 @@
 import { ButtonComponent } from "obsidian";
-import { GroupSettings } from "@/settings/categories/GroupSettings";
-import { NodeGroup } from "@/graph/NodeGroup";
-import { State } from "@/util/State";
-import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { GroupSettings } from "@/SettingManager";
+import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
+import { AddNodeGroupItem } from "@/views/settings/categories/AddGroupSettingItem";
 
 const getRandomColor = () => {
   return "#" + Math.floor(Math.random() * 16777215).toString(16);
 };
 
 export const addNodeGroupButton = (
-  groupSettings: State<GroupSettings>,
+  groupSettings: GroupSettings,
   containerEl: HTMLElement,
-  view: Graph3dView
+  view: NewGraph3dView
 ) => {
+  // make sure there is only one button
   containerEl.querySelector(".graph-color-button-container")?.remove();
 
-  const buttonContainer = containerEl.createDiv({
+  const buttonContainerEl = containerEl.createDiv({
     cls: "graph-color-button-container",
   });
 
-  new ButtonComponent(buttonContainer)
+  new ButtonComponent(buttonContainerEl)
     .setClass("mod-cta")
     .setButtonText("Add Group")
     .onClick(() => {
-      // add a group to group settings
-      groupSettings.value.groups.push(new NodeGroup("", getRandomColor()));
-      // add a group to search state as well
-      view.plugin.searchState.value.group.push({
+      const newGroup = {
         query: "",
-        files: [],
+        color: getRandomColor(),
+      };
+      // add a group to group settings
+      view.settingManager.updateCurrentSettings((setting) => {
+        setting.groups.push(newGroup);
+        return setting;
       });
-      containerEl.empty();
-      GroupSettingsView(groupSettings, containerEl, view);
+
+      // add a group to UI as well, add it in the containerEl before the button container el
+      const index = groupSettings.length - 1;
+      AddNodeGroupItem(newGroup, containerEl, view, index);
+      containerEl.append(buttonContainerEl);
     });
 };

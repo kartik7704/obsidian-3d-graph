@@ -82,3 +82,7 @@
   background-color: var(--background-color);
   color: var(--text-normal);
 }
+
+.graph-3d-view .graph-controls:not(.is-close) {
+  max-height: calc(90% - var(--size-4-4));
+}
