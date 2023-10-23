@@ -1,5 +1,8 @@
 ## Obsidian 3D Graph (Yomaru)
 
+![Obsidian 3d Graph](https://github.com/HananoshikaYomaru/obsidian-3d-graph/assets/43137033/cf3ec2a8-86db-4d65-b4dc-ebf5eddc0083)
+
+
 > This is a fork from the original https://github.com/AlexW00/obsidian-3d-graph.
 >
 > ⚠️ This plugin is still under early development. Please open github issue if you have problems.
