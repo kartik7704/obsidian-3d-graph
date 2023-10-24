@@ -67,7 +67,6 @@ export function waitForStable<T = unknown>(
         clearInterval(intervalId);
         resolve(currentValue);
       }
-      console.log(previousValue, currentValue);
       previousValue = currentValue;
     }, interval);
   });

@@ -1,9 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import Graph3dPlugin from "@/main";
 import { SearchEngineType } from "@/SettingsSchemas";
-import { BasicSearchEngine } from "@/BasicSearchEngine";
-import { DvSearchEngine } from "@/DvSearchEngine";
-import { PassiveSearchEngine } from "@/PassiveSearchEngine";
 
 const DEFAULT_NUMBER = 200;
 
@@ -59,7 +56,9 @@ export class SettingTab extends PluginSettingTab {
       .setDesc("Search engine determine how to parse the query string and return results.")
       .addDropdown((dropdown) => {
         dropdown
-          .addOptions(SearchEngineType)
+          .addOptions({
+            [SearchEngineType.builtIn]: SearchEngineType.builtIn,
+          })
           // you need to add options before set value
           .setValue(pluginSetting.searchEngine)
           .onChange(async (value: SearchEngineType) => {
@@ -70,14 +69,7 @@ export class SettingTab extends PluginSettingTab {
             });
 
             // update the plugin file manager
-            this.plugin.fileManager.searchEngine =
-              value === SearchEngineType.default
-                ? new BasicSearchEngine(this.plugin)
-                : value === SearchEngineType.dataview
-                ? new DvSearchEngine(this.plugin)
-                : new PassiveSearchEngine((files) => {
-                    console.log(files);
-                  });
+            this.plugin.fileManager.setSearchEngine();
 
             // force all the graph view to reset their settings
             this.plugin.activeGraphViews.forEach((view) => view.settingManager.resetSettings());

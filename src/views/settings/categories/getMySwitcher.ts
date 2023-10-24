@@ -19,8 +19,7 @@ export const getMySwitcher = (view: NewGraph3dView) => {
       const suggestions = await super.getSuggestions(query);
       const allFilePaths = view
         .getForceGraph()
-        .getInstance()
-        .graphData()
+        .instance.graphData()
         .nodes.map((n) => n.path);
       return suggestions.filter(Boolean).filter((s) => {
         // only show files in this view

@@ -4,6 +4,7 @@ import { addSearchInput } from "@/views/atomics/addSearchInput";
 import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import { BaseFilterSettings, LocalFilterSetting, LocalGraphSettings } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
+import { getGraphAfterProcessingConfig } from "@/views/settings/categories/getGraphAfterProcessingConfig";
 
 export const FilterSettingsView = async (
   filterSettings: BaseFilterSettings | LocalFilterSetting,
@@ -11,8 +12,7 @@ export const FilterSettingsView = async (
   settingManager: NewGraph3dView["settingManager"]
 ) => {
   const graphView = settingManager.getGraphView();
-  const plugin = graphView.plugin;
-  await addSearchInput(
+  const searchInput = await addSearchInput(
     containerEl,
     filterSettings.searchQuery,
     (value) => {
@@ -22,8 +22,22 @@ export const FilterSettingsView = async (
         return setting;
       });
     },
-    plugin
+    graphView
   );
+
+  // if this is a built-in search input, then we need to add a mutation observer
+  if (searchInput)
+    searchInput.addMutationObserver((files) => {
+      // the files is empty, by default, we will show all files
+      graphView.updateGraphData({
+        graph: getGraphAfterProcessingConfig(graphView.plugin, {
+          files,
+          graphType: graphView.graphType,
+          setting: settingManager.getCurrentSetting().filter,
+          centerFile: graphView.currentFile,
+        }),
+      });
+    });
 
   // add show attachments setting
   new Setting(containerEl).setName("Show Attachments").addToggle((toggle) => {
@@ -82,5 +96,9 @@ export const FilterSettingsView = async (
             settingManager.displaySettingView.showDagOrientationSetting();
         });
     });
+
+    return {
+      searchInput,
+    };
   }
 };

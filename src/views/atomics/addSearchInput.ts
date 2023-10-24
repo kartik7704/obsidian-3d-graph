@@ -1,8 +1,11 @@
-import Graph3dPlugin from "@/main";
+import { PassiveSearchEngine } from "@/PassiveSearchEngine";
+import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import { spawnLeafView } from "@/views/leafView";
-import { TextComponent } from "obsidian";
+import { SearchView, TAbstractFile, TextComponent } from "obsidian";
 
 /**
+ * depends on the search engine, this might be a normal text input or a built-in search input
+ *
  * @remarks
  * the search input doesn't perform the search, it only display the input
  */
@@ -21,12 +24,12 @@ export const addSearchInput = async (
    * @param files the files that match the query
    */
   onChange: (value: string) => void,
-  plugin: Graph3dPlugin
+  view: NewGraph3dView
 ) => {
   const searchEl = containerEl.createDiv({
     // cls :
   });
-  if (!plugin.fileManager.searchEngine.useBuiltInSearchInput) {
+  if (!view.plugin.fileManager.searchEngine.useBuiltInSearchInput) {
     const text = new TextComponent(searchEl).setValue(value).onChange((value) => {
       onChange(value);
     });
@@ -38,7 +41,7 @@ export const addSearchInput = async (
     return;
   }
 
-  const [searchLeaf] = spawnLeafView(plugin, searchEl);
+  const [searchLeaf] = spawnLeafView(view.plugin, searchEl);
 
   await searchLeaf.setViewState({
     type: "search",
@@ -56,7 +59,7 @@ export const addSearchInput = async (
     ".search-result-container"
   ) as HTMLDivElement;
   const searchResultInfoEl = searchElement.querySelector(".search-results-info") as HTMLDivElement;
-  // const parentEl = searchResultContainerEl.parentElement!;
+
   searchResultContainerEl.style.visibility = "hidden";
   searchResultContainerEl.style.height = "0px";
   searchResultContainerEl.style.position = "absolute";
@@ -77,10 +80,9 @@ export const addSearchInput = async (
   settingIconEl?.remove();
   matchCaseIconEl?.remove();
   inputEl.value = value;
-  inputEl.onkeydown = async (e) => {
-    // const query = inputEl.value;
-    // const files = plugin.fileManager.searchFiles(query);
-    onChange(inputEl.value);
+  inputEl.oninput = async (e: Event<HTMLInputElement>) => {
+    // @ts-ignore
+    onChange(e.currentTarget?.value);
   };
 
   clearButtonEl.onclick = () => {
@@ -89,5 +91,22 @@ export const addSearchInput = async (
     onChange("");
   };
 
-  return [searchRowEl] as const;
+  // this make search that the search result container el is alaways visible
+  view.containerEl.appendChild(searchResultContainerEl);
+
+  // if it is a passive engine, we need to enable mutation observer
+
+  const addMutationObserver = (callback: (files: TAbstractFile[]) => void) => {
+    if (view.plugin.fileManager.searchEngine instanceof PassiveSearchEngine)
+      view.plugin.fileManager.searchEngine.addMutationObserver(
+        searchResultContainerEl,
+        searchLeaf.view as SearchView,
+        callback
+      );
+    else {
+      throw new Error("cannot add mutation observer to active search engine");
+    }
+  };
+
+  return { searchRowEl, addMutationObserver };
 };

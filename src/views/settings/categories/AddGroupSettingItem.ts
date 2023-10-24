@@ -17,11 +17,10 @@ export const AddNodeGroupItem = async (
    */
   index: number
 ) => {
-  const plugin = view.plugin;
   // This group must exist
   const groupEl = containerEl.createDiv({ cls: "graph-color-group" });
 
-  await addSearchInput(
+  const searchInput = await addSearchInput(
     groupEl,
     newGroup.query,
     (value) => {
@@ -31,8 +30,13 @@ export const AddNodeGroupItem = async (
         return setting;
       });
     },
-    plugin
+    view
   );
+
+  if (searchInput)
+    searchInput.addMutationObserver((files) => {
+      console.log("set the graph config", files);
+    });
 
   addColorPicker(groupEl, newGroup.color, (value) => {
     view.settingManager.updateCurrentSettings((setting) => {

@@ -59,6 +59,9 @@ export class MySettingManager implements ISettingManager<Setting> {
    */
   private isLoaded = false;
 
+  /**
+   * @remarks don't forget to call `loadSettings` after creating this class
+   */
   constructor(plugin: Graph3dPlugin) {
     this.plugin = plugin;
   }

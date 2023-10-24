@@ -1,4 +1,4 @@
-import { TAbstractFile } from "obsidian";
+import { SearchView, TAbstractFile } from "obsidian";
 
 /**
  * the config object of the search engine
@@ -53,15 +53,11 @@ export abstract class IActiveSearchEngine extends ISearchEngine {
 }
 
 export abstract class IPassiveSearchEngine extends ISearchEngine {
-  /**
-   * when the result is change, this callback will be called.
-   * This mutation should only be fired when the result is stable
-   */
-  abstract mutationCallback: (files: TAbstractFile[]) => void;
-  /**
-   * an active way to call it
-   */
-  abstract getFiles(): TAbstractFile[];
+  abstract addMutationObserver(
+    searchResultContainerEl: HTMLDivElement,
+    view: SearchView,
+    mutationCallback: (files: TAbstractFile[]) => void
+  ): void;
 }
 
 export interface IFileManager {

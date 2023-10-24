@@ -10,16 +10,14 @@ import { eventBus } from "@/util/EventBus";
 import { SettingTab } from "@/settings/SettingTab";
 import { config } from "@/config";
 import { MyFileManager } from "@/FileManager";
-import { BasicSearchEngine } from "@/BasicSearchEngine";
-import { DvSearchEngine } from "@/DvSearchEngine";
 import { MySettingManager } from "@/SettingManager";
-import { GraphType, SearchEngineType } from "@/SettingsSchemas";
+import { GraphType } from "@/SettingsSchemas";
 import { SearchManager } from "@/SearchManager";
 import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
-  private cacheIsReady: State<boolean> = new State(
+  public readonly cacheIsReady: State<boolean> = new State(
     this.app.metadataCache.resolvedLinks !== undefined
   );
   /**
@@ -42,18 +40,13 @@ export default class Graph3dPlugin extends Plugin {
     this.settingManager = new MySettingManager(this);
 
     // load the setting using setting manager
-    const settings = await this.settingManager.loadSettings();
+    await this.settingManager.loadSettings();
 
     // get the setting from setting manager
     // const setting = this.settingManager.getSetting("test");
 
     // initalise the file manager
-    this.fileManager = new MyFileManager(
-      this,
-      settings.pluginSetting.searchEngine === SearchEngineType.dataview
-        ? new DvSearchEngine(this)
-        : new BasicSearchEngine(this)
-    );
+    this.fileManager = new MyFileManager(this);
 
     // init the theme
     this.theme = new ObsidianTheme(this.app.workspace.containerEl);
@@ -110,12 +103,19 @@ export default class Graph3dPlugin extends Plugin {
     );
   }
 
+  /**
+   * this will be called the when the cache is ready.
+   * And this will hit the else clause of the `onGraphCacheChanged` function
+   */
   private onGraphCacheReady = () => {
     console.log("Graph cache is ready");
     this.cacheIsReady.value = true;
     this.onGraphCacheChanged();
   };
 
+  /**
+   * check if the cache is ready and if it is, update the global graph
+   */
   public onGraphCacheChanged = () => {
     // check if the cache actually updated
     // Obsidian API sends a lot of (for this plugin) unnecessary stuff
@@ -133,6 +133,15 @@ export default class Graph3dPlugin extends Plugin {
         " and ",
         deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
       );
+
+      // update global graph view
+      this.activeGraphViews.forEach((view) => {
+        if (view.graphType === GraphType.global) {
+          view.updateGraphData({
+            files: Graph.getFiles(this.app, this.globalGraph),
+          });
+        }
+      });
     }
   };
 

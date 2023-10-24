@@ -1,4 +1,8 @@
+import { BasicSearchEngine } from "@/BasicSearchEngine";
+import { DvSearchEngine } from "@/DvSearchEngine";
 import { IFileManager, IPassiveSearchEngine, IActiveSearchEngine } from "@/Interfaces";
+import { PassiveSearchEngine } from "@/PassiveSearchEngine";
+import { SearchEngineType } from "@/SettingsSchemas";
 import Graph3dPlugin from "@/main";
 
 /**
@@ -8,9 +12,21 @@ export class MyFileManager implements IFileManager {
   private plugin: Graph3dPlugin;
   public searchEngine: IActiveSearchEngine | IPassiveSearchEngine;
 
-  constructor(plugin: Graph3dPlugin, searchEngine: IActiveSearchEngine | IPassiveSearchEngine) {
+  constructor(plugin: Graph3dPlugin) {
     this.plugin = plugin;
-    this.searchEngine = searchEngine;
+    this.setSearchEngine();
+  }
+
+  /**
+   * this will set the search engine base on the setting
+   */
+  setSearchEngine() {
+    const searchEngine = this.plugin.settingManager.getSettings().pluginSetting.searchEngine;
+    if (searchEngine === SearchEngineType.default)
+      this.searchEngine = new BasicSearchEngine(this.plugin);
+    else if (searchEngine === SearchEngineType.dataview)
+      this.searchEngine = new DvSearchEngine(this.plugin);
+    else this.searchEngine = new PassiveSearchEngine(this.plugin);
   }
 
   getFiles() {
@@ -26,8 +42,7 @@ export class MyFileManager implements IFileManager {
     // check whether it is active search engine
     if (this.searchEngine instanceof IActiveSearchEngine) {
       return this.searchEngine.searchFiles(this.searchEngine.parseQueryToConfig(query));
-    } else {
-      return this.searchEngine.getFiles();
     }
+    throw new Error("passive search engine cannot search files");
   }
 }

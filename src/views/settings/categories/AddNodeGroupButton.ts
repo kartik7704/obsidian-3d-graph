@@ -30,11 +30,11 @@ export const addNodeGroupButton = (
       // add a group to group settings
       view.settingManager.updateCurrentSettings((setting) => {
         setting.groups.push(newGroup);
+        // add a group to UI as well, add it in the containerEl before the button container el
         return setting;
       });
-
-      // add a group to UI as well, add it in the containerEl before the button container el
-      const index = groupSettings.length - 1;
+      // we need to get the latest current setting so that index will be correct
+      const index = view.settingManager.getCurrentSetting().groups.length - 1;
       AddNodeGroupItem(newGroup, containerEl, view, index);
       containerEl.append(buttonContainerEl);
     });

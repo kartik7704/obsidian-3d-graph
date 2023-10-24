@@ -72,4 +72,8 @@ export class Link {
 
     return [links, Link.createLinkIndex(links)];
   }
+
+  public static compare = (a: Link, b: Link) => {
+    return a.source.path === b.source.path && a.target.path === b.target.path;
+  };
 }

@@ -1,6 +1,6 @@
 import { Link } from "@/graph/Link";
 import { Node } from "@/graph/Node";
-import { App } from "obsidian";
+import { App, TAbstractFile } from "obsidian";
 
 export class Graph {
   public readonly nodes: Node[];
@@ -77,43 +77,62 @@ export class Graph {
   }
 
   /**
+   * This method retrieves the local graph of a node, which includes all the other nodes and links
+   * that are connected to the given node recursively based on the specified depth and link type.
    *
-   * @param nodeId
    * @returns the local graph of a node
    */
-  public getLocalGraph(nodeId: string): Graph {
-    const node = this.getNodeById(nodeId);
-    if (node) {
-      const nodes = [node, ...node.neighbors];
-      const links: Link[] = [];
-      const nodeIndex = new Map<string, number>();
+  public getLocalGraph(
+    param: (
+      | {
+          id: string;
+        }
+      | {
+          path: string;
+        }
+    ) & {
+      depth: number;
+      linkType: "both" | "inlinks" | "outlinks";
+    }
+  ): Graph {
+    const node = "id" in param ? this.getNodeById(param.id) : this.getNodeByPath(param.path);
 
-      nodes.forEach((node, index) => {
-        nodeIndex.set(node.id, index);
-      });
+    const nodes: Node[] = [];
+    const links: Link[] = [];
+    const nodeIndex = new Map<string, number>();
 
-      nodes.forEach((node, index) => {
-        const filteredLinks = node.links
-          .filter((link) => nodeIndex.has(link.target.id) && nodeIndex.has(link.source.id))
-          .map((link) => {
-            if (
-              !links.includes(link) &&
-              nodeIndex.has(link.target.id) &&
-              nodeIndex.has(link.source.id)
-            )
-              links.push(link);
-            return link;
-          });
-
-        node.links.splice(0, node.links.length, ...filteredLinks);
-      });
-
-      const linkIndex = Link.createLinkIndex(links);
-
-      return new Graph(nodes, links, nodeIndex, linkIndex);
-    } else {
+    if (!node) {
       return new Graph([], [], new Map(), new Map());
     }
+
+    const traverseNeighbors = (currentNode: Node, currentDepth: number) => {
+      if (currentDepth > param.depth || nodeIndex.has(currentNode.id)) return; // Depth limit reached or node already traversed
+
+      nodes.push(currentNode);
+      nodeIndex.set(currentNode.id, nodes.length - 1);
+
+      currentNode.links.forEach((link) => {
+        if (
+          param.linkType === "both" ||
+          (param.linkType === "inlinks" && link.target.id === currentNode.id) ||
+          (param.linkType === "outlinks" && link.source.id === currentNode.id)
+        ) {
+          if (!links.includes(link)) {
+            links.push(link);
+            traverseNeighbors(
+              link.target.id === currentNode.id ? link.source : link.target,
+              currentDepth + 1
+            );
+          }
+        }
+      });
+    };
+
+    traverseNeighbors(node, 0);
+
+    const linkIndex = Link.createLinkIndex(links);
+
+    return new Graph(nodes, links, nodeIndex, linkIndex);
   }
 
   // Clones the graph
@@ -126,11 +145,25 @@ export class Graph {
     );
   };
 
+  public static createEmpty = (): Graph => {
+    return new Graph([], [], new Map(), new Map());
+  };
+
   // Creates a graph using the Obsidian API
   public static createFromApp = (app: App): Graph => {
     const [nodes, nodeIndex] = Node.createFromFiles(app.vault.getFiles()),
       [links, linkIndex] = Link.createFromCache(app.metadataCache.resolvedLinks, nodes, nodeIndex);
     return new Graph(nodes, links, nodeIndex, linkIndex);
+  };
+
+  public static createFromFiles = (files: TAbstractFile[], app: App): Graph => {
+    const [nodes, nodeIndex] = Node.createFromFiles(files),
+      [links, linkIndex] = Link.createFromCache(app.metadataCache.resolvedLinks, nodes, nodeIndex);
+    const tempGraph = new Graph(nodes, links, nodeIndex, linkIndex);
+    // const tempGraph = Graph.createFromApp(app);
+    // since the nodes are from the files, they are already correct.
+    // we just need to update the links, we can pass into Boolean as the predicate
+    return this.createFromMask(Boolean, tempGraph);
   };
 
   // updates this graph with new data from the Obsidian API
@@ -153,12 +186,13 @@ export class Graph {
 
   /**
    * filter the nodes of the graph, the links will be filtered automatically.
-   * @param predicate this
+   * @param predicate what nodes to keep
+   * @param graph the graph to filter
    * @returns a new graph
    */
-  public filter = (predicate: (node: Node) => boolean) => {
-    const filteredNodes = this.nodes.filter(predicate);
-    const filteredLinks = this.links.filter((link) => {
+  public static createFromMask = (predicate: (node: Node) => boolean, graph: Graph) => {
+    const filteredNodes = graph.nodes.filter(predicate);
+    const filteredLinks = graph.links.filter((link) => {
       // the source and target nodes of a link must be in the filtered nodes
       return (
         filteredNodes.some((node) => link.source.id === node.id) &&
@@ -175,4 +209,44 @@ export class Graph {
 
     return new Graph(filteredNodes, filteredLinks, nodeIndex, linkIndex);
   };
+
+  public static compare = (graph1: Graph, graph2: Graph): boolean => {
+    if (graph1.nodes.length !== graph2.nodes.length) {
+      return false;
+    }
+    if (graph1.links.length !== graph2.links.length) {
+      return false;
+    }
+
+    const graph2NodeIds = new Set(graph2.nodes.map((node) => node.id));
+
+    // Check if all nodes in graph1 exist in graph2
+    for (const node1 of graph1.nodes) {
+      if (!graph2NodeIds.has(node1.id)) {
+        return false;
+      }
+    }
+
+    function getLinkId(link: Link): string {
+      return `${link.source.path}-${link.target.path}`;
+    }
+
+    const graph2LinkIds = new Set(graph2.links.map(getLinkId));
+
+    // Check if all links in graph1 exist in graph2
+    for (const link1 of graph1.links) {
+      if (!graph2LinkIds.has(getLinkId(link1))) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  /**
+   * get the files from the graph
+   */
+  public static getFiles(app: App, graph: Graph): TAbstractFile[] {
+    return graph.nodes.map((node) => app.vault.getAbstractFileByPath(node.path)).filter(Boolean);
+  }
 }

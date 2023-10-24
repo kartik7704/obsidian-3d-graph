@@ -1,5 +1,5 @@
 import { Link } from "@/graph/Link";
-import { TFile } from "obsidian";
+import { TAbstractFile } from "obsidian";
 
 export class Node {
   public readonly id: string;
@@ -20,7 +20,7 @@ export class Node {
   }
 
   // Creates an array of nodes from an array of files (from the Obsidian API)
-  static createFromFiles(files: TFile[]): [Node[], Map<string, number>] {
+  static createFromFiles(files: TAbstractFile[]): [Node[], Map<string, number>] {
     const nodeMap = new Map<string, number>();
     return [
       files
@@ -64,4 +64,8 @@ export class Node {
     if (node instanceof Node) return this.neighbors.includes(node);
     else return this.neighbors.some((neighbor) => neighbor.id === node);
   }
+
+  public static compare = (a: Node, b: Node) => {
+    return a.path === b.path;
+  };
 }

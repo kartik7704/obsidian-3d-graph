@@ -20,6 +20,8 @@ export class GraphSettingManager {
   public readonly containerEl: HTMLDivElement;
   private settingsButton: ExtraButtonComponent;
   private graphControlsEl: HTMLDivElement;
+
+  public filterSettingView: ReturnType<typeof FilterSettingsView>;
   public displaySettingView: ReturnType<typeof DisplaySettingsView>;
 
   private currentSetting: State<SavedSetting["setting"]>;
@@ -59,7 +61,10 @@ export class GraphSettingManager {
       this.graphControlsEl,
       this.currentSetting.value.filter,
       "Filters",
-      (...args) => FilterSettingsView(...args, this)
+      (...args) => {
+        this.filterSettingView = FilterSettingsView(...args, this);
+        return this.filterSettingView;
+      }
     );
 
     // add the group settings
@@ -69,6 +74,7 @@ export class GraphSettingManager {
       "Groups",
       (...args) => GroupSettingsView(...args, this.graphView)
     );
+
     this.appendSettingGroup(
       this.graphControlsEl,
       this.currentSetting.value,
@@ -172,6 +178,8 @@ export class GraphSettingManager {
       // store the search result and compose a new graph object
       // pass the updated graph object or any other new config to update the graph
     }
+
+    this.graphView.handleSettingUpdate();
 
     return this.currentSetting.value;
   }

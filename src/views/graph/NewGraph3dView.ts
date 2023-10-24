@@ -2,16 +2,14 @@ import { GraphType } from "@/SettingsSchemas";
 import { config } from "@/config";
 import { Graph } from "@/graph/Graph";
 import Graph3dPlugin from "@/main";
+import { createNotice } from "@/util/createNotice";
 import { NewForceGraph } from "@/views/graph/NewForceGraph";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
+import { getGraphAfterProcessingConfig } from "@/views/settings/categories/getGraphAfterProcessingConfig";
 import { App, ItemView, TAbstractFile, WorkspaceLeaf } from "obsidian";
 
-/**
- *  This is the entry point for the graph view
- */
-const getGraph = (app: App): Graph => {
-  // TODO: implement this
-  return Graph.createFromApp(app);
+const getGraphFromFiles = (app: App, files: TAbstractFile[]): Graph => {
+  return Graph.createFromFiles(files, app);
 };
 
 export class NewGraph3dView extends ItemView {
@@ -25,7 +23,7 @@ export class NewGraph3dView extends ItemView {
   /**
    * if this is the local graph, this will be the current file ;
    */
-  private currentFile: TAbstractFile;
+  public currentFile: TAbstractFile | undefined;
 
   public readonly settingManager: GraphSettingManager;
 
@@ -43,13 +41,14 @@ export class NewGraph3dView extends ItemView {
           if (file) {
             this.currentFile = file;
 
-            // recreate the graph view
-            const graph = getGraph(this.plugin.app);
-            this.forceGraph = new NewForceGraph(
-              this,
-              graph,
-              this.plugin.settingManager.getNewSetting(graphType)
-            );
+            const graph = getGraphAfterProcessingConfig(this.plugin, {
+              files: [],
+              graphType: GraphType.local,
+              setting: this.settingManager.getCurrentSetting().filter,
+              centerFile: file,
+            });
+
+            this.updateGraphData({ graph });
 
             // we need to append the setting so that setting will be in front of the graph
             this.contentEl.appendChild(this.settingManager.containerEl);
@@ -62,20 +61,29 @@ export class NewGraph3dView extends ItemView {
       }
     }
 
-    console.warn("temporarily disabled");
-    // the view is already initialized, so we can create the graph
+    // set up some UI stuff
+    this.contentEl.classList.add("graph-3d-view");
+    this.settingManager = new GraphSettingManager(this);
+
+    const graph =
+      this.graphType === GraphType.local
+        ? getGraphAfterProcessingConfig(this.plugin, {
+            files: [],
+            graphType: GraphType.local,
+            setting: this.settingManager.getCurrentSetting().filter,
+            centerFile: this.currentFile,
+          })
+        : this.plugin.globalGraph;
 
     // you need to set up the graph before setting so that the setting will be in front of the graph
-    const graph = getGraph(this.plugin.app);
     this.forceGraph = new NewForceGraph(
       this,
       graph,
       this.plugin.settingManager.getNewSetting(graphType)
     );
 
-    // set up some UI stuff
-    this.contentEl.classList.add("graph-3d-view");
-    this.settingManager = new GraphSettingManager(this);
+    // move the setting to the front of the graph
+    this.contentEl.appendChild(this.settingManager.containerEl);
   }
 
   onload(): void {
@@ -85,7 +93,7 @@ export class NewGraph3dView extends ItemView {
 
   onunload(): void {
     super.onunload();
-    this.forceGraph.getInstance()._destructor();
+    this.forceGraph?.instance._destructor();
     this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter((view) => view !== this);
   }
 
@@ -106,15 +114,60 @@ export class NewGraph3dView extends ItemView {
     if (this.forceGraph) this.forceGraph.updateDimensions();
   }
 
+  /**
+   * get the current force graph object
+   */
   public getForceGraph() {
     return this.forceGraph;
   }
 
+  /**
+   * destroy the old graph, remove the old graph completely from the DOM.
+   * reassign a new graph base on setting like the constructor,
+   * then render it.
+   */
   public refreshGraph() {
-    // destroy the old graph, remove the old graph completely from the DOM
-    // reassign a new graph base on setting like the constructor
-    // then render it
+    const graph = this.forceGraph.instance.graphData();
 
-    throw new Error("not implemented yet");
+    // get the first child of the content element
+    const forceGraphEl = this.contentEl.firstChild;
+    forceGraphEl?.remove();
+
+    // destroy the old graph, remove the old graph completely from the DOM
+    this.forceGraph.instance._destructor();
+
+    // reassign a new graph base on setting like the constructor
+    this.forceGraph = new NewForceGraph(this, graph, this.settingManager.getCurrentSetting());
+
+    // move the setting to the front of the graph
+    this.contentEl.appendChild(this.settingManager.containerEl);
+
+    this.onResize();
   }
+
+  /**
+   * given some files and config, update the graph data.
+   */
+  public updateGraphData(
+    param:
+      | {
+          files: TAbstractFile[];
+        }
+      | {
+          graph: Graph;
+        }
+  ) {
+    const graph = "files" in param ? getGraphFromFiles(this.app, param.files) : param.graph;
+    const tooLarge =
+      graph.nodes.length > this.plugin.settingManager.getSettings().pluginSetting.maxNodeNumber;
+    if (tooLarge) {
+      createNotice(`Graph is too large to be rendered. Have ${graph.nodes.length} nodes.`);
+    }
+    this.forceGraph.updateGraph(tooLarge ? Graph.createEmpty() : graph);
+  }
+
+  /**
+   * handle setting update
+   */
+  public handleSettingUpdate = () => {};
 }

@@ -14,7 +14,7 @@ export enum GraphType {
 export enum SearchEngineType {
   dataview = "dataview",
   default = "default",
-  builtIn = "built-in",
+  builtIn = "builtIn",
 }
 
 export enum DagOrientation {

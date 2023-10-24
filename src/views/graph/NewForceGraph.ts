@@ -13,6 +13,13 @@ import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
  */
 export const origin = new THREE.Vector3(0, 0, 0);
 
+type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
+  graphData: {
+    (): Graph; // When no argument is passed, it returns a Graph
+    (graph: Graph): MyForceGraph3DInstance; // When a Graph is passed, it returns MyForceGraph3DInstance
+  };
+};
+
 /**
  * this class control the config and graph of the force graph. The interaction is not control here.
  */
@@ -20,15 +27,13 @@ export class NewForceGraph {
   private view: NewGraph3dView;
   private config: LocalGraphSettings | GlobalGraphSettings;
 
-  private graph: Graph;
-  private instance: ForceGraph3DInstance;
+  public readonly instance: MyForceGraph3DInstance;
   private centerCoordinates: CenterCoordinates;
 
   /**
    *
    * this will create a new force graph instance and render it to the view
    * @param view
-   * @param graph
    * @param config you have to provide the full config here!!
    */
   constructor(
@@ -38,7 +43,7 @@ export class NewForceGraph {
   ) {
     this.view = view;
     this.config = config;
-    this.graph = graph;
+    // test;
 
     // get the content element of the item view
     const rootHtmlElement = view.contentEl as HTMLDivElement;
@@ -62,12 +67,13 @@ export class NewForceGraph {
         }),
       ],
     })(rootHtmlElement)
+      .graphData(graph)
       // the options here are auto
       .width(rootHtmlElement.innerWidth)
       .height(rootHtmlElement.innerHeight)
       .d3Force("collide", d3.forceCollide(5))
       //   transparent
-      .backgroundColor(hexToRGBA("#000000", 0));
+      .backgroundColor(hexToRGBA("#000000", 0)) as unknown as MyForceGraph3DInstance;
 
     const scene = this.instance.scene();
     // add others things
@@ -94,13 +100,16 @@ export class NewForceGraph {
    * given a new force Graph, the update the graph and the instance
    */
   public updateGraph(graph: Graph) {
-    this.updateInstance(graph, undefined);
+    // some optimization here
+    // if the graph is the same, then we don't need to update the graph
+    const same = Graph.compare(this.instance.graphData(), graph);
+    if (!same) this.updateInstance(graph, undefined);
   }
 
   /**
    * given the changed things, update the instance
    */
-  public updateInstance = (graph?: Graph, config?: Partial<SavedSetting["setting"]>) => {
+  private updateInstance = (graph?: Graph, config?: Partial<SavedSetting["setting"]>) => {
     if (graph !== undefined) this.instance.graphData(graph);
     if (config?.display?.nodeSize !== undefined)
       this.instance.nodeRelSize(config.display?.nodeSize);
@@ -120,25 +129,12 @@ export class NewForceGraph {
     /**
      * derive the need to reheat the simulation
      */
-    const needReheat =
-      config?.display?.nodeRepulsion !== undefined ||
-      config?.display?.linkDistance !== undefined ||
-      graph !== undefined;
+    // const needReheat =
+    //   config?.display?.nodeRepulsion !== undefined || config?.display?.linkDistance !== undefined;
 
-    if (needReheat) {
-      this.instance.numDimensions(3); // reheat simulation
-      this.instance.refresh();
-    }
+    // if (needReheat) {
+    //   this.instance.numDimensions(3); // reheat simulation
+    //   this.instance.refresh();
+    // }
   };
-
-  public getInstance() {
-    /**
-     * patch the graph data so that the type is right.
-     *
-     * this should be the only way to access graph data from a force graph instance
-     */
-    return this.instance as unknown as Omit<ForceGraph3DInstance, "graphData"> & {
-      graphData: () => Graph;
-    };
-  }
 }
