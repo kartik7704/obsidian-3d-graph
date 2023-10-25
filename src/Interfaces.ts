@@ -24,7 +24,7 @@ export interface ISettingManager<SettingType = unknown> {
    *
    * @returns the updated settings
    */
-  updateSettings(updateFunc: (setting: SettingType) => SettingType): SettingType;
+  updateSettings(updateFunc: (setting: typeof this.setting) => void): SettingType;
 
   /**
    * get the settings of the plugin

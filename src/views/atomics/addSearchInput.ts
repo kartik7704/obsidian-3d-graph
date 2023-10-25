@@ -1,5 +1,5 @@
-import { PassiveSearchEngine } from "@/PassiveSearchEngine";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
+import { IActiveSearchEngine } from "@/Interfaces";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 import { spawnLeafView } from "@/views/leafView";
 import { SearchView, TAbstractFile, TextComponent } from "obsidian";
 
@@ -24,7 +24,7 @@ export const addSearchInput = async (
    * @param files the files that match the query
    */
   onChange: (value: string) => void,
-  view: NewGraph3dView
+  view: Graph3dView
 ) => {
   const searchEl = containerEl.createDiv({
     // cls :
@@ -97,15 +97,16 @@ export const addSearchInput = async (
   // if it is a passive engine, we need to enable mutation observer
 
   const addMutationObserver = (callback: (files: TAbstractFile[]) => void) => {
-    if (view.plugin.fileManager.searchEngine instanceof PassiveSearchEngine)
-      view.plugin.fileManager.searchEngine.addMutationObserver(
-        searchResultContainerEl,
-        searchLeaf.view as SearchView,
-        callback
+    if (view.plugin.fileManager.searchEngine instanceof IActiveSearchEngine)
+      throw new Error(
+        "you don't need mutation observer for active search engine, this function should not be called"
       );
-    else {
-      throw new Error("cannot add mutation observer to active search engine");
-    }
+
+    view.plugin.fileManager.searchEngine.addMutationObserver(
+      searchResultContainerEl,
+      searchLeaf.view as SearchView,
+      callback
+    );
   };
 
   return { searchRowEl, addMutationObserver };

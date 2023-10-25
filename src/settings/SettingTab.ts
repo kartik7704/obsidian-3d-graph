@@ -33,15 +33,13 @@ export class SettingTab extends PluginSettingTab {
               // set the error to the input
               text.inputEl.setCustomValidity("Please enter a non-zero number");
               this.plugin.settingManager.updateSettings((setting) => {
-                setting.pluginSetting.maxNodeNumber = DEFAULT_NUMBER;
-                return setting;
+                setting.value.pluginSetting.maxNodeNumber = DEFAULT_NUMBER;
               });
             } else {
               // remove the error
               text.inputEl.setCustomValidity("");
               this.plugin.settingManager.updateSettings((setting) => {
-                setting.pluginSetting.maxNodeNumber = Number(value);
-                return setting;
+                setting.value.pluginSetting.maxNodeNumber = Number(value);
               });
             }
             text.inputEl.reportValidity();
@@ -64,8 +62,7 @@ export class SettingTab extends PluginSettingTab {
           .onChange(async (value: SearchEngineType) => {
             // update the json
             this.plugin.settingManager.updateSettings((setting) => {
-              setting.pluginSetting.searchEngine = value;
-              return setting;
+              setting.value.pluginSetting.searchEngine = value;
             });
 
             // update the plugin file manager

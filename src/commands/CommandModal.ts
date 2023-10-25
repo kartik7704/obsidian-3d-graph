@@ -1,13 +1,12 @@
 import { deleteNote } from "@/commands/deleteNote";
 import { FuzzySuggestModal, TAbstractFile } from "obsidian";
 import { Node } from "@/graph/Node";
-import { Graph3dView } from "@/views/graph/Graph3dView";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import { createNotice } from "@/util/createNotice";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 
 interface Command {
   title: string;
-  function: (view: Graph3dView | NewGraph3dView, file: TAbstractFile) => void;
+  function: (view: Graph3dView, file: TAbstractFile) => void;
 }
 
 const commands = [
@@ -17,7 +16,7 @@ const commands = [
   },
   {
     title: "Test Command",
-    function: (view: Graph3dView | NewGraph3dView, file: TAbstractFile) => {
+    function: (view: Graph3dView, file: TAbstractFile) => {
       createNotice(`run on ${file.name}`);
     },
   },
@@ -25,9 +24,9 @@ const commands = [
 
 export class CommandModal extends FuzzySuggestModal<Command> {
   private nodes: Set<Node>;
-  private view: Graph3dView | NewGraph3dView;
+  private view: Graph3dView;
 
-  constructor(view: Graph3dView | NewGraph3dView, selectedNodes: Set<Node>) {
+  constructor(view: Graph3dView, selectedNodes: Set<Node>) {
     super(view.app);
     this.nodes = selectedNodes;
     this.view = view;

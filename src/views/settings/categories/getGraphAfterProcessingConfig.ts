@@ -10,15 +10,15 @@ import Graph3dPlugin from "@/main";
 export const getGraphAfterProcessingConfig = (
   plugin: Graph3dPlugin,
   {
-    files,
+    searchResults,
     graphType,
-    setting,
+    filterSetting: setting,
     centerFile,
   }: {
-    files: TAbstractFile[];
+    searchResults: TAbstractFile[];
     graphType: GraphType;
-    setting: BaseFilterSettings | LocalFilterSetting;
-    centerFile?: TAbstractFile;
+    filterSetting: BaseFilterSettings | LocalFilterSetting;
+    centerFile: TAbstractFile;
   }
 ) => {
   if (graphType === GraphType.local && "depth" in setting) {
@@ -30,7 +30,9 @@ export const getGraphAfterProcessingConfig = (
         // if node is not a markdown  and show attachment is false, then we will not show it
         if (!node.path.endsWith(".md") && !setting.showAttachments) return false;
         // if the node is not in the files, then we will not show it
-        return files.length === 0 ? true : files.some((file) => file.path === node.path);
+        return searchResults.length === 0
+          ? true
+          : searchResults.some((file) => file.path === node.path);
       },
       // active file must exist in local graph
       plugin.globalGraph.getLocalGraph({
@@ -47,7 +49,9 @@ export const getGraphAfterProcessingConfig = (
       // if node is not a markdown  and show attachment is false, then we will not show it
       if (!node.path.endsWith(".md") && !setting.showAttachments) return false;
       // if the node is not in the files, then we will not show it
-      return files.length === 0 ? true : files.some((file) => file.path === node.path);
+      return searchResults.length === 0
+        ? true
+        : searchResults.some((file) => file.path === node.path);
     }, plugin.globalGraph);
   }
 };

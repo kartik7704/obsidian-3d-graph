@@ -1,15 +1,16 @@
 import { Setting } from "obsidian";
 
 import { addSearchInput } from "@/views/atomics/addSearchInput";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import { BaseFilterSettings, LocalFilterSetting, LocalGraphSettings } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
-import { getGraphAfterProcessingConfig } from "@/views/settings/categories/getGraphAfterProcessingConfig";
+import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
+import { State } from "@/util/State";
+import { IPassiveSearchEngine } from "@/Interfaces";
 
 export const FilterSettingsView = async (
   filterSettings: BaseFilterSettings | LocalFilterSetting,
   containerEl: HTMLElement,
-  settingManager: NewGraph3dView["settingManager"]
+  settingManager: GraphSettingManager
 ) => {
   const graphView = settingManager.getGraphView();
   const searchInput = await addSearchInput(
@@ -18,33 +19,28 @@ export const FilterSettingsView = async (
     (value) => {
       //update the current setting of the plugin
       settingManager.updateCurrentSettings((setting) => {
-        setting.filter.searchQuery = value;
-        return setting;
+        setting.value.filter.searchQuery = value;
       });
     },
     graphView
   );
 
   // if this is a built-in search input, then we need to add a mutation observer
-  if (searchInput)
+  if (
+    searchInput &&
+    settingManager.getGraphView().plugin.fileManager.searchEngine instanceof IPassiveSearchEngine
+  )
     searchInput.addMutationObserver((files) => {
       // the files is empty, by default, we will show all files
-      graphView.updateGraphData({
-        graph: getGraphAfterProcessingConfig(graphView.plugin, {
-          files,
-          graphType: graphView.graphType,
-          setting: settingManager.getCurrentSetting().filter,
-          centerFile: graphView.currentFile,
-        }),
-      });
+      // graphView.handleSearchResultChange(files);
+      settingManager.searchResult.value.filter.files = files;
     });
 
   // add show attachments setting
   new Setting(containerEl).setName("Show Attachments").addToggle((toggle) => {
     toggle.setValue(filterSettings.showAttachments || false).onChange(async (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.filter.showAttachments = value;
-        return setting;
+        setting.value.filter.showAttachments = value;
       });
     });
   });
@@ -53,8 +49,7 @@ export const FilterSettingsView = async (
   new Setting(containerEl).setName("Show Orphans").addToggle((toggle) => {
     toggle.setValue(filterSettings.showOrphans || false).onChange(async (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.filter.showOrphans = value;
-        return setting;
+        setting.value.filter.showOrphans = value;
       });
     });
   });
@@ -68,9 +63,8 @@ export const FilterSettingsView = async (
         .setValue(localFilterSettings.depth)
         .setDynamicTooltip()
         .onChange(async (value) => {
-          settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
-            setting.filter.depth = value;
-            return setting;
+          settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+            setting.value.filter.depth = value;
           });
         });
     });
@@ -86,9 +80,8 @@ export const FilterSettingsView = async (
         .setValue(localFilterSettings.linkType)
         .onChange(async (value: "both" | "inlinks" | "outlinks") => {
           // update the setting
-          settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
-            setting.filter.linkType = value;
-            return setting;
+          settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+            setting.value.filter.linkType = value;
           });
 
           if (value === "both") settingManager.displaySettingView.hideDagOrientationSetting();

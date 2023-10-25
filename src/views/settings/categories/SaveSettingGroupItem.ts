@@ -1,6 +1,6 @@
 import { SavedSetting } from "@/SettingManager";
 import { createNotice } from "@/util/createNotice";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
+import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
 import { ExtraButtonComponent, TextComponent } from "obsidian";
 
 /**
@@ -9,7 +9,7 @@ import { ExtraButtonComponent, TextComponent } from "obsidian";
 export const addSaveSettingGroupItem = (
   containerEl: HTMLDivElement,
   savedSetting: SavedSetting,
-  view: NewGraph3dView
+  view: GlobalGraph3dView
 ) => {
   // create a new div element
   const innerEl = containerEl.createDiv({
@@ -24,7 +24,9 @@ export const addSaveSettingGroupItem = (
   nameSetting.setValue(savedSetting.title).onChange(async (value) => {
     //  TODO: change the setting group name
     view.plugin.settingManager.updateSettings((settings) => {
-      const setting = settings.savedSettings.find((setting) => setting.id === savedSetting.id);
+      const setting = settings.value.savedSettings.find(
+        (setting) => setting.id === savedSetting.id
+      );
       if (setting) {
         setting.title = value;
       }
@@ -50,11 +52,11 @@ export const addSaveSettingGroupItem = (
 
         // update the setting
         view.plugin.settingManager.updateSettings((settings) => {
-          const setting = settings.savedSettings.find((setting) => setting.id === savedSetting.id);
-          if (setting) {
-            setting.setting = view.settingManager.getCurrentSetting();
-          }
-          return settings;
+          const targetSavedSetting = settings.value.savedSettings.find(
+            (setting) => setting.id === savedSetting.id
+          );
+          if (targetSavedSetting)
+            targetSavedSetting.setting = view.settingManager.getCurrentSetting();
         });
       }
     });
@@ -70,10 +72,9 @@ export const addSaveSettingGroupItem = (
 
         // remove from settings
         view.plugin.settingManager.updateSettings((settings) => {
-          settings.savedSettings = settings.savedSettings.filter(
+          settings.value.savedSettings = settings.value.savedSettings.filter(
             (setting) => setting.id !== savedSetting.id
           );
-          return settings;
         });
       }
     });

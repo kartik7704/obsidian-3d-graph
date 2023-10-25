@@ -1,8 +1,9 @@
 import { ExtraButtonComponent } from "obsidian";
 import { addColorPicker } from "@/views/atomics/addColorPicker";
 import { addSearchInput } from "@/views/atomics/addSearchInput";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import { GroupSettings } from "@/SettingManager";
+import { Graph3dView } from "@/views/graph/Graph3dView";
+import { IPassiveSearchEngine } from "@/Interfaces";
 
 /**
  * given a group and a container element,
@@ -11,7 +12,7 @@ import { GroupSettings } from "@/SettingManager";
 export const AddNodeGroupItem = async (
   newGroup: GroupSettings[number],
   containerEl: HTMLElement,
-  view: NewGraph3dView,
+  view: Graph3dView,
   /**
    * the index of this group
    */
@@ -25,15 +26,13 @@ export const AddNodeGroupItem = async (
     newGroup.query,
     (value) => {
       view.settingManager.updateCurrentSettings((setting) => {
-        // This group must exist
-        setting.groups[index]!.query = value;
-        return setting;
+        setting.value.groups[index]!.query = value;
       });
     },
     view
   );
 
-  if (searchInput)
+  if (searchInput && view.plugin.fileManager.searchEngine instanceof IPassiveSearchEngine)
     searchInput.addMutationObserver((files) => {
       console.log("set the graph config", files);
     });
@@ -41,8 +40,7 @@ export const AddNodeGroupItem = async (
   addColorPicker(groupEl, newGroup.color, (value) => {
     view.settingManager.updateCurrentSettings((setting) => {
       // This group must exist
-      setting.groups[index]!.color = value;
-      return setting;
+      setting.value.groups[index]!.color = value;
     });
   });
 
@@ -55,8 +53,7 @@ export const AddNodeGroupItem = async (
 
       // remove from setting
       view.settingManager.updateCurrentSettings((setting) => {
-        setting.groups.splice(index, 1);
-        return setting;
+        setting.value.groups.splice(index, 1);
       });
     });
 };

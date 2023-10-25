@@ -1,6 +1,6 @@
 import { ButtonComponent } from "obsidian";
 import { GroupSettings } from "@/SettingManager";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
+import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
 import { AddNodeGroupItem } from "@/views/settings/categories/AddGroupSettingItem";
 
 const getRandomColor = () => {
@@ -10,7 +10,7 @@ const getRandomColor = () => {
 export const addNodeGroupButton = (
   groupSettings: GroupSettings,
   containerEl: HTMLElement,
-  view: NewGraph3dView
+  view: GlobalGraph3dView
 ) => {
   // make sure there is only one button
   containerEl.querySelector(".graph-color-button-container")?.remove();
@@ -29,9 +29,8 @@ export const addNodeGroupButton = (
       };
       // add a group to group settings
       view.settingManager.updateCurrentSettings((setting) => {
-        setting.groups.push(newGroup);
+        setting.value.groups.push(newGroup);
         // add a group to UI as well, add it in the containerEl before the button container el
-        return setting;
       });
       // we need to get the latest current setting so that index will be correct
       const index = view.settingManager.getCurrentSetting().groups.length - 1;

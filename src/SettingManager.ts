@@ -1,6 +1,5 @@
 import Graph3dPlugin from "@/main";
 import { ISettingManager } from "@/Interfaces";
-import { copy } from "copy-anything";
 import { AsyncQueue } from "@/util/AsyncQueue";
 import { z } from "zod";
 import {
@@ -17,6 +16,7 @@ import {
   SavedSettingSchema,
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
+import { State } from "@/util/State";
 
 export type BaseFilterSettings = Prettify<z.TypeOf<typeof BaseFilterSettingsSchema>>;
 
@@ -36,6 +36,8 @@ export type SavedSetting = Prettify<z.TypeOf<typeof SavedSettingSchema>>;
 
 export type Setting = Prettify<z.TypeOf<typeof SettingSchema>>;
 
+export type GraphSetting = Exclude<SavedSetting["setting"], undefined>;
+
 const DEFAULT_SETTING: Setting = {
   savedSettings: [],
   pluginSetting: {
@@ -52,8 +54,9 @@ const corruptedMessage =
  */
 export class MySettingManager implements ISettingManager<Setting> {
   private plugin: Graph3dPlugin;
-  private setting: Setting;
+  private setting: State<Setting> = new State(DEFAULT_SETTING);
   private asyncQueue = new AsyncQueue();
+
   /**
    * whether the setting is loaded successfully
    */
@@ -70,17 +73,17 @@ export class MySettingManager implements ISettingManager<Setting> {
    * this function will update the setting and save it to the json file. But it is still a sync function.
    * You should always use this function to update setting
    */
-  updateSettings(updateFunc: (setting: Setting) => Setting): Setting {
+  updateSettings(updateFunc: (setting: typeof this.setting) => void): Setting {
     // update the setting first
-    this.setting = updateFunc(copy(this.setting));
+    updateFunc(this.setting);
     // save the setting to json
     this.asyncQueue.push(this.saveSettings.bind(this));
     // return the updated setting
-    return this.setting;
+    return this.setting.value;
   }
 
   getSettings(): Setting {
-    return this.setting;
+    return this.setting.value;
   }
 
   /**
@@ -94,10 +97,10 @@ export class MySettingManager implements ISettingManager<Setting> {
 
     // if the data is null, then we need to initialize the data
     if (!loadedData) {
-      this.setting = DEFAULT_SETTING;
+      this.setting.value = DEFAULT_SETTING;
       this.isLoaded = true;
       await this.saveSettings();
-      return this.setting;
+      return this.setting.value;
     }
 
     const result = SettingSchema.safeParse(loadedData);
@@ -106,14 +109,14 @@ export class MySettingManager implements ISettingManager<Setting> {
       createNotice(corruptedMessage);
       console.warn("parsed loaded data failed", result.error.flatten());
       this.isLoaded = false;
-      this.setting = DEFAULT_SETTING;
-      return this.setting;
+      this.setting.value = DEFAULT_SETTING;
+      return this.setting.value;
     }
 
     console.log("parsed loaded data successfully");
 
-    this.setting = result.data;
-    return this.setting;
+    this.setting.value = result.data;
+    return this.setting.value;
   }
 
   /**
@@ -122,7 +125,7 @@ export class MySettingManager implements ISettingManager<Setting> {
   async saveSettings() {
     if (!this.isLoaded) {
       // try to parse it again to see if it is corrupted
-      const result = SettingSchema.safeParse(this.setting);
+      const result = SettingSchema.safeParse(this.setting.value);
 
       if (!result.success) {
         createNotice(corruptedMessage);
@@ -133,16 +136,13 @@ export class MySettingManager implements ISettingManager<Setting> {
       this.isLoaded = true;
       console.log("parsed loaded data successfully");
     }
-    await this.plugin.saveData(this.setting);
-    console.log("saved: ", this.setting);
+    await this.plugin.saveData(this.setting.value);
+    console.log("saved: ", this.setting.value);
   }
 
-  /**
-   * given a type, return the setting object
-   */
-  getNewSetting(
-    type: GraphType
-  ): typeof type extends GraphType.global ? GlobalGraphSettings : LocalGraphSettings {
+  static getNewSetting<T extends GraphType>(
+    type: T
+  ): T extends GraphType.global ? GlobalGraphSettings : LocalGraphSettings {
     if (type === GraphType.global) {
       // @ts-ignore
       return {

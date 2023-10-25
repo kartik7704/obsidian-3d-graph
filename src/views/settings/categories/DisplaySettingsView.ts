@@ -9,13 +9,14 @@ import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";
 import { DropdownComponent, Setting } from "obsidian";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import { DagOrientation, GraphType } from "@/SettingsSchemas";
+import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
+import { State } from "@/util/State";
 
 export const DisplaySettingsView = (
   graphSetting: GlobalGraphSettings | LocalGraphSettings,
   containerEl: HTMLElement,
-  settingManager: NewGraph3dView["settingManager"]
+  settingManager: GraphSettingManager
 ) => {
   const displaySettings = graphSetting.display;
   // add the node size setting
@@ -28,8 +29,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.nodeSize = value;
-        return setting;
+        setting.value.display.nodeSize = value;
       });
     }
   );
@@ -44,8 +44,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.linkThickness = value;
-        return setting;
+        setting.value.display.linkThickness = value;
       });
     }
   );
@@ -60,8 +59,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.linkDistance = value;
-        return setting;
+        setting.value.display.linkDistance = value;
       });
     }
   );
@@ -75,8 +73,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.nodeRepulsion = value;
-        return setting;
+        setting.value.display.nodeRepulsion = value;
       });
     }
   );
@@ -89,8 +86,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.nodeHoverColor = value;
-        return setting;
+        setting.value.display.nodeHoverColor = value;
       });
     }
   );
@@ -104,8 +100,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.nodeHoverNeighbourColor = value;
-        return setting;
+        setting.value.display.nodeHoverNeighbourColor = value;
       });
     }
   );
@@ -119,8 +114,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.linkHoverColor = value;
-        return setting;
+        setting.value.display.linkHoverColor = value;
       });
     }
   );
@@ -134,8 +128,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.showExtension = value;
-        return setting;
+        setting.value.display.showExtension = value;
       });
     }
   );
@@ -149,8 +142,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.showFullPath = value;
-        return setting;
+        setting.value.display.showFullPath = value;
       });
     }
   );
@@ -163,8 +155,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.showCenterCoordinates = value;
-        return setting;
+        setting.value.display.showCenterCoordinates = value;
       });
     }
   );
@@ -177,8 +168,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.showLinkArrow = value;
-        return setting;
+        setting.value.display.showLinkArrow = value;
       });
     }
   );
@@ -191,8 +181,7 @@ export const DisplaySettingsView = (
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.display.dontMoveWhenDrag = value;
-        return setting;
+        setting.value.display.dontMoveWhenDrag = value;
       });
     }
   );
@@ -205,9 +194,8 @@ export const DisplaySettingsView = (
     // the default value will be null
     .setValue(localDisplaySettings.dagOrientation ?? DagOrientation.null)
     .onChange(async (value) => {
-      settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
-        setting.display.dagOrientation = value as LocalDisplaySettings["dagOrientation"];
-        return setting;
+      settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+        setting.value.display.dagOrientation = value as LocalDisplaySettings["dagOrientation"];
       });
     });
 
@@ -223,9 +211,8 @@ export const DisplaySettingsView = (
     // if the link type is both, then we need to hide the dag orientation setting
     dagDropDown.settingEl.hide();
     // set the dag orientation to null
-    settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
-      setting.display.dagOrientation = DagOrientation.null;
-      return setting;
+    settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+      setting.value.display.dagOrientation = DagOrientation.null;
     });
 
     // set the UI as well
@@ -236,9 +223,8 @@ export const DisplaySettingsView = (
     // if the link type is either inlink or outlink, then we need to add the dag orientation setting
     dagDropDown.settingEl.show();
     // set the dag orientation to null
-    settingManager.updateCurrentSettings((setting: LocalGraphSettings) => {
-      setting.display.dagOrientation = DagOrientation.null;
-      return setting;
+    settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+      setting.value.display.dagOrientation = DagOrientation.null;
     });
 
     // set the UI as well

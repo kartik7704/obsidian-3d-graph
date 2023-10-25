@@ -12,8 +12,9 @@ import { config } from "@/config";
 import { MyFileManager } from "@/FileManager";
 import { MySettingManager } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
-import { SearchManager } from "@/SearchManager";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
+import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
+import { Graph3dView } from "@/views/graph/Graph3dView";
+import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -28,9 +29,8 @@ export default class Graph3dPlugin extends Plugin {
 
   public fileManager: MyFileManager;
   public settingManager: MySettingManager;
-  public searchManager: SearchManager;
 
-  public activeGraphViews: NewGraph3dView[] = [];
+  public activeGraphViews: Graph3dView[] = [];
 
   /**
    * initialize all the things here
@@ -74,13 +74,20 @@ export default class Graph3dPlugin extends Plugin {
 
     // register global view
     this.registerView(config.viewType.global, (leaf) => {
-      return new NewGraph3dView(this, leaf, GraphType.global);
+      return new GlobalGraph3dView(this, leaf);
     });
 
     // register local view
     this.registerView(config.viewType.local, (leaf) => {
-      return new NewGraph3dView(this, leaf, GraphType.local);
+      return new LocalGraph3dView(this, leaf);
     });
+  }
+
+  onunload(): void {
+    super.unload();
+    // unregister the resolved cache listener
+    this.app.metadataCache.off("resolved", this.onGraphCacheReady);
+    this.app.metadataCache.off("resolve", this.onGraphCacheChanged);
   }
 
   private initListeners() {
@@ -137,9 +144,7 @@ export default class Graph3dPlugin extends Plugin {
       // update global graph view
       this.activeGraphViews.forEach((view) => {
         if (view.graphType === GraphType.global) {
-          view.updateGraphData({
-            files: Graph.getFiles(this.app, this.globalGraph),
-          });
+          view.handleMetadataCacheChange();
         }
       });
     }

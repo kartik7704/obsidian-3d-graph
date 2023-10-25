@@ -1,21 +1,37 @@
 import { TreeItem } from "@/views/atomics/TreeItem";
-import { ExtraButtonComponent } from "obsidian";
+import { ExtraButtonComponent, TAbstractFile } from "obsidian";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { SavedSettingsView } from "@/views/settings/categories/SavedSettingsView";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import { FilterSettingsView } from "@/views/settings/categories/FilterSettingsView";
-import { SavedSetting } from "@/SettingManager";
-import { State } from "@/util/State";
-import { copy } from "copy-anything";
+import {
+  GlobalGraphSettings,
+  GraphSetting,
+  LocalGraphSettings,
+  MySettingManager,
+  SavedSetting,
+} from "@/SettingManager";
+import { State, StateChange } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettingsView";
-import { IActiveSearchEngine } from "@/Interfaces";
+import { Graph3dView } from "@/views/graph/Graph3dView";
+import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
+
+type SearchResult = {
+  filter: {
+    query: string;
+    files: TAbstractFile[];
+  };
+  group: {
+    query: string;
+    files: TAbstractFile[];
+  }[];
+};
 
 /**
  * this setting manager is responsible for managing the settings of a graph view
  */
-export class GraphSettingManager {
-  private graphView: NewGraph3dView;
+export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
+  private graphView: T;
 
   public readonly containerEl: HTMLDivElement;
   private settingsButton: ExtraButtonComponent;
@@ -24,16 +40,21 @@ export class GraphSettingManager {
   public filterSettingView: ReturnType<typeof FilterSettingsView>;
   public displaySettingView: ReturnType<typeof DisplaySettingsView>;
 
-  private currentSetting: State<SavedSetting["setting"]>;
+  protected currentSetting: State<SavedSetting["setting"]>;
+  protected settingChanges: StateChange<unknown, GraphSetting>[] = [];
 
-  constructor(parentView: NewGraph3dView) {
+  // @ts-ignore
+  public searchResult: State<SearchResult> = new State({
+    filter: { query: "", files: [] },
+    group: [],
+  });
+
+  constructor(parentView: T) {
     this.graphView = parentView;
     this.containerEl = document.createElement("div");
     this.containerEl.classList.add("graph-settings-view");
 
-    this.currentSetting = new State(
-      this.graphView.plugin.settingManager.getNewSetting(this.graphView.graphType)
-    );
+    this.currentSetting = new State(MySettingManager.getNewSetting(this.graphView.graphType));
 
     this.settingsButton = new ExtraButtonComponent(this.containerEl)
       .setIcon("settings")
@@ -43,6 +64,22 @@ export class GraphSettingManager {
     // add this setting view to the parent view
     this.graphView.contentEl.appendChild(this.containerEl);
     this.initNewView(true);
+
+    this.currentSetting.onChange((change: StateChange<unknown, GraphSetting>) =>
+      this.settingChanges.push(change)
+    );
+
+    // tell the graph view to handle search result change
+    this.searchResult.onChange((change: StateChange<unknown, SearchResult>) => {
+      // handle search state change
+      if (change.currentPath === "filter.files") {
+        // update the graph data
+        this.graphView.handleSearchResultChange();
+      } else if (change.currentPath.includes("group")) {
+        // update the graph setting
+        this.graphView.handleGroupColorChange();
+      }
+    });
   }
 
   initNewView(collapsed = false) {
@@ -150,16 +187,18 @@ export class GraphSettingManager {
    */
   public resetSettings() {
     // reset the current setting
-    this.updateCurrentSettings(() => {
-      return this.graphView.plugin.settingManager.getNewSetting(this.graphView.graphType);
+    this.updateCurrentSettings((setting) => {
+      setting.value = MySettingManager.getNewSetting(this.graphView.graphType);
     });
+
+    // reset the setting changes
 
     this.initNewView(false);
   }
 
-  public applySettings(setting: SavedSetting["setting"]) {
-    this.updateCurrentSettings(() => {
-      return setting;
+  public applySettings(newSetting: SavedSetting["setting"]) {
+    this.updateCurrentSettings((setting) => {
+      setting.value = newSetting;
     });
     this.initNewView(false);
   }
@@ -167,28 +206,47 @@ export class GraphSettingManager {
   /**
    * this will update the current setting and return the updated setting
    */
-  updateCurrentSettings(updateFunc: (setting: SavedSetting["setting"]) => SavedSetting["setting"]) {
-    // update the setting first
-    this.currentSetting.value = updateFunc(copy(this.currentSetting.value));
+  updateCurrentSettings(
+    /**
+     * user can directly update the setting
+     */
+    updateFunc: (setting: typeof this.currentSetting) => void,
+    /**
+     * you can use this to tell the graph view to update the graph view.
+     * Set this to false when there are sequential update
+     */
+    shouldUpdateGraphView = true
+  ) {
+    updateFunc(this.currentSetting);
 
-    // if it is passive search engine, the graph view will subscribe to the change of the search query
-    // we don't need to do it here
-    if (this.graphView.plugin.fileManager.searchEngine instanceof IActiveSearchEngine) {
-      // if any search query is changed, we need to call the file manager to look for the result of the search query
-      // store the search result and compose a new graph object
-      // pass the updated graph object or any other new config to update the graph
-    }
-
-    this.graphView.handleSettingUpdate();
+    if (shouldUpdateGraphView)
+      // tell the graph to handle setting update
+      // if path length is 0, then it means the whole setting is updated
+      this.unpackStateChanges();
 
     return this.currentSetting.value;
+  }
+
+  /**
+   * this will get all the changes in the state and unpack it to the graph view.
+   * Then reset the state changes
+   */
+  public unpackStateChanges() {
+    this.graphView.handleSettingUpdate(
+      this.currentSetting.value,
+      ...this.settingChanges.map((c) => c.currentPath as NestedKeyOf<GraphSetting>)
+    );
+
+    this.settingChanges = [];
   }
 
   /**
    * return the current setting. This is useful for saving the setting
    */
   public getCurrentSetting() {
-    return this.currentSetting.value;
+    return this.currentSetting.value as T extends LocalGraph3dView
+      ? LocalGraphSettings
+      : GlobalGraphSettings;
   }
 
   public getGraphView() {

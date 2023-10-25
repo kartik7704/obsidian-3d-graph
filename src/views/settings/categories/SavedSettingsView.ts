@@ -1,10 +1,10 @@
 import { SavedSetting } from "@/SettingManager";
 import { generateUUID } from "@/util/generateUUID";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
+import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
 import { addSaveSettingGroupItem } from "@/views/settings/categories/SaveSettingGroupItem";
 import { Setting } from "obsidian";
 
-export const SavedSettingsView = (containerEl: HTMLElement, view: NewGraph3dView) => {
+export const SavedSettingsView = (containerEl: HTMLElement, view: GlobalGraph3dView) => {
   const div = containerEl.createDiv({
     cls: "saved-settings-view",
     attr: {
@@ -38,8 +38,7 @@ export const SavedSettingsView = (containerEl: HTMLElement, view: NewGraph3dView
 
       // update the settings
       view.plugin.settingManager.updateSettings((settings) => {
-        settings.savedSettings.push(newSetting);
-        return settings;
+        settings.value.savedSettings.push(newSetting);
       });
     });
   });

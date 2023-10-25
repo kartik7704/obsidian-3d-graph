@@ -1,12 +1,12 @@
 import ForceGraph3D, { ForceGraph3DInstance } from "3d-force-graph";
 import { Graph } from "@/graph/Graph";
 import { CenterCoordinates } from "@/views/graph/CenterCoordinates";
-import { NewGraph3dView } from "@/views/graph/NewGraph3dView";
 import * as THREE from "three";
 import * as d3 from "d3-force-3d";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import { GlobalGraphSettings, LocalGraphSettings, SavedSetting } from "@/SettingManager";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 
 /**
  * the origin vectorss
@@ -24,7 +24,10 @@ type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
  * this class control the config and graph of the force graph. The interaction is not control here.
  */
 export class NewForceGraph {
-  private view: NewGraph3dView;
+  /**
+   * this can be a local graph or a global graph
+   */
+  private view: Graph3dView;
   private config: LocalGraphSettings | GlobalGraphSettings;
 
   public readonly instance: MyForceGraph3DInstance;
@@ -36,11 +39,7 @@ export class NewForceGraph {
    * @param view
    * @param config you have to provide the full config here!!
    */
-  constructor(
-    view: NewGraph3dView,
-    graph: Graph,
-    config: LocalGraphSettings | GlobalGraphSettings
-  ) {
+  constructor(view: Graph3dView, graph: Graph, config: LocalGraphSettings | GlobalGraphSettings) {
     this.view = view;
     this.config = config;
     // test;

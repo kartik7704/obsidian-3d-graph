@@ -13,7 +13,7 @@ import { eventBus } from "@/util/EventBus";
 import { GraphSettings } from "@/settings/GraphSettings";
 import * as THREE from "three";
 import { Notice, TFile } from "obsidian";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { OldGraph3dView } from "@/views/graph/OldGraph3dView";
 import * as TWEEN from "@tweenjs/tween.js";
 import { CommandModal } from "@/commands/CommandModal";
 import * as d3 from "d3-force-3d";
@@ -66,7 +66,7 @@ export class ForceGraph {
 
   private selectedNodes = new Set<Node>();
 
-  private view: Graph3dView;
+  private view: OldGraph3dView;
   // private bloomComposer: EffectComposer;
   // private finalComposer: EffectComposer;
 
@@ -74,7 +74,7 @@ export class ForceGraph {
     plugin: Graph3dPlugin,
     rootHtmlElement: HTMLElement,
     isLocalGraph: boolean,
-    view: Graph3dView
+    view: OldGraph3dView
   ) {
     this.rootHtmlElement = rootHtmlElement;
     this.isLocalGraph = isLocalGraph;
@@ -222,7 +222,6 @@ export class ForceGraph {
 
   public search(file: TFile, event: Event) {
     const targetNode = this.graph?.getNodeByPath(file.path);
-    console.log("search", file, targetNode);
     if (targetNode) this.focusOnCoords(targetNode as GraphNode);
     else new Notice("The node doesn't exist in the graph");
   }

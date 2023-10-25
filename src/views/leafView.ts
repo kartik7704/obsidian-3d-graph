@@ -511,7 +511,6 @@ export class EmbeddedView extends nosuper(HoverPopover) {
     const state = this.buildState(parentMode, eState);
     const leaf = await this.openFile(file, state, createInLeaf);
     const leafViewType = leaf?.view?.getViewType();
-    // console.log(leaf);
     if (leafViewType === "image") {
       // TODO: temporary workaround to prevent image popover from disappearing immediately when using live preview
       if (
