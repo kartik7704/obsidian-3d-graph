@@ -15,15 +15,14 @@ import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView
 import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettingsView";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
+import { AsyncQueue } from "@/util/AsyncQueue";
 
-type SearchResult = {
+export type SearchResult = {
   filter: {
-    query: string;
-    files: TAbstractFile[];
+    files: Prettify<Omit<TAbstractFile, "vault" | "parent">>[];
   };
-  group: {
-    query: string;
-    files: TAbstractFile[];
+  groups: {
+    files: Prettify<Omit<TAbstractFile, "vault" | "parent">>[];
   }[];
 };
 
@@ -43,11 +42,12 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
   protected currentSetting: State<SavedSetting["setting"]>;
   protected settingChanges: StateChange<unknown, GraphSetting>[] = [];
 
-  // @ts-ignore
   public searchResult: State<SearchResult> = new State({
     filter: { query: "", files: [] },
-    group: [],
-  });
+    groups: [],
+  } as SearchResult);
+  protected searchResultChanges: StateChange<unknown, SearchResult>[] = [];
+  private asyncQueue = new AsyncQueue();
 
   constructor(parentView: T) {
     this.graphView = parentView;
@@ -71,14 +71,28 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
 
     // tell the graph view to handle search result change
     this.searchResult.onChange((change: StateChange<unknown, SearchResult>) => {
-      // handle search state change
+      // push to search result change first
+      this.searchResultChanges.push(change);
       if (change.currentPath === "filter.files") {
         // update the graph data
         this.graphView.handleSearchResultChange();
-      } else if (change.currentPath.includes("group")) {
+      } else if (change.currentPath.startsWith("groups")) {
         // update the graph setting
-        this.graphView.handleGroupColorChange();
+        this.graphView.handleGroupColorSearchResultChange();
       }
+      // then if async queue is empty, add a task to async queue
+      // if (this.asyncQueue.queue.length === 0) {
+      //   this.asyncQueue.push(async () => {
+      //     await waitForStable(
+      //       () => {
+      //         return this.searchResultChanges.length;
+      //       },
+      //       { timeout: 3000, minDelay: 200, interval: 100 }
+      //     );
+      //     // if search result changes is stable, then we will unpack the changes
+      //     this.unpackSearchResultChanges();
+      //   });
+      // }
     });
   }
 
@@ -191,8 +205,6 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
       setting.value = MySettingManager.getNewSetting(this.graphView.graphType);
     });
 
-    // reset the setting changes
-
     this.initNewView(false);
   }
 
@@ -234,7 +246,8 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
   public unpackStateChanges() {
     this.graphView.handleSettingUpdate(
       this.currentSetting.value,
-      ...this.settingChanges.map((c) => c.currentPath as NestedKeyOf<GraphSetting>)
+      // remove duplicates
+      ...new Set(this.settingChanges.map((c) => c.currentPath as NestedKeyOf<GraphSetting>))
     );
 
     this.settingChanges = [];

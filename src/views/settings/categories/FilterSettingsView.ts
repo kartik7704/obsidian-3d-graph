@@ -5,7 +5,7 @@ import { BaseFilterSettings, LocalFilterSetting, LocalGraphSettings } from "@/Se
 import { GraphType } from "@/SettingsSchemas";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
 import { State } from "@/util/State";
-import { IPassiveSearchEngine } from "@/Interfaces";
+import { PassiveSearchEngine } from "@/PassiveSearchEngine";
 
 export const FilterSettingsView = async (
   filterSettings: BaseFilterSettings | LocalFilterSetting,
@@ -28,12 +28,14 @@ export const FilterSettingsView = async (
   // if this is a built-in search input, then we need to add a mutation observer
   if (
     searchInput &&
-    settingManager.getGraphView().plugin.fileManager.searchEngine instanceof IPassiveSearchEngine
+    settingManager.getGraphView().plugin.fileManager.searchEngine instanceof PassiveSearchEngine
   )
     searchInput.addMutationObserver((files) => {
       // the files is empty, by default, we will show all files
-      // graphView.handleSearchResultChange(files);
-      settingManager.searchResult.value.filter.files = files;
+      settingManager.searchResult.value.filter.files = files.map((file) => ({
+        name: file.name,
+        path: file.path,
+      }));
     });
 
   // add show attachments setting
@@ -82,7 +84,8 @@ export const FilterSettingsView = async (
           // update the setting
           settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
             setting.value.filter.linkType = value;
-          });
+            // we are putting false here because we know there are still some more to update
+          }, false);
 
           if (value === "both") settingManager.displaySettingView.hideDagOrientationSetting();
           else if (settingManager.displaySettingView.isDropdownHidden())

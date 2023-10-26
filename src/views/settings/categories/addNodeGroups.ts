@@ -1,11 +1,11 @@
 import { GroupSettings } from "@/SettingManager";
 import { AddNodeGroupItem } from "@/views/settings/categories/AddGroupSettingItem";
-import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 
 export const addNodeGroups = async (
   groupSettings: GroupSettings,
   containerEl: HTMLElement,
-  view: GlobalGraph3dView
+  view: Graph3dView
 ) => {
   containerEl.querySelector(".node-group-container")?.remove();
   const nodeGroupContainerEl = containerEl.createDiv({

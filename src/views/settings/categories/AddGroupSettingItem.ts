@@ -3,7 +3,7 @@ import { addColorPicker } from "@/views/atomics/addColorPicker";
 import { addSearchInput } from "@/views/atomics/addSearchInput";
 import { GroupSettings } from "@/SettingManager";
 import { Graph3dView } from "@/views/graph/Graph3dView";
-import { IPassiveSearchEngine } from "@/Interfaces";
+import { PassiveSearchEngine } from "@/PassiveSearchEngine";
 
 /**
  * given a group and a container element,
@@ -19,6 +19,7 @@ export const AddNodeGroupItem = async (
   index: number
 ) => {
   // This group must exist
+
   const groupEl = containerEl.createDiv({ cls: "graph-color-group" });
 
   const searchInput = await addSearchInput(
@@ -32,11 +33,16 @@ export const AddNodeGroupItem = async (
     view
   );
 
-  if (searchInput && view.plugin.fileManager.searchEngine instanceof IPassiveSearchEngine)
+  if (searchInput && view.plugin.fileManager.searchEngine instanceof PassiveSearchEngine) {
     searchInput.addMutationObserver((files) => {
-      console.log("set the graph config", files);
+      if (view.settingManager.searchResult.value.groups[index] === undefined)
+        view.settingManager.searchResult.value.groups[index] = { files: [] };
+      view.settingManager.searchResult.value.groups[index]!.files = files.map((file) => ({
+        name: file.name,
+        path: file.path,
+      }));
     });
-
+  }
   addColorPicker(groupEl, newGroup.color, (value) => {
     view.settingManager.updateCurrentSettings((setting) => {
       // This group must exist
@@ -55,5 +61,8 @@ export const AddNodeGroupItem = async (
       view.settingManager.updateCurrentSettings((setting) => {
         setting.value.groups.splice(index, 1);
       });
+
+      // remove from the search result
+      view.settingManager.searchResult.value.groups.splice(index, 1);
     });
 };

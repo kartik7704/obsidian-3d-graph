@@ -9,5 +9,5 @@ export const GroupSettingsView = async (
   view: Graph3dView
 ) => {
   await addNodeGroups(groupSettings, containerEl, view);
-  addNodeGroupButton(groupSettings, containerEl, view);
+  addNodeGroupButton(containerEl, view);
 };

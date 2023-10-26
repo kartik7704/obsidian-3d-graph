@@ -163,7 +163,7 @@ export class Graph {
     // const tempGraph = Graph.createFromApp(app);
     // since the nodes are from the files, they are already correct.
     // we just need to update the links, we can pass into Boolean as the predicate
-    return this.createFromMask(Boolean, tempGraph);
+    return tempGraph.filter(Boolean);
   };
 
   // updates this graph with new data from the Obsidian API
@@ -190,9 +190,9 @@ export class Graph {
    * @param graph the graph to filter
    * @returns a new graph
    */
-  public static createFromMask = (predicate: (node: Node) => boolean, graph: Graph) => {
-    const filteredNodes = graph.nodes.filter(predicate);
-    const filteredLinks = graph.links.filter((link) => {
+  public filter = (predicate: (node: Node) => boolean) => {
+    const filteredNodes = this.nodes.filter(predicate);
+    const filteredLinks = this.links.filter((link) => {
       // the source and target nodes of a link must be in the filtered nodes
       return (
         filteredNodes.some((node) => link.source.id === node.id) &&

@@ -1,6 +1,6 @@
 import { SavedSetting } from "@/SettingManager";
 import { createNotice } from "@/util/createNotice";
-import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 import { ExtraButtonComponent, TextComponent } from "obsidian";
 
 /**
@@ -9,7 +9,7 @@ import { ExtraButtonComponent, TextComponent } from "obsidian";
 export const addSaveSettingGroupItem = (
   containerEl: HTMLDivElement,
   savedSetting: SavedSetting,
-  view: GlobalGraph3dView
+  view: Graph3dView
 ) => {
   // create a new div element
   const innerEl = containerEl.createDiv({

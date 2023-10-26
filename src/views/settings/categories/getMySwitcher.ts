@@ -1,9 +1,9 @@
 import { App } from "obsidian";
 import Graph3dPlugin from "@/main";
-import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
 import { QuickSwitcherPlugin } from "@/typings/types-obsidian";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 
-export const getMySwitcher = (view: GlobalGraph3dView) => {
+export const getMySwitcher = (view: Graph3dView) => {
   const switcherInstance = (view.plugin.app.internalPlugins.plugins.switcher as QuickSwitcherPlugin)
     .instance;
   const QuickSwitcherModal = switcherInstance?.QuickSwitcherModal;

@@ -1,10 +1,10 @@
 import { SavedSetting } from "@/SettingManager";
 import { generateUUID } from "@/util/generateUUID";
-import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
+import { Graph3dView } from "@/views/graph/Graph3dView";
 import { addSaveSettingGroupItem } from "@/views/settings/categories/SaveSettingGroupItem";
 import { Setting } from "obsidian";
 
-export const SavedSettingsView = (containerEl: HTMLElement, view: GlobalGraph3dView) => {
+export const SavedSettingsView = (containerEl: HTMLElement, view: Graph3dView) => {
   const div = containerEl.createDiv({
     cls: "saved-settings-view",
     attr: {
