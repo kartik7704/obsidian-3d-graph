@@ -4,9 +4,11 @@ import { CenterCoordinates } from "@/views/graph/CenterCoordinates";
 import * as THREE from "three";
 import * as d3 from "d3-force-3d";
 import { hexToRGBA } from "@/util/hexToRGBA";
-import { GlobalGraphSettings, LocalGraphSettings, SavedSetting } from "@/SettingManager";
+import { SavedSetting } from "@/SettingManager";
 import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { Graph3dView } from "@/views/graph/Graph3dView";
+import { ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
+import { DeepPartial } from "ts-essentials";
 
 /**
  * the origin vectorss
@@ -27,11 +29,13 @@ export class NewForceGraph {
   /**
    * this can be a local graph or a global graph
    */
-  private view: Graph3dView;
-  private config: LocalGraphSettings | GlobalGraphSettings;
+  public readonly view: Graph3dView;
+  // private config: LocalGraphSettings | GlobalGraphSettings;
 
   public readonly instance: MyForceGraph3DInstance;
   private centerCoordinates: CenterCoordinates;
+
+  private interactionManager: ForceGraphEngine;
 
   /**
    *
@@ -39,9 +43,8 @@ export class NewForceGraph {
    * @param view
    * @param config you have to provide the full config here!!
    */
-  constructor(view: Graph3dView, graph: Graph, config: LocalGraphSettings | GlobalGraphSettings) {
+  constructor(view: Graph3dView, graph: Graph) {
     this.view = view;
-    this.config = config;
     // test;
 
     // get the content element of the item view
@@ -77,7 +80,9 @@ export class NewForceGraph {
     const scene = this.instance.scene();
     // add others things
     // add center coordinates
-    this.centerCoordinates = new CenterCoordinates(config.display.showCenterCoordinates);
+    this.centerCoordinates = new CenterCoordinates(
+      this.view.settingManager.getCurrentSetting().display.showCenterCoordinates
+    );
     scene.add(this.centerCoordinates.arrowsGroup);
   }
 
@@ -90,8 +95,7 @@ export class NewForceGraph {
     this.instance.width(width).height(height);
   }
 
-  public updateConfig(config: Partial<SavedSetting["setting"]>) {
-    this.config = Object.assign(this.config, config);
+  public updateConfig(config: DeepPartial<SavedSetting["setting"]>) {
     this.updateInstance(undefined, config);
   }
 
@@ -108,7 +112,7 @@ export class NewForceGraph {
   /**
    * given the changed things, update the instance
    */
-  private updateInstance = (graph?: Graph, config?: Partial<SavedSetting["setting"]>) => {
+  private updateInstance = (graph?: Graph, config?: DeepPartial<SavedSetting["setting"]>) => {
     if (graph !== undefined) this.instance.graphData(graph);
     if (config?.display?.nodeSize !== undefined)
       this.instance.nodeRelSize(config.display?.nodeSize);

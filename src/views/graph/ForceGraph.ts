@@ -253,21 +253,6 @@ export class ForceGraph {
     this.myCube = myCube;
     myCube.position.set(0, 0, -FOCAL_FROM_CAMERA);
     myCube.visible = false;
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        this.spaceDown = true;
-        // this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
-      }
-      if (e.metaKey) this.commandDown = true;
-    });
-
-    document.addEventListener("keyup", (e) => {
-      if (e.code === "Space") {
-        this.spaceDown = false;
-        // this.controls.mouseButtons.LEFT = THREE.MOUSE.LEFT;
-      }
-      if (!e.metaKey) this.commandDown = false;
-    });
 
     this.createInstance();
     this.createNodes();

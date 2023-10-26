@@ -1,4 +1,4 @@
-import { GraphSetting, MySettingManager } from "@/SettingManager";
+import { GraphSetting } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
 import { config } from "@/config";
 import { Graph } from "@/graph/Graph";
@@ -18,12 +18,8 @@ export abstract class Graph3dView extends ItemView {
     super(leaf);
     this.plugin = plugin;
     this.graphType = graphType;
-    this.forceGraph = new NewForceGraph(
-      this,
-      graph,
-      MySettingManager.getNewSetting(this.graphType)
-    );
     this.settingManager = new GraphSettingManager<typeof this>(this);
+    this.forceGraph = new NewForceGraph(this, graph);
 
     // set up some UI stuff
     this.contentEl.classList.add("graph-3d-view");
@@ -82,7 +78,7 @@ export abstract class Graph3dView extends ItemView {
     this.forceGraph.instance._destructor();
 
     // reassign a new graph base on setting like the constructor
-    this.forceGraph = new NewForceGraph(this, graph, this.settingManager.getCurrentSetting());
+    this.forceGraph = new NewForceGraph(this, graph);
 
     // move the setting to the front of the graph
     this.contentEl.appendChild(this.settingManager.containerEl);
@@ -94,15 +90,24 @@ export abstract class Graph3dView extends ItemView {
    * given some files and config, update the graph data.
    */
   protected updateGraphData(graph: Graph) {
-    console.log("update graph data", graph.nodes.length);
     const tooLarge =
       graph.nodes.length > this.plugin.settingManager.getSettings().pluginSetting.maxNodeNumber;
     if (tooLarge) {
       createNotice(`Graph is too large to be rendered. Have ${graph.nodes.length} nodes.`);
     }
     this.forceGraph.updateGraph(tooLarge ? Graph.createEmpty() : graph);
+    // get current focus element
+    const focusEl = document.activeElement as HTMLElement | null;
     // move the setting to the front of the graph
     this.contentEl.appendChild(this.settingManager.containerEl);
+
+    // focus on the focus element
+    try {
+      focusEl?.focus();
+    } catch (e) {
+      console.error(e.message);
+    }
+
     // make sure the render is at the right place
     this.onResize();
   }

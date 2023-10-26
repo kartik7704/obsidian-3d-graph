@@ -98,12 +98,23 @@ export class LocalGraph3dView extends Graph3dView {
     console.error("Method not implemented.");
   }
 
-  public handleSettingUpdate(newSetting: GraphSetting, ...path: NestedKeyOf<GraphSetting>[]): void {
+  public handleSettingUpdate(
+    newSetting: GraphSetting,
+    ...path: NestedKeyOf<LocalGraphSettings>[]
+  ): void {
     // we don't handle whole setting change here
     if (path.includes("")) return;
     // we don't handle search query and group search query
     if (path.includes("filter.searchQuery") || path.some((p) => p.startsWith("groups"))) return;
-    if (path.includes("filter.showAttachments") || path.includes("filter.showOrphans")) {
+    if (
+      path.some(
+        (p) =>
+          p === "filter.showAttachments" ||
+          p === "filter.showOrphans" ||
+          p === "filter.depth" ||
+          p === "filter.linkType"
+      )
+    ) {
       // we need to update force graph data
       this.updateGraphData();
       return;
