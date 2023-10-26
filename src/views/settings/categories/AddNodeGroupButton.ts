@@ -1,18 +1,27 @@
 import { ButtonComponent } from "obsidian";
 import { AddNodeGroupItem } from "@/views/settings/categories/AddGroupSettingItem";
 import { Graph3dView } from "@/views/graph/Graph3dView";
+import { addSearchInput } from "@/views/atomics/addSearchInput";
 
 const getRandomColor = () => {
   return "#" + Math.floor(Math.random() * 16777215).toString(16);
 };
 
-export const addNodeGroupButton = (containerEl: HTMLElement, view: Graph3dView) => {
+export const addNodeGroupButton = (
+  containerEl: HTMLElement,
+  view: Graph3dView,
+  searchInputs: Awaited<ReturnType<typeof addSearchInput>>[]
+) => {
   // make sure there is only one button
   containerEl.querySelector(".graph-color-button-container")?.remove();
 
   const buttonContainerEl = containerEl.createDiv({
     cls: "graph-color-button-container",
   });
+
+  const nodeGroupButton: { groupItems: Awaited<ReturnType<typeof AddNodeGroupItem>>[] } = {
+    groupItems: [],
+  };
 
   new ButtonComponent(buttonContainerEl)
     .setClass("mod-cta")
@@ -34,7 +43,8 @@ export const addNodeGroupButton = (containerEl: HTMLElement, view: Graph3dView) 
       view.settingManager.searchResult.value.groups[index] = {
         files: [],
       };
-      await AddNodeGroupItem(newGroup, containerEl, view, index);
+      await AddNodeGroupItem(newGroup, containerEl, view, index, searchInputs);
       containerEl.append(buttonContainerEl);
     });
+  return nodeGroupButton;
 };

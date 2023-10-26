@@ -200,6 +200,24 @@ export class Graph {
       );
     });
 
+    // now reassign the links to nodes because the links are filtered
+    filteredNodes.forEach((node) => {
+      // clear the links of the node
+      node.links.splice(0, node.links.length);
+
+      // clear the neighbors of the node
+      node.neighbors.splice(0, node.neighbors.length);
+
+      // add back the neighbors to node
+      filteredLinks.forEach((link) => {
+        // if the link is connected to the node
+        if (link.source.id === node.id || link.target.id === node.id) {
+          // add the neighbor to the node
+          node.addNeighbor(link.source.id === node.id ? link.target : link.source);
+        }
+      });
+    });
+
     const nodeIndex = new Map<string, number>();
     filteredNodes.forEach((node, index) => {
       nodeIndex.set(node.id, index);

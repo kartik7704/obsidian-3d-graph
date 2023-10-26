@@ -93,8 +93,13 @@ export const FilterSettingsView = async (
         });
     });
 
+    const triggerSearch = async () => {
+      searchInput?.triggerSearch();
+    };
+
     return {
       searchInput,
+      triggerSearch,
     };
   }
 };

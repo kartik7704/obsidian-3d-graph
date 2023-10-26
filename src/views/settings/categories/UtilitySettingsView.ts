@@ -1,5 +1,4 @@
 import { ButtonComponent } from "obsidian";
-import { eventBus } from "@/util/EventBus";
 import { getMySwitcher } from "@/views/settings/categories/getMySwitcher";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 
@@ -18,19 +17,15 @@ export const UtilitySettingsView = async (containerEl: HTMLElement, view: Graph3
 
     if (MySwitcher === undefined) return;
     const modal = new MySwitcher(plugin.app, plugin);
-    modal.onChooseSuggestion = (file, evt) => {
-      // @ts-ignore
-      view.getForceGraph()?.search(file.file, evt);
-    };
     modal.open();
   });
 
   new ButtonComponent(div).setButtonText("Look at center").onClick(() => {
     // TODO: change all event to enum
-    eventBus.trigger("look-at-center");
+    view.getForceGraph().interactionManager.cameraLookAtCenter();
   });
 
   new ButtonComponent(div).setButtonText("Remove selection").onClick(() => {
-    eventBus.trigger("remove-selected-nodes");
+    view.getForceGraph().interactionManager.removeSelection();
   });
 };

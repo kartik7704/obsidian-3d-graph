@@ -3,10 +3,19 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { Node } from "@/graph/Node";
 import { NewForceGraph } from "@/views/graph/NewForceGraph";
+import { Link } from "@/graph/Link";
+import { CommandModal } from "@/commands/CommandModal";
+import { GraphType } from "@/SettingsSchemas";
+import { createNotice } from "@/util/createNotice";
+import { hexToRGBA } from "@/util/hexToRGBA";
 
+const origin = new THREE.Vector3(0, 0, 0);
 const cameraLookAtCenterTransitionDuration = 1000;
-const FOCAL_FROM_CAMERA = 400;
+const LINK_PARTICLE_MULTIPLIER = 2;
+export const FOCAL_FROM_CAMERA = 400;
 const selectedColor = "#CCA700";
+const PARTICLE_FREQUECY = 4;
+const LINK_ARROW_WIDTH_MULTIPLIER = 5;
 
 /**
  * this instance handle all the interaction. In other words, the interaction manager
@@ -22,12 +31,247 @@ export class ForceGraphEngine {
    * the node connected to the hover node
    */
   private readonly highlightedNodes: Set<string> = new Set();
+  /**
+   * the links connected to the hover node
+   */
+  private readonly highlightedLinks: Set<Link> = new Set();
   hoveredNode: Node | null;
+
+  // zooming
+  private isZooming = false;
+  private startZoomTimeout: Timer | undefined;
+  private endZoomTimeout: Timer | undefined;
 
   constructor(forceGraph: NewForceGraph) {
     this.forceGraph = forceGraph;
     this.initListeners();
   }
+
+  onZoom(event: WheelEvent) {
+    const camera = this.forceGraph.instance.camera() as THREE.PerspectiveCamera;
+    // check if it is start zooming using setTimeout
+    // if it is, then cancel the animation
+    if (!this.isZooming && !this.startZoomTimeout) {
+      this.startZoomTimeout = setTimeout(() => {
+        // console.log("this should only show once");
+        if (!this.isZooming) {
+          clearTimeout(this.startZoomTimeout);
+          this.startZoomTimeout = undefined;
+          this.isZooming = true;
+          this.onZoomStart();
+        }
+        return;
+      }, 100);
+    }
+
+    const distanceToCenter = camera.position.distanceTo(origin);
+    camera.updateProjectionMatrix();
+    this.forceGraph.centerCoordinates.setLength(distanceToCenter / 10);
+
+    if (this.isZooming) {
+      clearTimeout(this.endZoomTimeout);
+      this.endZoomTimeout = setTimeout(() => {
+        this.endZoomTimeout = undefined;
+        this.isZooming = false;
+        this.onZoomEnd();
+      }, 100);
+    }
+  }
+
+  private onZoomEnd() {}
+
+  private onZoomStart = () => {
+    const tweens = Object.keys(this.tween);
+    if (tweens) {
+      Object.values(this.tween).forEach((tween) => {
+        if (tween) {
+          tween.stop();
+        }
+      });
+      // remove the tween
+      this.tween = {};
+    }
+  };
+
+  onNodeDrag = (node: Node & Coords, translate: Coords) => {
+    // https://github.com/vasturiano/3d-force-graph/issues/279#issuecomment-587135032
+    if (this.forceGraph.view.settingManager.getCurrentSetting().display.dontMoveWhenDrag)
+      this.forceGraph.instance.cooldownTicks(0);
+    if (this.selectedNodes.has(node)) {
+      // moving a selected node
+      [...this.selectedNodes]
+        .filter((selNode) => selNode !== node) // don't touch node being dragged
+        .forEach((node) =>
+          ["x", "y", "z"].forEach(
+            // @ts-ignore
+            (coord) => (node[`f${coord}`] = node[coord] + translate[coord])
+          )
+        ); // translate other nodes by same amount
+    }
+  };
+
+  onNodeDragEnd = (node: Node & Coords) => {
+    const setting = this.forceGraph.view.settingManager.getCurrentSetting();
+    // https://github.com/vasturiano/3d-force-graph/issues/279#issuecomment-587135032
+    if (setting.display.dontMoveWhenDrag) this.forceGraph.instance.cooldownTicks(Infinity);
+    if (this.selectedNodes.has(node)) {
+      // finished moving a selected node
+      [...this.selectedNodes]
+        .filter((selNode) => selNode !== node) // don't touch node being dragged
+        // @ts-ignore
+        .forEach((node) => ["x", "y", "z"].forEach((coord) => (node[`f${coord}`] = undefined))); // unfix controlled nodes
+    }
+  };
+
+  onNodeRightClick = (node: Node, mouseEvent: MouseEvent) => {
+    console.log("right click", node, mouseEvent);
+    if (!this.selectedNodes.has(node)) {
+      this.selectedNodes.clear();
+      this.selectedNodes.add(node);
+    }
+    //   show a modal
+    const modal = new CommandModal(this.forceGraph.view, this.selectedNodes);
+    const promptEl = modal.containerEl.querySelector(".prompt");
+    const dv = promptEl?.createDiv({
+      text: `Commands will be run for ${this.selectedNodes.size} nodes.`,
+    });
+    dv?.setAttribute("style", "padding: var(--size-4-3); font-size: var(--font-smaller);");
+    modal.open();
+  };
+
+  onNodeClick = (node: Node & Coords, event: MouseEvent) => {
+    const plugin = this.forceGraph.view.plugin;
+    if (event.shiftKey) {
+      const isSelected = this.selectedNodes.has(node);
+      // multi-selection
+      isSelected ? this.selectedNodes.delete(node) : this.selectedNodes.add(node);
+      return;
+    }
+
+    if (this.commandDown || event.ctrlKey) {
+      this.focusOnCoords(node);
+      return;
+    }
+
+    const clickedNodeFile = plugin.app.vault.getFiles().find((f) => f.path === node.path);
+
+    if (clickedNodeFile) {
+      if (this.forceGraph.view.graphType === GraphType.local) {
+        plugin.app.workspace.getLeaf(false).openFile(clickedNodeFile);
+      } else {
+        this.forceGraph.view.leaf.openFile(clickedNodeFile);
+      }
+    }
+  };
+
+  onNodeHover = (node: Node | null) => {
+    if ((!node && !this.highlightedNodes.size) || (node && this.hoveredNode === node)) return;
+
+    // set node label text
+    if (node) {
+      const text = this.getNodeLabelText(node);
+      this.forceGraph.nodeLabelEl.textContent = text;
+      // @ts-ignore
+      this.forceGraph.nodeLabelEl.style.color = node.color;
+      this.forceGraph.nodeLabelEl.style.opacity = "1";
+    } else {
+      this.forceGraph.nodeLabelEl.style.opacity = "0";
+    }
+
+    this.clearHighlights();
+
+    if (node) {
+      this.highlightedNodes.add(node.id);
+      node.neighbors.forEach((neighbor) => this.highlightedNodes.add(neighbor.id));
+      const nodeLinks = this.forceGraph.instance.graphData().getLinksWithNode(node.id);
+
+      if (nodeLinks) nodeLinks.forEach((link) => this.highlightedLinks.add(link));
+    }
+    this.hoveredNode = node ?? null;
+    this.updateColor();
+  };
+
+  private clearHighlights = () => {
+    this.highlightedNodes.clear();
+    this.highlightedLinks.clear();
+  };
+
+  /**
+   * this will update the color of the nodes and links
+   */
+  updateColor() {
+    // trigger update of highlighted objects in scene
+    this.forceGraph.instance
+      .nodeColor(this.forceGraph.instance.nodeColor())
+      .linkColor(this.forceGraph.instance.linkColor())
+      .linkDirectionalParticles(this.forceGraph.instance.linkDirectionalParticles());
+  }
+
+  getLinkColor = (link: Link) => {
+    return this.isHighlightedLink(link)
+      ? this.forceGraph.view.settingManager.getCurrentSetting().display.linkHoverColor
+      : this.forceGraph.view.plugin.theme.textMuted;
+  };
+
+  getLinkWidth = (link: Link) => {
+    const setting = this.forceGraph.view.settingManager.getCurrentSetting();
+    return this.isHighlightedLink(link)
+      ? setting.display.linkThickness * 1.5
+      : setting.display.linkThickness;
+  };
+
+  getLinkDirectionalParticles = (link: Link) => {
+    return this.isHighlightedLink(link) ? PARTICLE_FREQUECY : 0;
+  };
+
+  getLinkDirectionalParticleWidth = () => {
+    const setting = this.forceGraph.view.settingManager.getCurrentSetting();
+    return setting.display.linkThickness * LINK_PARTICLE_MULTIPLIER;
+  };
+
+  onLinkHover = (link: Link | null) => {
+    this.clearHighlights();
+
+    if (link) {
+      this.highlightedLinks.add(link);
+      this.highlightedNodes.add(link.source.id);
+      this.highlightedNodes.add(link.target.id);
+    }
+    this.updateColor();
+  };
+
+  getLinkDirectionalArrowLength = () => {
+    const settings = this.forceGraph.view.settingManager.getCurrentSetting();
+
+    return (
+      settings.display.linkThickness *
+      LINK_ARROW_WIDTH_MULTIPLIER *
+      (settings.display.showLinkArrow ? 1 : 0)
+    );
+  };
+
+  private isHighlightedLink = (link: Link): boolean => {
+    return this.highlightedLinks.has(link);
+  };
+
+  private getNodeLabelText = (node: Node) => {
+    const settings = this.forceGraph.view.settingManager.getCurrentSetting();
+    const fullPath = node.path;
+    const fileNameWithExtension = node.name;
+    const fullPathWithoutExtension = fullPath.substring(0, fullPath.lastIndexOf("."));
+    const fileNameWithoutExtension = fileNameWithExtension.substring(
+      0,
+      fileNameWithExtension.lastIndexOf(".")
+    );
+    const text = !settings.display.showExtension
+      ? settings.display.showFullPath
+        ? fullPathWithoutExtension
+        : fileNameWithoutExtension
+      : settings.display.showFullPath
+      ? fullPath
+      : fileNameWithExtension;
+    return text;
+  };
 
   initListeners() {
     document.addEventListener("keydown", (e) => {
@@ -172,7 +416,7 @@ export class ForceGraphEngine {
         ? { x: coords.x * distRatio, y: coords.y * distRatio, z: coords.z * distRatio }
         : { x: 0, y: 0, z: distance }; // special case if node is in (0,0,0)
 
-    this.forceGraph.instance.cameraPosition(
+    this.cameraPosition(
       newPos, // new position
       coords, // lookAt ({ x, y, z })
       duration // ms transition duration
@@ -184,18 +428,20 @@ export class ForceGraphEngine {
   };
 
   public getNodeColor = (node: Node): string => {
+    let color: string;
     const settings = this.forceGraph.view.settingManager.getCurrentSetting();
     const theme = this.forceGraph.view.plugin.theme;
     const searchResult = this.forceGraph.view.settingManager.searchResult;
     if (this.selectedNodes.has(node)) {
-      return selectedColor;
+      color = selectedColor;
     }
     if (this.isHighlightedNode(node)) {
-      return node === this.hoveredNode
-        ? settings.display.nodeHoverColor
-        : settings.display.nodeHoverNeighbourColor;
+      color =
+        node === this.hoveredNode
+          ? settings.display.nodeHoverColor
+          : settings.display.nodeHoverNeighbourColor;
     } else {
-      let color = theme.textMuted;
+      color = theme.textMuted;
       settings.groups
         // we only want to use the groups that have a query
         .filter((g) => g.query.trim().length !== 0)
@@ -206,7 +452,20 @@ export class ForceGraphEngine {
           // if the node path is in the searchGroupfiles, change the color to group.color
           if (searchGroupfilePaths.includes(node.path)) color = group.color;
         });
-      return color;
     }
+    const rgba = hexToRGBA(color, 1);
+    return rgba;
   };
+
+  public removeSelection() {
+    this.selectedNodes.clear();
+    this.updateColor();
+  }
+
+  public searchNode(path: string) {
+    const targetNode = this.forceGraph.instance.graphData().getNodeByPath(path);
+    console.log(targetNode, path);
+    if (targetNode) this.focusOnCoords(targetNode as Node & Coords);
+    else createNotice("The node doesn't exist in the graph");
+  }
 }

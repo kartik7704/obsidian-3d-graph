@@ -16,6 +16,7 @@ import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettings
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
 import { AsyncQueue } from "@/util/AsyncQueue";
+import { waitFor } from "@/util/waitFor";
 
 export type SearchResult = {
   filter: {
@@ -36,8 +37,9 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
   private settingsButton: ExtraButtonComponent;
   private graphControlsEl: HTMLDivElement;
 
-  public filterSettingView: ReturnType<typeof FilterSettingsView>;
-  public displaySettingView: ReturnType<typeof DisplaySettingsView>;
+  public filterSettingView: Awaited<ReturnType<typeof FilterSettingsView>>;
+  public groupSettingView: Awaited<ReturnType<typeof GroupSettingsView>>;
+  public displaySettingView: Awaited<ReturnType<typeof DisplaySettingsView>>;
 
   protected currentSetting: State<SavedSetting["setting"]>;
   protected settingChanges: StateChange<unknown, GraphSetting>[] = [];
@@ -99,6 +101,11 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
   initNewView(collapsed = false) {
     // this ensure that the graph controls element is empty
     this.graphControlsEl?.remove();
+    // also remove all the search result container
+    this.graphView.containerEl
+      .querySelectorAll(".search-result-container")
+      .forEach((el) => el.remove());
+
     this.graphControlsEl = document.createElement("div");
     this.graphControlsEl.classList.add("graph-controls");
 
@@ -112,8 +119,8 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
       this.graphControlsEl,
       this.currentSetting.value.filter,
       "Filters",
-      (...args) => {
-        this.filterSettingView = FilterSettingsView(...args, this);
+      async (...args) => {
+        this.filterSettingView = await FilterSettingsView(...args, this);
         return this.filterSettingView;
       }
     );
@@ -123,7 +130,10 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
       this.graphControlsEl,
       this.currentSetting.value.groups,
       "Groups",
-      (...args) => GroupSettingsView(...args, this.graphView)
+      async (...args) => {
+        this.groupSettingView = await GroupSettingsView(...args, this.graphView);
+        return this.groupSettingView;
+      }
     );
 
     this.appendSettingGroup(
@@ -144,6 +154,11 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
     );
 
     this.toggleCollapsed(collapsed);
+
+    // this will keep triggering search until at least it trigger once
+    waitFor(() => {
+      return this.triggerSearch();
+    }, {});
   }
 
   // toggle the view to collapsed or expanded
@@ -200,6 +215,10 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
    * this will reset the settings to the default settings. This will reset the setting view.
    */
   public resetSettings() {
+    // also clear all the search result
+    this.searchResult.value.filter.files = [];
+    this.searchResult.value.groups = [];
+
     // reset the current setting
     this.updateCurrentSettings((setting) => {
       setting.value = MySettingManager.getNewSetting(this.graphView.graphType);
@@ -209,10 +228,21 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
   }
 
   public applySettings(newSetting: SavedSetting["setting"]) {
+    // clear an init the search result
+    this.searchResult.value.filter.files = [];
+    this.searchResult.value.groups = newSetting.groups.map((g) => ({
+      files: [],
+    }));
     this.updateCurrentSettings((setting) => {
       setting.value = newSetting;
     });
     this.initNewView(false);
+  }
+
+  triggerSearch() {
+    this.filterSettingView?.triggerSearch();
+    this.groupSettingView?.triggerSearch();
+    return Boolean(this.filterSettingView && this.groupSettingView);
   }
 
   /**
@@ -244,10 +274,15 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
    * Then reset the state changes
    */
   public unpackStateChanges() {
+    const changes = [
+      ...new Set(this.settingChanges.map((c) => c.currentPath as NestedKeyOf<GraphSetting>)),
+    ];
+    // if it is replace the whole setting, then we will not unpack the changes
+    // if (!changes.includes("") && !changes.includes("filter.searchQuery"))
     this.graphView.handleSettingUpdate(
       this.currentSetting.value,
       // remove duplicates
-      ...new Set(this.settingChanges.map((c) => c.currentPath as NestedKeyOf<GraphSetting>))
+      ...changes
     );
 
     this.settingChanges = [];

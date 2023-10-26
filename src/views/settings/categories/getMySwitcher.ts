@@ -1,4 +1,4 @@
-import { App } from "obsidian";
+import { App, TFile } from "obsidian";
 import Graph3dPlugin from "@/main";
 import { QuickSwitcherPlugin } from "@/typings/types-obsidian";
 import { Graph3dView } from "@/views/graph/Graph3dView";
@@ -25,6 +25,11 @@ export const getMySwitcher = (view: Graph3dView) => {
         // only show files in this view
         return s.file ? allFilePaths?.includes(s.file.path) : false;
       });
+    }
+
+    // @ts-ignore
+    onChooseSuggestion(item: { file: TFile }, evt: MouseEvent | KeyboardEvent) {
+      view.getForceGraph().interactionManager.searchNode(item.file.path);
     }
   };
   return MySwitcher;

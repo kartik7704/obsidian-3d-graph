@@ -36,7 +36,7 @@ const BASE_NODE_OPACITY = 0.7;
 // Adapted from https://github.com/vasturiano/3d-force-graph/blob/master/example/highlight/index.html
 // D3.js 3D Force Graph
 
-export class ForceGraph {
+export class OldForceGraph {
   private instance: ForceGraph3DInstance;
   private controls: OrbitControls | TrackballControls;
 
@@ -589,7 +589,7 @@ export class ForceGraph {
 
   // TODO: optimise this
   private getGraphData = (): Graph => {
-    function getGraph(this: ForceGraph) {
+    function getGraph(this: OldForceGraph) {
       const settings = this.plugin.getSettings();
       if (this.isLocalGraph && this.plugin.openFileState.value) {
         return this.plugin.globalGraph.clone().getLocalGraph(this.plugin.openFileState.value);

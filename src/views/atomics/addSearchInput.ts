@@ -109,5 +109,16 @@ export const addSearchInput = async (
     );
   };
 
-  return { searchRowEl, addMutationObserver };
+  const triggerSearch = () => {
+    // if the input is empty, return
+    if (inputEl.value === "") return;
+
+    inputEl.dispatchEvent(
+      new KeyboardEvent("keypress", {
+        key: "Enter",
+      })
+    );
+  };
+
+  return { searchRowEl, addMutationObserver, triggerSearch };
 };

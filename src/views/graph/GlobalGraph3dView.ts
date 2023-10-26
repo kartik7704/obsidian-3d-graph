@@ -35,21 +35,48 @@ export class GlobalGraph3dView extends Graph3dView {
   }
 
   public handleGroupColorSearchResultChange(): void {
-    console.error("Method not implemented.");
+    this.getForceGraph().interactionManager.updateColor();
   }
 
   public handleSearchResultChange(): void {
     this.updateGraphData();
   }
 
-  public handleSettingUpdate(newSetting: GraphSetting, ...path: NestedKeyOf<GraphSetting>[]): void {
-    if (path.includes("filter.showAttachments") || path.includes("filter.showOrphans")) {
+  public handleSettingUpdate(
+    newSetting: GraphSetting,
+    ...path: NestedKeyOf<GlobalGraphSettings>[]
+  ): void {
+    console.log(path);
+    if (path.some((p) => p === "filter.showAttachments" || p === "filter.showOrphans")) {
+      // we need to update force graph data
       this.updateGraphData();
-      return;
+    } else if (path.some((p) => p.startsWith("groups"))) {
+      this.getForceGraph().interactionManager.updateColor();
+    } else if (path.includes("display.nodeSize")) {
+      this.getForceGraph().updateConfig({
+        display: {
+          nodeSize: newSetting.display.nodeSize,
+        },
+      });
+    } else if (path.includes("display.linkDistance")) {
+      this.getForceGraph().updateConfig({
+        display: {
+          linkDistance: newSetting.display.linkDistance,
+        },
+      });
+    } else if (path.includes("display.nodeRepulsion")) {
+      this.getForceGraph().updateConfig({
+        display: {
+          nodeRepulsion: newSetting.display.nodeRepulsion,
+        },
+      });
+    } else if (path.includes("display.showCenterCoordinates")) {
+      this.getForceGraph().updateConfig({
+        display: {
+          showCenterCoordinates: newSetting.display.showCenterCoordinates,
+        },
+      });
     }
-
-    // other settings
-    console.error("Method not implemented.");
   }
 
   protected updateGraphData() {

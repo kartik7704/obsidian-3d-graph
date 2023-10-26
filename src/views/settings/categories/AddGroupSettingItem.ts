@@ -16,7 +16,8 @@ export const AddNodeGroupItem = async (
   /**
    * the index of this group
    */
-  index: number
+  index: number,
+  searchInputs: Awaited<ReturnType<typeof addSearchInput>>[]
 ) => {
   // This group must exist
 
@@ -43,6 +44,10 @@ export const AddNodeGroupItem = async (
       }));
     });
   }
+
+  // add the search input to the searchInputs
+  searchInputs.push(searchInput);
+
   addColorPicker(groupEl, newGroup.color, (value) => {
     view.settingManager.updateCurrentSettings((setting) => {
       // This group must exist
@@ -64,5 +69,12 @@ export const AddNodeGroupItem = async (
 
       // remove from the search result
       view.settingManager.searchResult.value.groups.splice(index, 1);
+
+      // remove the nodeGroupItem from the view
+      searchInputs.splice(index, 1);
     });
+
+  return {
+    searchInput,
+  };
 };

@@ -86,3 +86,39 @@
 .graph-3d-view .graph-controls:not(.is-close) {
   max-height: calc(90% - var(--size-4-4));
 }
+
+.workspace-leaf-content:has(.search-result-container.is-loading) .graph-controls {
+  /* border color purple */
+  border-color: var(--color-purple);
+
+  /* create the animation */
+  animation: color-oscillation 2s ease infinite;
+}
+
+@keyframes color-oscillation {
+  0% {
+    border: 1px solid var(--color-purple);
+  }
+  50% {
+    border: 1px solid var(--background-modifier-border);
+  }
+  100% {
+    border: 1px solid var(--color-purple);
+  }
+}
+
+.workspace-leaf-content:has(.search-result-container.is-loading) .search-input-container input {
+  animation: outline-gradient-animation 2s linear infinite;
+}
+
+@keyframes outline-gradient-animation {
+  0% {
+    box-shadow: 0 2px 0 var(--color-purple);
+  }
+  50% {
+    box-shadow: 0 2px 0 var(--background-modifier-border);
+  }
+  100% {
+    box-shadow: 0 2px 0 var(--color-purple);
+  }
+}

@@ -17,6 +17,12 @@ import {
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
+import {
+  linkDistance,
+  linkThickness,
+  nodeRepulsion,
+  nodeSize,
+} from "@/settings/categories/DisplaySettings";
 
 export type BaseFilterSettings = Prettify<z.TypeOf<typeof BaseFilterSettingsSchema>>;
 
@@ -153,13 +159,16 @@ export class MySettingManager implements ISettingManager<Setting> {
         },
         groups: [],
         display: {
-          nodeSize: 10,
-          linkThickness: 1,
-          linkDistance: 100,
+          nodeSize: nodeSize.default,
+          linkThickness: linkThickness.default,
+          linkDistance: linkDistance.default,
+          nodeRepulsion: nodeRepulsion.default,
+          // node hover color is red
           nodeHoverColor: "#ff0000",
-          nodeHoverNeighbourColor: "#ff0000",
-          nodeRepulsion: 1000,
-          linkHoverColor: "#ff0000",
+          // node hover neighbour color is green
+          nodeHoverNeighbourColor: "#00ff00",
+          // link hover color is blue
+          linkHoverColor: "#0000ff",
           showExtension: true,
           showFullPath: true,
           showCenterCoordinates: true,
@@ -178,13 +187,16 @@ export class MySettingManager implements ISettingManager<Setting> {
         },
         groups: [],
         display: {
-          nodeSize: 10,
-          linkThickness: 1,
-          linkDistance: 100,
+          nodeSize: nodeSize.default,
+          linkThickness: linkThickness.default,
+          linkDistance: linkDistance.default,
+          nodeRepulsion: nodeRepulsion.default,
+          // node hover color is red
           nodeHoverColor: "#ff0000",
-          nodeHoverNeighbourColor: "#ff0000",
-          nodeRepulsion: 1000,
-          linkHoverColor: "#ff0000",
+          // node hover neighbour color is green
+          nodeHoverNeighbourColor: "#00ff00",
+          // link hover color is blue
+          linkHoverColor: "#0000ff",
           showExtension: true,
           showFullPath: true,
           showCenterCoordinates: true,

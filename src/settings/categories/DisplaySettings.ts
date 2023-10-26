@@ -1,7 +1,7 @@
 const DEFAULT_NODE_SIZE = 3;
-const DEFAULT_LINK_THICKNESS = 3;
+const DEFAULT_LINK_THICKNESS = 2;
 const DEFAULT_LINK_DISTANCE = 100;
-const DEFAULT_NODE_REPULSION = 1000;
+const DEFAULT_NODE_REPULSION = 2800;
 
 export const nodeSize = {
   min: 1,
@@ -12,7 +12,7 @@ export const nodeSize = {
 
 export const linkThickness = {
   min: 1,
-  max: 5,
+  max: 3,
   step: 0.1,
   default: DEFAULT_LINK_THICKNESS, // 3
 };
@@ -25,10 +25,10 @@ export const linkDistance = {
 };
 
 export const nodeRepulsion = {
-  min: 1500,
+  min: 2500,
   max: 3000,
   step: 100,
-  default: DEFAULT_NODE_REPULSION, // 25
+  default: DEFAULT_NODE_REPULSION, // 28
 };
 
 // 'td', 'bu', 'lr', 'rl', 'zout', 'zin', 'radialout', 'radialin', null
