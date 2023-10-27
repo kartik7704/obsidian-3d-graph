@@ -215,6 +215,7 @@ export class NewForceGraph {
     // if the graph is the same, then we don't need to update the graph
     const same = Graph.compare(this.instance.graphData(), graph);
     if (!same) this.updateInstance(graph, undefined);
+    else console.log("same graph, no need to update");
   }
 
   /**
@@ -246,43 +247,6 @@ export class NewForceGraph {
       const noDag = config?.display.dagOrientation === "null";
       // @ts-ignore
       this.instance.dagMode(noDag ? null : config?.display.dagOrientation).dagLevelDistance(75);
-      // this.instance
-      //   .d3Force(
-      //     "x",
-      //     d3
-      //       .forceX(0)
-      //       .strength(
-      //         noDag
-      //           ? 1 -
-      //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
-      //               0.001
-      //           : 2
-      //       )
-      //   )
-      //   .d3Force(
-      //     "y",
-      //     d3
-      //       .forceY(0)
-      //       .strength(
-      //         noDag
-      //           ? 1 -
-      //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
-      //               0.001
-      //           : 1
-      //       )
-      //   )
-      //   .d3Force(
-      //     "z",
-      //     d3
-      //       .forceZ(0)
-      //       .strength(
-      //         noDag
-      //           ? 1 -
-      //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
-      //               0.001
-      //           : 2
-      //       )
-      //   );
     }
 
     /**

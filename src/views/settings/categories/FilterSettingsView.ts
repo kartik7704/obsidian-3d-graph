@@ -6,6 +6,7 @@ import { GraphType } from "@/SettingsSchemas";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
 import { State } from "@/util/State";
 import { PassiveSearchEngine } from "@/PassiveSearchEngine";
+import { waitForStable } from "@/util/waitFor";
 
 export const FilterSettingsView = async (
   filterSettings: BaseFilterSettings | LocalFilterSetting,
@@ -58,15 +59,31 @@ export const FilterSettingsView = async (
 
   if (graphView.graphType === GraphType.local) {
     const localFilterSettings = filterSettings as LocalFilterSetting;
+    let latestValue = localFilterSettings.depth;
+    let activeCallId = 0; // Unique identifier for each call
+
     //  add a slider for the depth
     new Setting(containerEl).setName("Depth").addSlider((slider) => {
       slider
         .setLimits(1, 5, 1)
         .setValue(localFilterSettings.depth)
         .setDynamicTooltip()
-        .onChange(async (value) => {
-          settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
-            setting.value.filter.depth = value;
+        .onChange((value) => {
+          latestValue = value;
+          const currentCallId = ++activeCallId; // Increment and store the unique ID for this call
+
+          waitForStable(() => latestValue, {
+            timeout: 3000, // wait for a max of 3 seconds for stability
+            minDelay: 300, // start checking after 300ms
+            interval: 100, // check every 100ms
+            rehitCount: 3, // require 3 consecutive checks with the same value
+          }).then((stableValue) => {
+            if (stableValue !== undefined && currentCallId === activeCallId) {
+              // Only proceed if this is the latest call
+              settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+                setting.value.filter.depth = stableValue;
+              });
+            }
           });
         });
     });

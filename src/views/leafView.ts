@@ -108,8 +108,7 @@ export class EmbeddedView extends nosuper(HoverPopover) {
   document: Document = this.targetEl?.ownerDocument ?? window.activeDocument ?? window.document;
 
   id = genId(8);
-  // @ts-ignore
-  bounce?: NodeJS.Timeout;
+  bounce?: Timer;
   boundOnZoomOut: () => void;
 
   originalPath: string; // these are kept to avoid adopting targets w/a different link

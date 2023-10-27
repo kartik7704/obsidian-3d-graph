@@ -274,7 +274,7 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
    * this will get all the changes in the state and unpack it to the graph view.
    * Then reset the state changes
    */
-  public unpackStateChanges() {
+  private unpackStateChanges() {
     const changes = [
       ...new Set(this.settingChanges.map((c) => c.currentPath as NestedKeyOf<GraphSetting>)),
     ];

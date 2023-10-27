@@ -54,43 +54,6 @@ var NewForceGraph = /** @class */ (function () {
                 var noDag = (config === null || config === void 0 ? void 0 : config.display.dagOrientation) === "null";
                 // @ts-ignore
                 _this.instance.dagMode(noDag ? null : config === null || config === void 0 ? void 0 : config.display.dagOrientation).dagLevelDistance(75);
-                // this.instance
-                //   .d3Force(
-                //     "x",
-                //     d3
-                //       .forceX(0)
-                //       .strength(
-                //         noDag
-                //           ? 1 -
-                //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
-                //               0.001
-                //           : 2
-                //       )
-                //   )
-                //   .d3Force(
-                //     "y",
-                //     d3
-                //       .forceY(0)
-                //       .strength(
-                //         noDag
-                //           ? 1 -
-                //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
-                //               0.001
-                //           : 1
-                //       )
-                //   )
-                //   .d3Force(
-                //     "z",
-                //     d3
-                //       .forceZ(0)
-                //       .strength(
-                //         noDag
-                //           ? 1 -
-                //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
-                //               0.001
-                //           : 2
-                //       )
-                //   );
             }
             /**
              * derive the need to reheat the simulation
@@ -241,6 +204,8 @@ var NewForceGraph = /** @class */ (function () {
         var same = Graph_1.Graph.compare(this.instance.graphData(), graph);
         if (!same)
             this.updateInstance(graph, undefined);
+        else
+            console.log("same graph, no need to update");
     };
     return NewForceGraph;
 }());

@@ -24,12 +24,19 @@ export class Graph {
   }
 
   public getNodeByPath = (path: string): Node | null => {
-    return this.nodes.find((n) => n.path === path) ?? null;
+    const index = this.nodeIndex.get(path);
+    if (typeof index === "number") {
+      return this.nodes[index] ?? null;
+    }
+    return null;
   };
 
-  // Returns a node by its id
   public getNodeById(id: string): Node | null {
-    return this.nodes.find((n) => n.id === id) ?? null;
+    const index = this.nodeIndex.get(id);
+    if (typeof index === "number") {
+      return this.nodes[index] ?? null;
+    }
+    return null;
   }
 
   // Returns a link by its source and target node ids
@@ -45,31 +52,38 @@ export class Graph {
     return null;
   }
 
-  // Returns the outgoing links of a node
   public getLinksFromNode(sourceNodeId: string): Link[] {
-    const sourceLinkMap = this.linkIndex.get(sourceNodeId);
-    if (sourceLinkMap) {
-      // @ts-ignore
-      return Array.from(sourceLinkMap.values()).map((index) => this.links[index]);
-    }
-    return [];
+    return (
+      this.linkIndex
+        .get(sourceNodeId)
+        ?.values()
+        // @ts-ignore
+        .map((index) => this.links[index]) ?? []
+    );
   }
 
-  // Returns the outgoing and incoming links of a node
+  /**
+   * given a node id, return all the links that contains this node
+   */
   public getLinksWithNode(nodeId: string): Link[] {
-    // we need to check if the link consists of a Node instance
-    // instead of just a string id,
-    // because D3 will replace each string id with the real Node instance
-    // once the graph is rendered
-    // @ts-ignore
-    if (this.links[0]?.source?.id) {
-      return this.links.filter(
-        // @ts-ignore
-        (link) => link.source.id === nodeId || link.target.id === nodeId
-      );
-    } else {
-      return this.links.filter((link) => link.source.id === nodeId || link.target.id === nodeId);
-    }
+    const links: Link[] = [];
+
+    this.linkIndex.forEach((targetMap, sourceId) => {
+      if (sourceId === nodeId) {
+        links.push(
+          // @ts-ignore
+          ...Array.from(targetMap.values()).map((index) => this.links[index])
+        );
+      } else if (targetMap.has(nodeId)) {
+        const index = targetMap.get(nodeId);
+        if (typeof index === "number") {
+          // @ts-ignore
+          links.push(this.links[index]);
+        }
+      }
+    });
+
+    return links;
   }
 
   // Clones the graph
@@ -100,30 +114,30 @@ export class Graph {
     },
     nodes: Node[]
   ) {
-    // create a new nodes
-    const newNodes = nodes.map((n) => new Node(n.name, n.path, n.val));
+    // Create new instances of nodes
+    const newNodes = nodes.map((node) => new Node(node.name, node.path, node.val));
+    const nodeMap = new Map<string, Node>();
+    newNodes.forEach((node) => nodeMap.set(node.id, node));
 
-    const links = [] as Link[];
+    const links: Link[] = [];
 
-    Object.entries(map)
-      .map(([key, value]) => {
-        const node1 = newNodes.find((node) => node.id === key);
-        if (!node1) return null;
-        return value.map((node2Id) => {
-          const node2 = newNodes.find((node) => node.id === node2Id);
-          if (!node2) return null;
-          links.push(new Link(node1, node2));
-          return node1.addNeighbor(node2);
-        });
-      })
-      .flat()
-      .filter(Boolean);
+    Object.entries(map).forEach(([sourceId, targetIds]) => {
+      const sourceNode = nodeMap.get(sourceId);
+      if (!sourceNode) return;
 
-    // add the links back to node
+      targetIds.forEach((targetId) => {
+        const targetNode = nodeMap.get(targetId);
+        if (!targetNode) return;
 
-    links.forEach((link) => {
-      link.source.addLink(link);
-      link.target.addLink(link);
+        // Create new instances of links
+        const link = new Link(sourceNode, targetNode);
+        links.push(link);
+
+        // As we are creating new nodes, we need to make sure they are properly linked
+        sourceNode.addNeighbor(targetNode);
+        sourceNode.addLink(link);
+        targetNode.addLink(link);
+      });
     });
 
     return new Graph(newNodes, links, Node.createNodeIndex(newNodes), Link.createLinkIndex(links));
@@ -139,16 +153,21 @@ export class Graph {
     predicate: (node: Node) => boolean,
     linksPredicate?: (link: Link) => boolean
   ) => {
+    // Filter nodes based on the predicate
     const filteredNodes = this.nodes.filter(predicate);
-    const filteredLinks = this.links
-      .filter((link) => {
-        // the source and target nodes of a link must be in the filtered nodes
-        return (
-          filteredNodes.some((node) => link.source.id === node.id) &&
-          filteredNodes.some((node) => link.target.id === node.id)
-        );
-      })
-      .filter(linksPredicate ?? Boolean);
+
+    // Create a quick lookup set for filtered node IDs
+    const filteredNodeIds = new Set(filteredNodes.map((node) => node.id));
+
+    // Filter links
+    const filteredLinks = this.links.filter((link) => {
+      // Check if both source and target nodes are in the filtered node set
+      const linkIsValid =
+        filteredNodeIds.has(link.source.id) && filteredNodeIds.has(link.target.id);
+
+      // Apply the linksPredicate if provided
+      return linkIsValid && (!linksPredicate || linksPredicate(link));
+    });
 
     // transform the link to linkmap
     const linkMap = Link.createLinkMap(filteredLinks);
@@ -157,6 +176,7 @@ export class Graph {
   };
 
   public static compare = (graph1: Graph, graph2: Graph): boolean => {
+    // Quick checks for lengths
     if (graph1.nodes.length !== graph2.nodes.length) {
       return false;
     }
@@ -164,24 +184,29 @@ export class Graph {
       return false;
     }
 
-    const graph2NodeIds = new Set(graph2.nodes.map((node) => node.id));
-
-    // Check if all nodes in graph1 exist in graph2
+    // Compare nodes
     for (const node1 of graph1.nodes) {
-      if (!graph2NodeIds.has(node1.id)) {
+      const node2Index = graph2.nodeIndex.get(node1.id);
+      // @ts-ignore
+      if (node2Index === undefined || graph2.nodes[node2Index].id !== node1.id) {
         return false;
       }
     }
 
-    function getLinkId(link: Link): string {
-      return `${link.source.path}-${link.target.path}`;
-    }
-
-    const graph2LinkIds = new Set(graph2.links.map(getLinkId));
-
-    // Check if all links in graph1 exist in graph2
+    // Compare links
     for (const link1 of graph1.links) {
-      if (!graph2LinkIds.has(getLinkId(link1))) {
+      const graph2SourceLinkMap = graph2.linkIndex.get(link1.source.id);
+      if (!graph2SourceLinkMap) {
+        return false;
+      }
+
+      const graph2LinkIndex = graph2SourceLinkMap.get(link1.target.id);
+      if (graph2LinkIndex === undefined) {
+        return false;
+      }
+
+      const link2 = graph2.links[graph2LinkIndex];
+      if (!link2 || link2.source.id !== link1.source.id || link2.target.id !== link1.target.id) {
         return false;
       }
     }
