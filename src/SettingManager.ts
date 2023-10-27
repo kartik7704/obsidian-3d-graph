@@ -71,14 +71,6 @@ export type Setting = Prettify<z.TypeOf<typeof SettingSchema>>;
 
 export type GraphSetting = Exclude<SavedSetting["setting"], undefined>;
 
-const DEFAULT_SETTING: Setting = {
-  savedSettings: [],
-  pluginSetting: {
-    maxNodeNumber: 200,
-    searchEngine: SearchEngineType.default,
-  },
-};
-
 const corruptedMessage =
   "The setting is corrupted. You will not be able to save the setting. Please backup your data.json, remove it and reload the plugin. Then migrate your old setting back.";
 
@@ -236,3 +228,13 @@ export class MySettingManager implements ISettingManager<Setting> {
     }
   }
 }
+
+const DEFAULT_SETTING: Setting = {
+  savedSettings: [],
+  temporaryLocalGraphSetting: MySettingManager.getNewSetting(GraphType.local),
+  temporaryGlobalGraphSetting: MySettingManager.getNewSetting(GraphType.global),
+  pluginSetting: {
+    maxNodeNumber: 200,
+    searchEngine: SearchEngineType.default,
+  },
+};

@@ -1,26 +1,7 @@
-import { deleteNote } from "@/commands/deleteNote";
-import { FuzzySuggestModal, TAbstractFile } from "obsidian";
+import { FuzzySuggestModal } from "obsidian";
 import { Node } from "@/graph/Node";
-import { createNotice } from "@/util/createNotice";
 import { Graph3dView } from "@/views/graph/Graph3dView";
-
-interface Command {
-  title: string;
-  function: (view: Graph3dView, file: TAbstractFile) => void;
-}
-
-const commands = [
-  {
-    title: "Delete Note",
-    function: deleteNote,
-  },
-  {
-    title: "Test Command",
-    function: (view: Graph3dView, file: TAbstractFile) => {
-      createNotice(`run on ${file.name}`);
-    },
-  },
-];
+import { Command, commands } from "@/commands/Command";
 
 export class CommandModal extends FuzzySuggestModal<Command> {
   private nodes: Set<Node>;
@@ -33,7 +14,7 @@ export class CommandModal extends FuzzySuggestModal<Command> {
   }
 
   getItems() {
-    return commands;
+    return commands.filter((command) => command.showConditon?.(this.view, this.nodes) ?? true);
   }
 
   getItemText(command: Command): string {
@@ -41,9 +22,6 @@ export class CommandModal extends FuzzySuggestModal<Command> {
   }
 
   onChooseItem(command: Command, evt: MouseEvent | KeyboardEvent) {
-    for (const node of this.nodes) {
-      const file = this.view.app.vault.getAbstractFileByPath(node.path);
-      if (file) command.function(this.view, file);
-    }
+    command.function(this.view, this.nodes);
   }
 }

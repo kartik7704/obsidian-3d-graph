@@ -29,7 +29,6 @@ export class AsyncEventBus extends Events {
     };
 
     const eventRef = super.on(name, pushToAsyncQueue, ctx);
-    console.log(eventRef);
     return eventRef;
   }
 }

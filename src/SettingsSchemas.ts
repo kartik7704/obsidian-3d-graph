@@ -83,6 +83,8 @@ export const SavedSettingSchema = z.object({
 });
 export const SettingSchema = z.object({
   savedSettings: z.array(SavedSettingSchema),
+  temporaryLocalGraphSetting: LocalGraphSettingsSchema,
+  temporaryGlobalGraphSetting: GlobalGraphSettingsSchema,
   pluginSetting: z.object({
     maxNodeNumber: z.number(),
     searchEngine: z.nativeEnum(SearchEngineType),

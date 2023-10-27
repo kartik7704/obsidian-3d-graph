@@ -17,6 +17,7 @@ import { Graph3dView } from "@/views/graph/Graph3dView";
 import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
 import { AsyncQueue } from "@/util/AsyncQueue";
 import { waitFor } from "@/util/waitFor";
+import { GraphType } from "@/SettingsSchemas";
 
 export type SearchResult = {
   filter: {
@@ -56,7 +57,12 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
     this.containerEl = document.createElement("div");
     this.containerEl.classList.add("graph-settings-view");
 
-    this.currentSetting = new State(MySettingManager.getNewSetting(this.graphView.graphType));
+    const pluginSetting = this.graphView.plugin.settingManager.getSettings();
+    this.currentSetting = new State(
+      this.graphView.graphType === GraphType.local
+        ? pluginSetting.temporaryLocalGraphSetting
+        : pluginSetting.temporaryGlobalGraphSetting
+    );
 
     this.settingsButton = new ExtraButtonComponent(this.containerEl)
       .setIcon("settings")
@@ -248,6 +254,15 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
     shouldUpdateGraphView = true
   ) {
     updateFunc(this.currentSetting);
+
+    // also update the plugin setting manager
+    this.graphView.plugin.settingManager.updateSettings((setting) => {
+      if (this.graphView.graphType === GraphType.local)
+        setting.value.temporaryLocalGraphSetting = this.currentSetting.value as LocalGraphSettings;
+      else
+        setting.value.temporaryGlobalGraphSetting = this.currentSetting
+          .value as GlobalGraphSettings;
+    });
 
     if (shouldUpdateGraphView)
       // tell the graph to handle setting update

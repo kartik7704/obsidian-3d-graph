@@ -172,7 +172,10 @@ export default class Graph3dPlugin extends Plugin {
    */
   private openGlobalGraph = () => {
     const globalGraphView = this.app.workspace.getActiveViewOfType(GlobalGraph3dView);
-    if (globalGraphView) {
+    if (
+      globalGraphView ||
+      this.activeGraphViews.some((view) => view.graphType === GraphType.global)
+    ) {
       createNotice("Global Graph already open");
     } else this.openGraph(GraphType.global);
   };
