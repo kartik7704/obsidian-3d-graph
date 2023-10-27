@@ -1,4 +1,4 @@
-import { GraphSetting } from "@/SettingManager";
+import { GlobalGraphSettings, GraphSetting, LocalGraphSettings } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
 import { config } from "@/config";
 import { Graph } from "@/graph/Graph";
@@ -10,7 +10,7 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 
 export abstract class Graph3dView extends ItemView {
   readonly plugin: Graph3dPlugin;
-  private forceGraph: NewForceGraph;
+  protected forceGraph: NewForceGraph;
   readonly graphType: GraphType;
   public readonly settingManager: GraphSettingManager<typeof this>;
 
@@ -19,6 +19,7 @@ export abstract class Graph3dView extends ItemView {
     this.plugin = plugin;
     this.graphType = graphType;
     this.settingManager = new GraphSettingManager<typeof this>(this);
+
     this.forceGraph = new NewForceGraph(this, graph);
 
     // set up some UI stuff
@@ -34,7 +35,7 @@ export abstract class Graph3dView extends ItemView {
 
   onunload(): void {
     super.onunload();
-    this.forceGraph.instance._destructor();
+    this.forceGraph?.instance._destructor();
     this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter((view) => view !== this);
   }
 
@@ -68,14 +69,14 @@ export abstract class Graph3dView extends ItemView {
    * then render it.
    */
   public refreshGraph() {
-    const graph = this.forceGraph.instance.graphData();
+    const graph = this.forceGraph?.instance.graphData();
 
     // get the first child of the content element
     const forceGraphEl = this.contentEl.firstChild;
     forceGraphEl?.remove();
 
     // destroy the old graph, remove the old graph completely from the DOM
-    this.forceGraph.instance._destructor();
+    this.forceGraph?.instance._destructor();
 
     // reassign a new graph base on setting like the constructor
     this.forceGraph = new NewForceGraph(this, graph);
@@ -87,7 +88,7 @@ export abstract class Graph3dView extends ItemView {
   }
 
   /**
-   * given some files and config, update the graph data.
+   * given some files, update the graph data.
    */
   protected updateGraphData(graph: Graph) {
     const tooLarge =
@@ -95,7 +96,7 @@ export abstract class Graph3dView extends ItemView {
     if (tooLarge) {
       createNotice(`Graph is too large to be rendered. Have ${graph.nodes.length} nodes.`);
     }
-    this.forceGraph.updateGraph(tooLarge ? Graph.createEmpty() : graph);
+    this.forceGraph?.updateGraph(tooLarge ? Graph.createEmpty() : graph);
     // get current focus element
     const focusEl = document.activeElement as HTMLElement | null;
     // move the setting to the front of the graph
@@ -127,11 +128,55 @@ export abstract class Graph3dView extends ItemView {
    */
   public abstract handleMetadataCacheChange(): void;
 
+  protected abstract getNewGraphData(): Graph;
+
   /**
    * when the setting is updated, the graph view need to know how to response to this.
    */
-  public abstract handleSettingUpdate(
+  public handleSettingUpdate(
     newSetting: GraphSetting,
-    ...path: NestedKeyOf<GraphSetting>[]
-  ): void;
+    ...path: (NestedKeyOf<GlobalGraphSettings> | NestedKeyOf<LocalGraphSettings>)[]
+  ): void {
+    if (path.includes("")) {
+      this.forceGraph?.interactionManager.updateNodeLabelDiv();
+    }
+    if (path.some((p) => p === "filter.showAttachments" || p === "filter.showOrphans")) {
+      // we need to update force graph data
+      this.updateGraphData(this.getNewGraphData());
+    }
+    if (path.some((p) => p.startsWith("groups"))) {
+      this.forceGraph?.interactionManager.updateColor();
+    }
+    if (path.includes("display.nodeSize")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          nodeSize: newSetting.display.nodeSize,
+        },
+      });
+    }
+    if (path.includes("display.linkDistance")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          linkDistance: newSetting.display.linkDistance,
+        },
+      });
+    }
+    if (path.includes("display.nodeRepulsion")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          nodeRepulsion: newSetting.display.nodeRepulsion,
+        },
+      });
+    }
+    if (path.includes("display.showCenterCoordinates")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          showCenterCoordinates: newSetting.display.showCenterCoordinates,
+        },
+      });
+    }
+    if (path.includes("display.showExtension") || path.includes("display.showFullPath")) {
+      this.forceGraph?.interactionManager.updateNodeLabelDiv();
+    }
+  }
 }

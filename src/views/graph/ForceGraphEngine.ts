@@ -31,11 +31,11 @@ export class ForceGraphEngine {
   /**
    * the node connected to the hover node
    */
-  private readonly highlightedNodes: Set<string> = new Set();
+  public readonly highlightedNodes: Set<string> = new Set();
   /**
    * the links connected to the hover node
    */
-  private readonly highlightedLinks: Set<Link> = new Set();
+  public readonly highlightedLinks: Set<Link> = new Set();
   hoveredNode: Node | null;
 
   // zooming
@@ -125,7 +125,6 @@ export class ForceGraphEngine {
   };
 
   onNodeRightClick = (node: Node, mouseEvent: MouseEvent) => {
-    console.log("right click", node, mouseEvent);
     if (!this.selectedNodes.has(node)) {
       this.selectedNodes.clear();
       this.selectedNodes.add(node);
@@ -213,9 +212,10 @@ export class ForceGraphEngine {
   }
 
   getLinkColor = (link: Link) => {
-    return this.isHighlightedLink(link)
+    const color = this.isHighlightedLink(link)
       ? this.forceGraph.view.settingManager.getCurrentSetting().display.linkHoverColor
       : this.forceGraph.view.plugin.theme.textMuted;
+    return hexToRGBA(color, this.getIsAnyHighlighted() && !this.isHighlightedLink(link) ? 0.2 : 1);
   };
 
   getLinkWidth = (link: Link) => {
@@ -471,8 +471,15 @@ export class ForceGraphEngine {
         if (searchGroupfilePaths.includes(node.path)) color = group.color;
       });
     }
-    const rgba = hexToRGBA(color, 1);
+    const rgba = hexToRGBA(
+      color,
+      this.getIsAnyHighlighted() && !this.isHighlightedNode(node) ? 0.5 : 1
+    );
     return rgba;
+  };
+
+  public getIsAnyHighlighted = () => {
+    return this.highlightedNodes.size !== 0 || this.highlightedLinks.size !== 0;
   };
 
   public removeSelection() {
@@ -482,7 +489,6 @@ export class ForceGraphEngine {
 
   public searchNode(path: string) {
     const targetNode = this.forceGraph.instance.graphData().getNodeByPath(path);
-    console.log(targetNode, path);
     if (targetNode) this.focusOnCoords(targetNode as Node & Coords);
     else createNotice("The node doesn't exist in the graph");
   }

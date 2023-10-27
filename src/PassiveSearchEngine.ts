@@ -38,14 +38,19 @@ export class PassiveSearchEngine implements IPassiveSearchEngine {
   addMutationObserver(
     searchResultContainerEl: HTMLDivElement,
     view: SearchView,
-    mutationCallback: (files: TAbstractFile[]) => void
+    mutationCallback: (files: TAbstractFile[]) => void,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: any
   ) {
     let files: TAbstractFile[] = [];
     const asyncQueue = new AsyncQueue();
+
     const observer = new MutationObserver(async (mutations) => {
       // if the search result is loading or the cache is not ready, then we know that the search must not be ready yet
-      if (searchResultContainerEl.classList.contains("is-loading") || !this.plugin.cacheIsReady)
-        return;
+      if (!this.plugin.cacheIsReady) return;
+
+      //  disable this because seem like this will cause a bug of some group not updating color
+      // if (searchResultContainerEl.classList.contains("is-loading")) return;
 
       files = getFilesFromSearchResult(await getResultFromSearchView(view));
 

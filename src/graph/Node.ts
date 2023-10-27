@@ -20,36 +20,22 @@ export class Node {
   }
 
   // Creates an array of nodes from an array of files (from the Obsidian API)
-  static createFromFiles(files: TAbstractFile[]): [Node[], Map<string, number>] {
-    const nodeMap = new Map<string, number>();
-    return [
-      files
-        .map((file, index) => {
-          const node = new Node(file.name, file.path);
-          if (!nodeMap.has(node.id)) {
-            nodeMap.set(node.id, index);
-            return node;
-          }
-          return null;
-        })
-        .filter((node) => node !== null) as Node[],
-      nodeMap,
-    ];
+  static createFromFiles(files: TAbstractFile[]): Node[] {
+    return files.map((file) => {
+      return new Node(file.name, file.path);
+    });
   }
 
-  // Links together two nodes as neighbors (node -> neighbor)
-  addNeighbor(neighbor: Node): Link | null {
+  /**
+   * given a node, check if it is a neighbour of current node. If yes,
+   * Links together two nodes as neighbors (node -> neighbor).
+   *
+   */
+  addNeighbor(neighbor: Node) {
     if (!this.isNeighborOf(neighbor)) {
-      const link = new Link(this, neighbor);
-      this.neighbors.push(neighbor);
-      this.addLink(link);
-
-      neighbor.neighbors.push(this);
-      neighbor.addLink(link);
-
-      return link;
+      if (!this.neighbors.includes(neighbor)) this.neighbors.push(neighbor);
+      if (!neighbor.neighbors.includes(this)) neighbor.neighbors.push(this);
     }
-    return null;
   }
 
   // Pushes a link to the node's links array if it doesn't already exist
@@ -67,5 +53,29 @@ export class Node {
 
   public static compare = (a: Node, b: Node) => {
     return a.path === b.path;
+  };
+
+  public static createNodeIndex(nodes: Node[]) {
+    const nodeIndex = new Map<string, number>();
+    nodes.forEach((node, index) => {
+      nodeIndex.set(node.id, index);
+    });
+    return nodeIndex;
+  }
+
+  public static checkNodesValid = (nodes: Node[]) => {
+    // check if there are duplicate nodes
+    const nodeSet = new Set(nodes);
+    if (nodeSet.size !== nodes.length) {
+      throw new Error("Duplicate nodes found");
+    }
+
+    // check if there are duplicate neighbors in a node
+    nodes.forEach((node) => {
+      const neighborSet = new Set(node.neighbors);
+      if (neighborSet.size !== node.neighbors.length) {
+        throw new Error(`Duplicate neighbors found for node ${node.name}`);
+      }
+    });
   };
 }

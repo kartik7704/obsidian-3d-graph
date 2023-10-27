@@ -1,5 +1,6 @@
-import { Link } from "@/graph/Link";
+import { Link, ResolvedLinkCache } from "@/graph/Link";
 import { Node } from "@/graph/Node";
+import { copy } from "copy-anything";
 import { App, TAbstractFile } from "obsidian";
 
 export class Graph {
@@ -28,12 +29,7 @@ export class Graph {
 
   // Returns a node by its id
   public getNodeById(id: string): Node | null {
-    const index = this.nodeIndex.get(id);
-    if (index !== undefined) {
-      // @ts-ignore
-      return this.nodes[index];
-    }
-    return null;
+    return this.nodes.find((n) => n.id === id) ?? null;
   }
 
   // Returns a link by its source and target node ids
@@ -76,72 +72,13 @@ export class Graph {
     }
   }
 
-  /**
-   * This method retrieves the local graph of a node, which includes all the other nodes and links
-   * that are connected to the given node recursively based on the specified depth and link type.
-   *
-   * @returns the local graph of a node
-   */
-  public getLocalGraph(
-    param: (
-      | {
-          id: string;
-        }
-      | {
-          path: string;
-        }
-    ) & {
-      depth: number;
-      linkType: "both" | "inlinks" | "outlinks";
-    }
-  ): Graph {
-    const node = "id" in param ? this.getNodeById(param.id) : this.getNodeByPath(param.path);
-
-    const nodes: Node[] = [];
-    const links: Link[] = [];
-    const nodeIndex = new Map<string, number>();
-
-    if (!node) {
-      return new Graph([], [], new Map(), new Map());
-    }
-
-    const traverseNeighbors = (currentNode: Node, currentDepth: number) => {
-      if (currentDepth > param.depth || nodeIndex.has(currentNode.id)) return; // Depth limit reached or node already traversed
-
-      nodes.push(currentNode);
-      nodeIndex.set(currentNode.id, nodes.length - 1);
-
-      currentNode.links.forEach((link) => {
-        if (
-          param.linkType === "both" ||
-          (param.linkType === "inlinks" && link.target.id === currentNode.id) ||
-          (param.linkType === "outlinks" && link.source.id === currentNode.id)
-        ) {
-          if (!links.includes(link)) {
-            links.push(link);
-            traverseNeighbors(
-              link.target.id === currentNode.id ? link.source : link.target,
-              currentDepth + 1
-            );
-          }
-        }
-      });
-    };
-
-    traverseNeighbors(node, 0);
-
-    const linkIndex = Link.createLinkIndex(links);
-
-    return new Graph(nodes, links, nodeIndex, linkIndex);
-  }
-
   // Clones the graph
   public clone = (): Graph => {
     return new Graph(
-      structuredClone(this.nodes),
-      structuredClone(this.links),
-      structuredClone(this.nodeIndex),
-      structuredClone(this.linkIndex)
+      copy(this.nodes),
+      copy(this.links),
+      copy(this.nodeIndex),
+      copy(this.linkIndex)
     );
   };
 
@@ -151,38 +88,46 @@ export class Graph {
 
   // Creates a graph using the Obsidian API
   public static createFromApp = (app: App): Graph => {
-    const [nodes, nodeIndex] = Node.createFromFiles(app.vault.getFiles()),
-      [links, linkIndex] = Link.createFromCache(app.metadataCache.resolvedLinks, nodes, nodeIndex);
-    return new Graph(nodes, links, nodeIndex, linkIndex);
+    const map = getMapFromMetaCache(app.metadataCache.resolvedLinks);
+
+    const nodes = Node.createFromFiles(app.vault.getFiles());
+    return Graph.createFromLinkMap(map, nodes);
   };
 
-  public static createFromFiles = (files: TAbstractFile[], app: App): Graph => {
-    const [nodes, nodeIndex] = Node.createFromFiles(files),
-      [links, linkIndex] = Link.createFromCache(app.metadataCache.resolvedLinks, nodes, nodeIndex);
-    const tempGraph = new Graph(nodes, links, nodeIndex, linkIndex);
-    // const tempGraph = Graph.createFromApp(app);
-    // since the nodes are from the files, they are already correct.
-    // we just need to update the links, we can pass into Boolean as the predicate
-    return tempGraph.filter(Boolean);
-  };
+  public static createFromLinkMap(
+    map: {
+      [x: string]: string[];
+    },
+    nodes: Node[]
+  ) {
+    // create a new nodes
+    const newNodes = nodes.map((n) => new Node(n.name, n.path, n.val));
 
-  // updates this graph with new data from the Obsidian API
-  public update = (app: App) => {
-    const newGraph = Graph.createFromApp(app);
+    const links = [] as Link[];
 
-    this.nodes.splice(0, this.nodes.length, ...newGraph.nodes);
-    this.links.splice(0, this.links.length, ...newGraph.links);
+    Object.entries(map)
+      .map(([key, value]) => {
+        const node1 = newNodes.find((node) => node.id === key);
+        if (!node1) return null;
+        return value.map((node2Id) => {
+          const node2 = newNodes.find((node) => node.id === node2Id);
+          if (!node2) return null;
+          links.push(new Link(node1, node2));
+          return node1.addNeighbor(node2);
+        });
+      })
+      .flat()
+      .filter(Boolean);
 
-    this.nodeIndex.clear();
-    newGraph.nodeIndex.forEach((value, key) => {
-      this.nodeIndex.set(key, value);
+    // add the links back to node
+
+    links.forEach((link) => {
+      link.source.addLink(link);
+      link.target.addLink(link);
     });
 
-    this.linkIndex.clear();
-    newGraph.linkIndex.forEach((value, key) => {
-      this.linkIndex.set(key, value);
-    });
-  };
+    return new Graph(newNodes, links, Node.createNodeIndex(newNodes), Link.createLinkIndex(links));
+  }
 
   /**
    * filter the nodes of the graph, the links will be filtered automatically.
@@ -190,42 +135,25 @@ export class Graph {
    * @param graph the graph to filter
    * @returns a new graph
    */
-  public filter = (predicate: (node: Node) => boolean) => {
+  public filter = (
+    predicate: (node: Node) => boolean,
+    linksPredicate?: (link: Link) => boolean
+  ) => {
     const filteredNodes = this.nodes.filter(predicate);
-    const filteredLinks = this.links.filter((link) => {
-      // the source and target nodes of a link must be in the filtered nodes
-      return (
-        filteredNodes.some((node) => link.source.id === node.id) &&
-        filteredNodes.some((node) => link.target.id === node.id)
-      );
-    });
+    const filteredLinks = this.links
+      .filter((link) => {
+        // the source and target nodes of a link must be in the filtered nodes
+        return (
+          filteredNodes.some((node) => link.source.id === node.id) &&
+          filteredNodes.some((node) => link.target.id === node.id)
+        );
+      })
+      .filter(linksPredicate ?? Boolean);
 
-    // now reassign the links to nodes because the links are filtered
-    filteredNodes.forEach((node) => {
-      // clear the links of the node
-      node.links.splice(0, node.links.length);
+    // transform the link to linkmap
+    const linkMap = Link.createLinkMap(filteredLinks);
 
-      // clear the neighbors of the node
-      node.neighbors.splice(0, node.neighbors.length);
-
-      // add back the neighbors to node
-      filteredLinks.forEach((link) => {
-        // if the link is connected to the node
-        if (link.source.id === node.id || link.target.id === node.id) {
-          // add the neighbor to the node
-          node.addNeighbor(link.source.id === node.id ? link.target : link.source);
-        }
-      });
-    });
-
-    const nodeIndex = new Map<string, number>();
-    filteredNodes.forEach((node, index) => {
-      nodeIndex.set(node.id, index);
-    });
-
-    const linkIndex = Link.createLinkIndex(filteredLinks);
-
-    return new Graph(filteredNodes, filteredLinks, nodeIndex, linkIndex);
+    return Graph.createFromLinkMap(linkMap, filteredNodes);
   };
 
   public static compare = (graph1: Graph, graph2: Graph): boolean => {
@@ -268,3 +196,19 @@ export class Graph {
     return graph.nodes.map((node) => app.vault.getAbstractFileByPath(node.path)).filter(Boolean);
   }
 }
+
+const getMapFromMetaCache = (resolvedLinks: ResolvedLinkCache) => {
+  const result: Record<string, string[]> = {};
+  Object.keys(resolvedLinks).map((nodeId) => {
+    result[nodeId] =
+      Object.keys(resolvedLinks[nodeId]!).map((nodePath) => {
+        return nodePath;
+      }) ?? [];
+  });
+
+  // remove self links
+  Object.keys(result).forEach((nodeId) => {
+    result[nodeId] = result[nodeId]?.filter((nodePath) => nodePath !== nodeId) ?? [];
+  });
+  return result;
+};

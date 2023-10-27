@@ -1,4 +1,4 @@
-import { GlobalGraphSettings, GraphSetting } from "@/SettingManager";
+import { GlobalGraphSettings } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
 import Graph3dPlugin from "@/main";
 import { Graph3dView } from "@/views/graph/Graph3dView";
@@ -14,6 +14,7 @@ const getNewGlobalGraph = (
 ) => {
   if (!config) return plugin.globalGraph;
   return plugin.globalGraph
+    .clone()
     .filter((node) => {
       // if node is not a markdown  and show attachment is false, then we will not show it
       if (!node.path.endsWith(".md") && !config.filterSetting.showAttachments) return false;
@@ -35,59 +36,22 @@ export class GlobalGraph3dView extends Graph3dView {
   }
 
   public handleGroupColorSearchResultChange(): void {
-    this.getForceGraph().interactionManager.updateColor();
+    this.forceGraph?.interactionManager.updateColor();
   }
 
   public handleSearchResultChange(): void {
     this.updateGraphData();
   }
 
-  public handleSettingUpdate(
-    newSetting: GraphSetting,
-    ...path: NestedKeyOf<GlobalGraphSettings>[]
-  ): void {
-    console.log(path);
-    if (path.some((p) => p === "filter.showAttachments" || p === "filter.showOrphans")) {
-      // we need to update force graph data
-      this.updateGraphData();
-    } else if (path.some((p) => p.startsWith("groups"))) {
-      this.getForceGraph().interactionManager.updateColor();
-    } else if (path.includes("display.nodeSize")) {
-      this.getForceGraph().updateConfig({
-        display: {
-          nodeSize: newSetting.display.nodeSize,
-        },
-      });
-    } else if (path.includes("display.linkDistance")) {
-      this.getForceGraph().updateConfig({
-        display: {
-          linkDistance: newSetting.display.linkDistance,
-        },
-      });
-    } else if (path.includes("display.nodeRepulsion")) {
-      this.getForceGraph().updateConfig({
-        display: {
-          nodeRepulsion: newSetting.display.nodeRepulsion,
-        },
-      });
-    } else if (path.includes("display.showCenterCoordinates")) {
-      this.getForceGraph().updateConfig({
-        display: {
-          showCenterCoordinates: newSetting.display.showCenterCoordinates,
-        },
-      });
-    } else if (path.includes("display.showExtension") || path.includes("display.showFullPath")) {
-      this.getForceGraph().interactionManager.updateNodeLabelDiv();
-    }
+  protected getNewGraphData() {
+    return getNewGlobalGraph(this.plugin, {
+      searchResults: this.settingManager.searchResult.value.filter.files,
+      filterSetting: this.settingManager.getCurrentSetting().filter,
+    });
   }
 
   protected updateGraphData() {
-    super.updateGraphData(
-      getNewGlobalGraph(this.plugin, {
-        searchResults: this.settingManager.searchResult.value.filter.files,
-        filterSetting: this.settingManager.getCurrentSetting().filter,
-      })
-    );
+    super.updateGraphData(this.getNewGraphData());
   }
 
   public handleMetadataCacheChange(): void {

@@ -28,52 +28,27 @@ export class Link {
     return linkIndex;
   }
 
-  /**
-   * Creates an array of links + index from an array of nodes and the Obsidian API cache
-   *
-   * @param cache the Obsidian API cache
-   * @param nodes the array of nodes
-   * @param nodeIndex the index of the nodes
-   * @returns an array of links and an index of the links
-   */
-  static createFromCache(
-    cache: ResolvedLinkCache,
-    nodes: Node[],
-    nodeIndex: Map<string, number>
-  ): [Link[], Map<string, Map<string, number>>] {
-    const links = Object.keys(cache)
-      .map((node1Id) => {
-        // @ts-ignore
-        return Object.keys(cache[node1Id])
-          .map((node2Id) => {
-            const [node1Index, node2Index] = [nodeIndex.get(node1Id), nodeIndex.get(node2Id)];
-            if (node1Index !== undefined && node2Index !== undefined) {
-              // @ts-ignore
-              return nodes[node1Index].addNeighbor(
-                // @ts-ignore
-                nodes[node2Index]
-              );
-            }
-            return null;
-          })
-          .flat();
-      })
-      .flat()
-      // remove duplicates and nulls
-      .filter(
-        (link, index, self) =>
-          link &&
-          link.source !== link.target &&
-          index ===
-            self.findIndex(
-              (l: Link | null) => l && l.source === link.source && l.target === link.target
-            )
-      ) as Link[];
-
-    return [links, Link.createLinkIndex(links)];
+  static checkLinksValid(links: Link[]) {
+    // if there are duplicate links, then throw an error
+    links.forEach((link, index) => {
+      links.forEach((link2, index2) => {
+        if (index !== index2 && Link.compare(link, link2)) {
+          throw new Error("graph duplicate links");
+        }
+      });
+    });
   }
 
   public static compare = (a: Link, b: Link) => {
-    return a.source.path === b.source.path && a.target.path === b.target.path;
+    return a.source.id === b.source.id && a.target.id === b.target.id;
   };
+
+  public static createLinkMap(links: Link[]): { [x: string]: string[] } {
+    const linkMap: { [x: string]: string[] } = {};
+    links.forEach((link) => {
+      if (!linkMap[link.source.id]) linkMap[link.source.id] = [];
+      linkMap[link.source.id]?.push(link.target.id);
+    });
+    return linkMap;
+  }
 }

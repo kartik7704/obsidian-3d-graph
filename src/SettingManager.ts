@@ -169,8 +169,8 @@ export class MySettingManager implements ISettingManager<Setting> {
           nodeHoverNeighbourColor: "#00ff00",
           // link hover color is blue
           linkHoverColor: "#0000ff",
-          showExtension: true,
-          showFullPath: true,
+          showExtension: false,
+          showFullPath: false,
           showCenterCoordinates: true,
           showLinkArrow: true,
           dontMoveWhenDrag: false,
@@ -197,8 +197,8 @@ export class MySettingManager implements ISettingManager<Setting> {
           nodeHoverNeighbourColor: "#00ff00",
           // link hover color is blue
           linkHoverColor: "#0000ff",
-          showExtension: true,
-          showFullPath: true,
+          showExtension: false,
+          showFullPath: false,
           showCenterCoordinates: true,
           showLinkArrow: true,
           dontMoveWhenDrag: false,

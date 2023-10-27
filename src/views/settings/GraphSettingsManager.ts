@@ -121,7 +121,6 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
       "Filters",
       async (...args) => {
         this.filterSettingView = await FilterSettingsView(...args, this);
-        console.log("filter setting view", this.filterSettingView);
         return this.filterSettingView;
       }
     );

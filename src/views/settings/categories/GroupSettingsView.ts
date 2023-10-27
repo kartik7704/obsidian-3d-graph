@@ -20,6 +20,7 @@ export const GroupSettingsView = async (
   };
 
   return {
+    searchInputs,
     triggerSearch,
   };
 };

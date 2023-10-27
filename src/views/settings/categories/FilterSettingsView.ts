@@ -85,7 +85,7 @@ export const FilterSettingsView = async (
           settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
             setting.value.filter.linkType = value;
             // we are putting false here because we know there are still some more to update
-          }, false);
+          });
 
           if (value === "both") settingManager.displaySettingView.hideDagOrientationSetting();
           else if (settingManager.displaySettingView.isDropdownHidden())

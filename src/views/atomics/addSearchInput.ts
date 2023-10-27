@@ -96,7 +96,8 @@ export const addSearchInput = async (
 
   // if it is a passive engine, we need to enable mutation observer
 
-  const addMutationObserver = (callback: (files: TAbstractFile[]) => void) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const addMutationObserver = (callback: (files: TAbstractFile[]) => void, data?: any) => {
     if (view.plugin.fileManager.searchEngine instanceof IActiveSearchEngine)
       throw new Error(
         "you don't need mutation observer for active search engine, this function should not be called"
@@ -105,7 +106,8 @@ export const addSearchInput = async (
     view.plugin.fileManager.searchEngine.addMutationObserver(
       searchResultContainerEl,
       searchLeaf.view as SearchView,
-      callback
+      callback,
+      data
     );
   };
 

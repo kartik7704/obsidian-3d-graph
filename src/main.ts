@@ -134,6 +134,7 @@ export default class Graph3dPlugin extends Plugin {
     ) {
       this._resolvedCache = structuredClone(this.app.metadataCache.resolvedLinks);
       this.globalGraph = Graph.createFromApp(this.app);
+
       if (this.isCacheReadyOnce) {
         // update graph view
         this.activeGraphViews.forEach((view) => {

@@ -19,7 +19,7 @@ export const getMySwitcher = (view: Graph3dView) => {
       const suggestions = await super.getSuggestions(query);
       const allFilePaths = view
         .getForceGraph()
-        .instance.graphData()
+        ?.instance.graphData()
         .nodes.map((n) => n.path);
       return suggestions.filter(Boolean).filter((s) => {
         // only show files in this view
@@ -29,7 +29,7 @@ export const getMySwitcher = (view: Graph3dView) => {
 
     // @ts-ignore
     onChooseSuggestion(item: { file: TFile }, evt: MouseEvent | KeyboardEvent) {
-      view.getForceGraph().interactionManager.searchNode(item.file.path);
+      view.getForceGraph()?.interactionManager.searchNode(item.file.path);
     }
   };
   return MySwitcher;

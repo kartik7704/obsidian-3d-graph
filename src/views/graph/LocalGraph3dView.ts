@@ -1,10 +1,80 @@
-import { GraphSetting, LocalGraphSettings } from "@/SettingManager";
+import { LocalGraphSettings } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
 import { Graph } from "@/graph/Graph";
+import { Node } from "@/graph/Node";
+import { Link } from "@/graph/Link";
 import Graph3dPlugin from "@/main";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { SearchResult } from "@/views/settings/GraphSettingsManager";
 import { TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
+
+/**
+ *
+ * @param graph
+ * @param id
+ * @param depth
+ * @param linkType
+ * @returns nodes and link of a local graph. If link type is inlinks and outlinks, then it will be acyclic
+ */
+
+const traverseNode = (
+  graph: Graph,
+  id: string,
+  depth: number,
+  linkType: "both" | "outlinks" | "inlinks"
+): { nodes: Node[]; links: Link[] } => {
+  const visitedNodes = new Set<string>();
+  const visitedLinks = new Set<Link>();
+  const queue: { node: Node; depth: number; path: Set<string> }[] = [];
+
+  const startNode = graph.getNodeById(id);
+  if (startNode) {
+    queue.push({ node: startNode, depth: 0, path: new Set([startNode.path]) });
+  }
+
+  while (queue.length > 0) {
+    const { node, depth: currentDepth, path } = queue.shift()!;
+    if (!node) continue;
+
+    if (currentDepth <= depth) {
+      visitedNodes.add(node.path);
+
+      node.links.forEach((link) => {
+        if (visitedLinks.has(link)) {
+          return; // Skip already visited links
+        }
+
+        const neighbor = link.source === node ? link.target : link.source;
+        const isOutlink = link.source === node;
+        const isInlink = link.target === node;
+
+        if (
+          linkType === "both" ||
+          (linkType === "outlinks" && isOutlink) ||
+          (linkType === "inlinks" && isInlink)
+        ) {
+          // Check for cycles when linkType is not "both"
+          if (linkType !== "both" && path.has(neighbor.path)) {
+            return; // Skip to avoid cycles
+          }
+
+          visitedLinks.add(link);
+          if (!visitedNodes.has(neighbor.path)) {
+            const newPath = new Set(path);
+            newPath.add(neighbor.path);
+            queue.push({ node: neighbor, depth: currentDepth + 1, path: newPath });
+          }
+        }
+      });
+    }
+  }
+
+  // Convert node paths back to node objects and return
+  return {
+    nodes: [...visitedNodes].map((path) => graph.getNodeById(path)).filter(Boolean),
+    links: [...visitedLinks],
+  };
+};
 
 /**
  * this is called by the plugin to create a new local graph.
@@ -29,13 +99,29 @@ const getNewLocalGraph = (
 
   if (!centerFile || !config) return Graph.createEmpty();
 
+  const { nodes, links } = traverseNode(
+    plugin.globalGraph,
+    centerFile.path,
+    config.filterSetting.depth,
+    config.filterSetting.linkType
+  );
+
   // active file must exist in local graph
-  return plugin.globalGraph
-    .getLocalGraph({
-      path: centerFile?.path ?? "",
-      depth: config.filterSetting.depth,
-      linkType: config.filterSetting.linkType,
-    })
+  const graph = plugin.globalGraph
+    // filter the nodes and links
+    .filter(
+      (node) => {
+        // the center file, which must be shown
+        if (node.path === centerFile.path) return true;
+        return nodes.some((n) => n.path === node.path);
+      },
+
+      (link) => {
+        return links.some(
+          (l) => l.source.path === link.source.path && l.target.path === link.target.path
+        );
+      }
+    )
     .filter((node) => {
       // the center file, which must be shown
       if (node.path === centerFile.path) return true;
@@ -53,6 +139,8 @@ const getNewLocalGraph = (
       if (node.links.length === 0 && !config.filterSetting.showOrphans) return false;
       return true;
     });
+
+  return graph;
 };
 
 export class LocalGraph3dView extends Graph3dView {
@@ -84,42 +172,37 @@ export class LocalGraph3dView extends Graph3dView {
     this.updateGraphData();
   }
 
+  protected getNewGraphData(): Graph {
+    const graph = getNewLocalGraph(this.plugin, {
+      centerFile: this.currentFile,
+      searchResults: this.settingManager.searchResult.value.filter.files,
+      filterSetting: this.settingManager.getCurrentSetting().filter,
+    });
+    return graph;
+  }
+
   protected updateGraphData() {
-    super.updateGraphData(
-      getNewLocalGraph(this.plugin, {
-        centerFile: this.currentFile,
-        searchResults: this.settingManager.searchResult.value.filter.files,
-        filterSetting: this.settingManager.getCurrentSetting().filter,
-      })
-    );
+    super.updateGraphData(this.getNewGraphData());
   }
 
   public handleGroupColorSearchResultChange(): void {
-    console.error("Method not implemented.");
+    this.forceGraph?.interactionManager.updateColor();
   }
 
   public handleSettingUpdate(
-    newSetting: GraphSetting,
+    newSetting: LocalGraphSettings,
     ...path: NestedKeyOf<LocalGraphSettings>[]
   ): void {
-    // we don't handle whole setting change here
-    if (path.includes("")) return;
-    // we don't handle search query and group search query
-    if (path.includes("filter.searchQuery") || path.some((p) => p.startsWith("groups"))) return;
-    if (
-      path.some(
-        (p) =>
-          p === "filter.showAttachments" ||
-          p === "filter.showOrphans" ||
-          p === "filter.depth" ||
-          p === "filter.linkType"
-      )
-    ) {
-      // we need to update force graph data
+    super.handleSettingUpdate(newSetting, ...path);
+    if (path.some((p) => p === "filter.depth" || p === "filter.linkType")) {
       this.updateGraphData();
-      return;
     }
-
-    console.error("Method not implemented.");
+    if (path.some((p) => p === "display.dagOrientation")) {
+      this.forceGraph.updateConfig({
+        display: {
+          dagOrientation: newSetting.display.dagOrientation,
+        },
+      });
+    }
   }
 }

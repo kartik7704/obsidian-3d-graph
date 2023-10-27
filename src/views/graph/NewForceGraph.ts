@@ -4,7 +4,7 @@ import { CenterCoordinates } from "@/views/graph/CenterCoordinates";
 import * as THREE from "three";
 import * as d3 from "d3-force-3d";
 import { hexToRGBA } from "@/util/hexToRGBA";
-import { SavedSetting } from "@/SettingManager";
+import { GlobalGraphSettings, LocalGraphSettings } from "@/SettingManager";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { FOCAL_FROM_CAMERA, ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
@@ -78,6 +78,7 @@ export class NewForceGraph {
         return node.links.length;
       })
       .nodeOpacity(0.9)
+      .linkOpacity(0.3)
       .onNodeHover(this.interactionManager.onNodeHover)
       .onNodeDrag(this.interactionManager.onNodeDrag)
       .onNodeDragEnd(this.interactionManager.onNodeDragEnd)
@@ -129,7 +130,15 @@ export class NewForceGraph {
 
         const cssObject = new CSS2DObject(nodeEl);
         cssObject.onAfterRender = (renderer, scene, camera) => {
-          nodeEl.style.opacity = `${1 - this.interactionManager.getNodeOpacityEasedValue(node)}`;
+          const value = 1 - this.interactionManager.getNodeOpacityEasedValue(node);
+          nodeEl.style.opacity = `${
+            this.interactionManager.getIsAnyHighlighted() &&
+            !this.interactionManager.isHighlightedNode(node)
+              ? Math.clamp(value, 0, 0.2)
+              : this.interactionManager.hoveredNode === node
+              ? 1
+              : value
+          }`;
         };
 
         return cssObject;
@@ -194,7 +203,7 @@ export class NewForceGraph {
     this.instance.width(width).height(height);
   }
 
-  public updateConfig(config: DeepPartial<SavedSetting["setting"]>) {
+  public updateConfig(config: DeepPartial<LocalGraphSettings | GlobalGraphSettings>) {
     this.updateInstance(undefined, config);
   }
 
@@ -211,7 +220,10 @@ export class NewForceGraph {
   /**
    * given the changed things, update the instance
    */
-  private updateInstance = (graph?: Graph, config?: DeepPartial<SavedSetting["setting"]>) => {
+  private updateInstance = (
+    graph?: Graph,
+    config?: DeepPartial<LocalGraphSettings | GlobalGraphSettings>
+  ) => {
     if (graph !== undefined) this.instance.graphData(graph);
     if (config?.display?.nodeSize !== undefined)
       this.instance.nodeRelSize(config.display?.nodeSize);
@@ -226,18 +238,62 @@ export class NewForceGraph {
         .d3Force("z", d3.forceZ(0).strength(1 - config.display?.nodeRepulsion / 3000 + 0.001));
     }
     if (config?.display?.showCenterCoordinates !== undefined) {
-      console.log("show center coordinates", config.display.showCenterCoordinates);
       this.centerCoordinates.setVisibility(config.display.showCenterCoordinates);
+    }
+
+    if ((config as LocalGraphSettings)?.display?.dagOrientation !== undefined) {
+      // @ts-ignore
+      const noDag = config?.display.dagOrientation === "null";
+      // @ts-ignore
+      this.instance.dagMode(noDag ? null : config?.display.dagOrientation).dagLevelDistance(75);
+      // this.instance
+      //   .d3Force(
+      //     "x",
+      //     d3
+      //       .forceX(0)
+      //       .strength(
+      //         noDag
+      //           ? 1 -
+      //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
+      //               0.001
+      //           : 2
+      //       )
+      //   )
+      //   .d3Force(
+      //     "y",
+      //     d3
+      //       .forceY(0)
+      //       .strength(
+      //         noDag
+      //           ? 1 -
+      //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
+      //               0.001
+      //           : 1
+      //       )
+      //   )
+      //   .d3Force(
+      //     "z",
+      //     d3
+      //       .forceZ(0)
+      //       .strength(
+      //         noDag
+      //           ? 1 -
+      //               this.view.settingManager.getCurrentSetting().display.nodeRepulsion / 3000 +
+      //               0.001
+      //           : 2
+      //       )
+      //   );
     }
 
     /**
      * derive the need to reheat the simulation
      */
     const needReheat =
-      config?.display?.nodeRepulsion !== undefined || config?.display?.linkDistance !== undefined;
+      config?.display?.nodeRepulsion !== undefined ||
+      config?.display?.linkDistance !== undefined ||
+      (config as LocalGraphSettings)?.display?.dagOrientation !== undefined;
 
     if (needReheat) {
-      console.log("need reheat");
       this.instance.numDimensions(3); // reheat simulation
       this.instance.refresh();
     }

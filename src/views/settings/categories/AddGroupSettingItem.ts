@@ -42,7 +42,7 @@ export const AddNodeGroupItem = async (
         name: file.name,
         path: file.path,
       }));
-    });
+    }, `Group ${index}`);
   }
 
   // add the search input to the searchInputs

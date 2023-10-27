@@ -56,7 +56,9 @@ export abstract class IPassiveSearchEngine extends ISearchEngine {
   abstract addMutationObserver(
     searchResultContainerEl: HTMLDivElement,
     view: SearchView,
-    mutationCallback: (files: TAbstractFile[]) => void
+    mutationCallback: (files: TAbstractFile[]) => void,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data?: any
   ): void;
 }
 

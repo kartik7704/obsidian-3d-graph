@@ -22,10 +22,10 @@ export const UtilitySettingsView = async (containerEl: HTMLElement, view: Graph3
 
   new ButtonComponent(div).setButtonText("Look at center").onClick(() => {
     // TODO: change all event to enum
-    view.getForceGraph().interactionManager.cameraLookAtCenter();
+    view.getForceGraph()?.interactionManager.cameraLookAtCenter();
   });
 
   new ButtonComponent(div).setButtonText("Remove selection").onClick(() => {
-    view.getForceGraph().interactionManager.removeSelection();
+    view.getForceGraph()?.interactionManager.removeSelection();
   });
 };
