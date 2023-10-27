@@ -42,14 +42,10 @@ export const BaseDisplaySettingsSchema = z.object({
   showCenterCoordinates: z.boolean(),
   showLinkArrow: z.boolean(),
   dontMoveWhenDrag: z.boolean(),
+  dagOrientation: z.undefined().or(z.nativeEnum(DagOrientation)),
 });
 export const LocalDisplaySettingsSchema = z.object({
   ...BaseDisplaySettingsSchema.shape,
-  /**
-   * this will only be defined when the either showIncomingLinks or showOutgoingLinks is true.
-   * If both are true, then it will be undefined
-   */
-  dagOrientation: z.undefined().or(z.nativeEnum(DagOrientation)),
 });
 export const LocalFilterSettingSchema = z.object({
   searchQuery: z.string(),

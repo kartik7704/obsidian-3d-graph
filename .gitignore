@@ -24,3 +24,4 @@ data.json
 .obsidian
 obsidian-dataview.d.ts
 d3-force-3d.d.ts
+dist

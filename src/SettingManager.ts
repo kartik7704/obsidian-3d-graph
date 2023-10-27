@@ -201,6 +201,7 @@ export class MySettingManager implements ISettingManager<Setting> {
           showCenterCoordinates: true,
           showLinkArrow: true,
           dontMoveWhenDrag: false,
+          dagOrientation: undefined,
         },
       } as GlobalGraphSettings;
     } else {

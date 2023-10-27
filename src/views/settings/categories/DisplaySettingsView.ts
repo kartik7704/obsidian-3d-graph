@@ -11,9 +11,10 @@ import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";
 import { DropdownComponent, Setting } from "obsidian";
-import { DagOrientation, GraphType } from "@/SettingsSchemas";
+import { DagOrientation } from "@/SettingsSchemas";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
 import { State } from "@/util/State";
+import { createNotice } from "@/util/createNotice";
 
 export const DisplaySettingsView = (
   graphSetting: GlobalGraphSettings | LocalGraphSettings,
@@ -197,17 +198,24 @@ export const DisplaySettingsView = (
     .setValue(localDisplaySettings.dagOrientation ?? DagOrientation.null)
     .onChange(async (value) => {
       settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
-        setting.value.display.dagOrientation = value as LocalDisplaySettings["dagOrientation"];
+        if (
+          !settingManager.getGraphView().getForceGraph().instance.graphData().isAcyclic() &&
+          value !== DagOrientation.null
+        ) {
+          createNotice("The graph is acyclic, dag orientation will be ignored");
+        } else {
+          setting.value.display.dagOrientation = value as LocalDisplaySettings["dagOrientation"];
+        }
       });
     });
 
-  if (
-    settingManager.getGraphView().graphType === GraphType.global ||
-    (graphSetting as LocalGraphSettings).filter.linkType === "both"
-  ) {
-    // hide the dag orientation setting
-    dagDropDown.settingEl.hide();
-  }
+  // if (
+  //   settingManager.getGraphView().graphType === GraphType.global ||
+  //   (graphSetting as LocalGraphSettings).filter.linkType === "both"
+  // ) {
+  //   // hide the dag orientation setting
+  //   dagDropDown.settingEl.hide();
+  // }
 
   const hideDagOrientationSetting = () => {
     // if the link type is both, then we need to hide the dag orientation setting

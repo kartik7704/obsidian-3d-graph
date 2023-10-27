@@ -25,67 +25,64 @@ const traverseNode = (
   linkType: "both" | "outlinks" | "inlinks"
 ): { nodes: Node[]; links: Link[] } => {
   const visitedNodes = new Set<string>();
-  const visitedLinks = new Set<string>();
+  const visitedLinks = new Set<Link>();
+  const validLinks = new Set<Link>();
+  const queue: { node: Node; depth: number }[] = [];
 
-  // FIXME: Create a queue of links instead of a queue of nodes
-  const queue: { node: Node; linkDepth: number }[] = [];
   const startNode = graph.getNodeById(id);
-
   if (startNode) {
-    queue.push({ node: startNode, linkDepth: 0 });
-    visitedNodes.add(startNode.id); // Include the start node
+    queue.push({ node: startNode, depth: 0 });
   }
 
   while (queue.length > 0) {
-    // FIXME: shift the link instead of node
-    const { node, linkDepth } = queue.shift()!;
+    const { node, depth: currentDepth } = queue.shift()!;
     if (!node) continue;
+    visitedNodes.add(node.id);
 
-    // FIXME: check if the link is valid according to the link type
+    if (currentDepth < depth) {
+      node.links.forEach((link) => {
+        if (visitedLinks.has(link)) {
+          return; // Skip already visited links
+        }
 
-    // FIXME: if valid Process links at the current depth
-    // add the nodes to visit nodes
-    // add to visited links
-    // for each nodes visited, add the link to visited links
+        const neighbor = link.source === node ? link.target : link.source;
+        const isOutlink = link.source === node;
+        const isInlink = link.target === node;
 
-    node.links.forEach((link) => {
-      const neighbor = link.source === node ? link.target : link.source;
-      const linkId = `${node.id}-${neighbor.id}`;
-
-      // Check link type and visited status
-      const isOutlink = link.source === node;
-      const isInlink = link.target === node;
-      if (
-        visitedLinks.has(linkId) ||
-        !(
+        if (
           linkType === "both" ||
           (linkType === "outlinks" && isOutlink) ||
           (linkType === "inlinks" && isInlink)
-        )
-      ) {
-        return;
-      }
+        ) {
+          let linkValid = false;
+          visitedLinks.add(link);
+          // if linktype is both, simply add to valid link
+          // if link type is not both, then we need to check if the link is valid
+          // a link is not valid when the neighbour node is already visited
+          // because if the neighbour is already visit, there must be a link pointing to it
+          if (linkType == "both") {
+            linkValid = true;
+          } else {
+            // if link type is both, then we need to check if the link is valid
+            // a link is not valid when the neighbour node is already visited
+            // because if the neighbour is already visit, there must be a link pointing to it
+            if (!visitedNodes.has(neighbor.id)) {
+              linkValid = true;
+            }
+          }
 
-      // Mark the link and the node as visited
-      visitedLinks.add(linkId);
-      visitedNodes.add(neighbor.id);
-
-      // If we haven't reached the depth limit, add the neighbor to the queue
-      if (linkDepth + 1 < depth) {
-        queue.push({ node: neighbor, linkDepth: linkDepth + 1 });
-      }
-    });
+          if (linkValid) validLinks.add(link);
+          if (!visitedNodes.has(neighbor.id) && linkValid) {
+            queue.push({ node: neighbor, depth: currentDepth + 1 });
+          }
+        }
+      });
+    }
   }
 
-  // Reconstruct the nodes and links from the visited sets
   return {
-    nodes: [...visitedNodes].map((id) => graph.getNodeById(id)).filter(Boolean),
-    links: Array.from(visitedLinks)
-      .map((linkId) => {
-        const [sourceId, targetId] = linkId.split("-");
-        return graph.getLinkByIds(sourceId!, targetId!);
-      })
-      .filter(Boolean),
+    nodes: [...visitedNodes].map((nodeId) => graph.getNodeById(nodeId)).filter(Boolean),
+    links: [...validLinks],
   };
 };
 
@@ -127,13 +124,13 @@ const getNewLocalGraph = (
         // the center file, which must be shown
         if (node.path === centerFile.path) return true;
         return nodes.some((n) => n.path === node.path);
-      }
+      },
 
-      // (link) => {
-      //   return links.some(
-      //     (l) => l.source.path === link.source.path && l.target.path === link.target.path
-      //   );
-      // }
+      (link) => {
+        return links.some(
+          (l) => l.source.path === link.source.path && l.target.path === link.target.path
+        );
+      }
     )
     .filter((node) => {
       // the center file, which must be shown
@@ -209,13 +206,6 @@ export class LocalGraph3dView extends Graph3dView {
     super.handleSettingUpdate(newSetting, ...path);
     if (path.some((p) => p === "filter.depth" || p === "filter.linkType")) {
       this.updateGraphData();
-    }
-    if (path.some((p) => p === "display.dagOrientation")) {
-      this.forceGraph.updateConfig({
-        display: {
-          dagOrientation: newSetting.display.dagOrientation,
-        },
-      });
     }
   }
 }

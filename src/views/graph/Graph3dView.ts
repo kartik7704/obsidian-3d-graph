@@ -178,5 +178,12 @@ export abstract class Graph3dView extends ItemView {
     if (path.includes("display.showExtension") || path.includes("display.showFullPath")) {
       this.forceGraph?.interactionManager.updateNodeLabelDiv();
     }
+    if (path.includes("display.dagOrientation")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          dagOrientation: newSetting.display.dagOrientation,
+        },
+      });
+    }
   }
 }

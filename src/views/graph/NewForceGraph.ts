@@ -13,6 +13,9 @@ import { Node } from "@/graph/Node";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 import { rgba } from "polished";
+import { createNotice } from "@/util/createNotice";
+import { DagOrientation, GraphType } from "@/SettingsSchemas";
+import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
 
 /**
  * the origin vectorss
@@ -75,7 +78,13 @@ export class NewForceGraph {
       .nodeLabel((node) => null)
       // node size is proportional to the number of links
       .nodeVal((node: Node) => {
-        return node.links.length;
+        return (
+          (node.links.length + 1) *
+          (this.view.graphType === GraphType.local &&
+          (this.view as LocalGraph3dView).currentFile?.path === node.path
+            ? 3
+            : 1)
+        );
       })
       .nodeOpacity(0.9)
       .linkOpacity(0.3)
@@ -243,8 +252,14 @@ export class NewForceGraph {
     }
 
     if ((config as LocalGraphSettings)?.display?.dagOrientation !== undefined) {
-      // @ts-ignore
-      const noDag = config?.display.dagOrientation === "null";
+      let dagOrientation = config?.display?.dagOrientation ?? DagOrientation.null;
+      // check if graph is async or not
+      if (!this.instance.graphData().isAcyclic()) {
+        createNotice("The graph is acyclic, dag orientation will be ignored");
+        dagOrientation = DagOrientation.null;
+      }
+
+      const noDag = dagOrientation === DagOrientation.null;
       // @ts-ignore
       this.instance.dagMode(noDag ? null : config?.display.dagOrientation).dagLevelDistance(75);
     }

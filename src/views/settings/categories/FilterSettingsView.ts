@@ -104,9 +104,9 @@ export const FilterSettingsView = async (
             // we are putting false here because we know there are still some more to update
           });
 
-          if (value === "both") settingManager.displaySettingView.hideDagOrientationSetting();
-          else if (settingManager.displaySettingView.isDropdownHidden())
-            settingManager.displaySettingView.showDagOrientationSetting();
+          // if (value === "both") settingManager.displaySettingView.hideDagOrientationSetting();
+          // else if (settingManager.displaySettingView.isDropdownHidden())
+          //   settingManager.displaySettingView.showDagOrientationSetting();
         });
     });
   }

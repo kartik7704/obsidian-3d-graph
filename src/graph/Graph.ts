@@ -53,13 +53,13 @@ export class Graph {
   }
 
   public getLinksFromNode(sourceNodeId: string): Link[] {
-    return (
-      this.linkIndex
-        .get(sourceNodeId)
-        ?.values()
-        // @ts-ignore
-        .map((index) => this.links[index]) ?? []
-    );
+    const linkIndexes = this.linkIndex.get(sourceNodeId);
+    if (linkIndexes) {
+      return Array.from(linkIndexes.values())
+        .map((index) => this.links[index])
+        .filter(Boolean);
+    }
+    return [];
   }
 
   /**

@@ -82,19 +82,6 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
         // update the graph setting
         this.graphView.handleGroupColorSearchResultChange();
       }
-      // then if async queue is empty, add a task to async queue
-      // if (this.asyncQueue.queue.length === 0) {
-      //   this.asyncQueue.push(async () => {
-      //     await waitForStable(
-      //       () => {
-      //         return this.searchResultChanges.length;
-      //       },
-      //       { timeout: 3000, minDelay: 200, interval: 100 }
-      //     );
-      //     // if search result changes is stable, then we will unpack the changes
-      //     this.unpackSearchResultChanges();
-      //   });
-      // }
     });
   }
 
