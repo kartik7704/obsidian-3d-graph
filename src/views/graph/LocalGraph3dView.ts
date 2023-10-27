@@ -11,12 +11,13 @@ import { TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
 /**
  *
  * @param graph
- * @param id
- * @param depth
+ * @param id the center node id
+ * @param depth the max distance of the link away from the center node. If depth is 1,
+ * then it mean the links directly connected to the center node. If depth is 2, then it means the links
+ * directly connected to the center node and the links connected to the links connected to the center node
  * @param linkType
  * @returns nodes and link of a local graph. If link type is inlinks and outlinks, then it will be acyclic
  */
-
 const traverseNode = (
   graph: Graph,
   id: string,
@@ -24,55 +25,67 @@ const traverseNode = (
   linkType: "both" | "outlinks" | "inlinks"
 ): { nodes: Node[]; links: Link[] } => {
   const visitedNodes = new Set<string>();
-  const visitedLinks = new Set<Link>();
-  const queue: { node: Node; depth: number; path: Set<string> }[] = [];
+  const visitedLinks = new Set<string>();
 
+  // FIXME: Create a queue of links instead of a queue of nodes
+  const queue: { node: Node; linkDepth: number }[] = [];
   const startNode = graph.getNodeById(id);
+
   if (startNode) {
-    queue.push({ node: startNode, depth: 0, path: new Set([startNode.path]) });
+    queue.push({ node: startNode, linkDepth: 0 });
+    visitedNodes.add(startNode.id); // Include the start node
   }
 
   while (queue.length > 0) {
-    const { node, depth: currentDepth, path } = queue.shift()!;
+    // FIXME: shift the link instead of node
+    const { node, linkDepth } = queue.shift()!;
     if (!node) continue;
 
-    if (currentDepth <= depth) {
-      visitedNodes.add(node.path);
+    // FIXME: check if the link is valid according to the link type
 
-      node.links.forEach((link) => {
-        if (visitedLinks.has(link)) {
-          return; // Skip already visited links
-        }
+    // FIXME: if valid Process links at the current depth
+    // add the nodes to visit nodes
+    // add to visited links
+    // for each nodes visited, add the link to visited links
 
-        const neighbor = link.source === node ? link.target : link.source;
-        const isOutlink = link.source === node;
-        const isInlink = link.target === node;
+    node.links.forEach((link) => {
+      const neighbor = link.source === node ? link.target : link.source;
+      const linkId = `${node.id}-${neighbor.id}`;
 
-        if (
+      // Check link type and visited status
+      const isOutlink = link.source === node;
+      const isInlink = link.target === node;
+      if (
+        visitedLinks.has(linkId) ||
+        !(
           linkType === "both" ||
           (linkType === "outlinks" && isOutlink) ||
           (linkType === "inlinks" && isInlink)
-        ) {
-          // Check for cycles when linkType is not "both"
-          if (linkType !== "both" && path.has(neighbor.path)) {
-            return; // Skip to avoid cycles
-          }
+        )
+      ) {
+        return;
+      }
 
-          visitedLinks.add(link);
-          if (!visitedNodes.has(neighbor.path)) {
-            const newPath = new Set(path);
-            newPath.add(neighbor.path);
-            queue.push({ node: neighbor, depth: currentDepth + 1, path: newPath });
-          }
-        }
-      });
-    }
+      // Mark the link and the node as visited
+      visitedLinks.add(linkId);
+      visitedNodes.add(neighbor.id);
+
+      // If we haven't reached the depth limit, add the neighbor to the queue
+      if (linkDepth + 1 < depth) {
+        queue.push({ node: neighbor, linkDepth: linkDepth + 1 });
+      }
+    });
   }
 
-  // Convert node paths back to node objects and return
+  // Reconstruct the nodes and links from the visited sets
   return {
-    nodes: [...visitedNodes].map((path) => graph.getNodeById(path)).filter(Boolean),
-    links: [...visitedLinks],
+    nodes: [...visitedNodes].map((id) => graph.getNodeById(id)).filter(Boolean),
+    links: Array.from(visitedLinks)
+      .map((linkId) => {
+        const [sourceId, targetId] = linkId.split("-");
+        return graph.getLinkByIds(sourceId!, targetId!);
+      })
+      .filter(Boolean),
   };
 };
 
@@ -114,13 +127,13 @@ const getNewLocalGraph = (
         // the center file, which must be shown
         if (node.path === centerFile.path) return true;
         return nodes.some((n) => n.path === node.path);
-      },
-
-      (link) => {
-        return links.some(
-          (l) => l.source.path === link.source.path && l.target.path === link.target.path
-        );
       }
+
+      // (link) => {
+      //   return links.some(
+      //     (l) => l.source.path === link.source.path && l.target.path === link.target.path
+      //   );
+      // }
     )
     .filter((node) => {
       // the center file, which must be shown

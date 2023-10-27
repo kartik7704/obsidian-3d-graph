@@ -220,6 +220,44 @@ export class Graph {
   public static getFiles(app: App, graph: Graph): TAbstractFile[] {
     return graph.nodes.map((node) => app.vault.getAbstractFileByPath(node.path)).filter(Boolean);
   }
+
+  public isAcyclic = (): boolean => {
+    const visited = new Set<string>();
+    const recStack = new Set<string>();
+
+    for (const node of this.nodes) {
+      if (this.isCyclicUtil(node.id, visited, recStack)) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  private isCyclicUtil = (nodeId: string, visited: Set<string>, recStack: Set<string>): boolean => {
+    if (!visited.has(nodeId)) {
+      // Add to visited and recursion stack
+      visited.add(nodeId);
+      recStack.add(nodeId);
+
+      // Get all adjacent nodes (i.e., following the direction of links)
+      const adjNodes = this.getLinksFromNode(nodeId).map((link) =>
+        link.source.id === nodeId ? link.target.id : link.source.id
+      );
+
+      for (const neighborId of adjNodes) {
+        if (!visited.has(neighborId) && this.isCyclicUtil(neighborId, visited, recStack)) {
+          return true;
+        } else if (recStack.has(neighborId)) {
+          // If the node is in the recursion stack, it means we've found a cycle
+          return true;
+        }
+      }
+    }
+
+    // Remove from recursion stack
+    recStack.delete(nodeId);
+    return false;
+  };
 }
 
 const getMapFromMetaCache = (resolvedLinks: ResolvedLinkCache) => {

@@ -7,7 +7,7 @@ import { deepCompare } from "@/util/deepCompare";
 import "@total-typescript/ts-reset";
 import "@total-typescript/ts-reset/dom";
 import { eventBus } from "@/util/EventBus";
-import { SettingTab } from "@/settings/SettingTab";
+import { SettingTab } from "@/views/SettingTab";
 import { config } from "@/config";
 import { MyFileManager } from "@/FileManager";
 import { MySettingManager } from "@/SettingManager";

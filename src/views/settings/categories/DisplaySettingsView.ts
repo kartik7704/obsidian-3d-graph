@@ -1,10 +1,12 @@
 import {
-  nodeSize,
+  GlobalGraphSettings,
+  LocalDisplaySettings,
+  LocalGraphSettings,
   linkDistance,
   linkThickness,
   nodeRepulsion,
-} from "@/settings/categories/DisplaySettings";
-import { GlobalGraphSettings, LocalDisplaySettings, LocalGraphSettings } from "@/SettingManager";
+  nodeSize,
+} from "@/SettingManager";
 import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";

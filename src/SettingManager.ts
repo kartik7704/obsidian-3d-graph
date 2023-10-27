@@ -17,12 +17,39 @@ import {
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
-import {
-  linkDistance,
-  linkThickness,
-  nodeRepulsion,
-  nodeSize,
-} from "@/settings/categories/DisplaySettings";
+
+const DEFAULT_NODE_SIZE = 3;
+const DEFAULT_LINK_THICKNESS = 2;
+const DEFAULT_LINK_DISTANCE = 100;
+const DEFAULT_NODE_REPULSION = 2800;
+
+export const nodeSize = {
+  min: 1,
+  max: 10,
+  step: 0.1,
+  default: DEFAULT_NODE_SIZE, // 3
+};
+
+export const linkThickness = {
+  min: 1,
+  max: 3,
+  step: 0.1,
+  default: DEFAULT_LINK_THICKNESS, // 3
+};
+
+export const linkDistance = {
+  min: 10,
+  max: 200,
+  step: 1,
+  default: DEFAULT_LINK_DISTANCE, // 50
+};
+
+export const nodeRepulsion = {
+  min: 2500,
+  max: 3000,
+  step: 100,
+  default: DEFAULT_NODE_REPULSION, // 28
+};
 
 export type BaseFilterSettings = Prettify<z.TypeOf<typeof BaseFilterSettingsSchema>>;
 
