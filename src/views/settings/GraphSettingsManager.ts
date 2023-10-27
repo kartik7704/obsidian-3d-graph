@@ -45,7 +45,7 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
   protected settingChanges: StateChange<unknown, GraphSetting>[] = [];
 
   public searchResult: State<SearchResult> = new State({
-    filter: { query: "", files: [] },
+    filter: { files: [] },
     groups: [],
   } as SearchResult);
   protected searchResultChanges: StateChange<unknown, SearchResult>[] = [];
@@ -121,6 +121,7 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
       "Filters",
       async (...args) => {
         this.filterSettingView = await FilterSettingsView(...args, this);
+        console.log("filter setting view", this.filterSettingView);
         return this.filterSettingView;
       }
     );
@@ -240,6 +241,7 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
   }
 
   triggerSearch() {
+    // console.log(this.filterSettingView, this.groupSettingView);
     this.filterSettingView?.triggerSearch();
     this.groupSettingView?.triggerSearch();
     return Boolean(this.filterSettingView && this.groupSettingView);

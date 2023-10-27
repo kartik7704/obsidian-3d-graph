@@ -21,6 +21,7 @@ export default class Graph3dPlugin extends Plugin {
   public readonly cacheIsReady: State<boolean> = new State(
     this.app.metadataCache.resolvedLinks !== undefined
   );
+  private isCacheReadyOnce = false;
   /**
    *  we keep a global graph here because we dont want to create a new graph every time we open a graph view
    */
@@ -133,7 +134,14 @@ export default class Graph3dPlugin extends Plugin {
     ) {
       this._resolvedCache = structuredClone(this.app.metadataCache.resolvedLinks);
       this.globalGraph = Graph.createFromApp(this.app);
+      if (this.isCacheReadyOnce) {
+        // update graph view
+        this.activeGraphViews.forEach((view) => {
+          view.handleMetadataCacheChange();
+        });
+      }
     } else {
+      this.isCacheReadyOnce = true;
       console.log(
         "changed but ",
         this.cacheIsReady.value,
@@ -143,9 +151,7 @@ export default class Graph3dPlugin extends Plugin {
 
       // update global graph view
       this.activeGraphViews.forEach((view) => {
-        if (view.graphType === GraphType.global) {
-          view.handleMetadataCacheChange();
-        }
+        view.handleMetadataCacheChange();
       });
     }
   };

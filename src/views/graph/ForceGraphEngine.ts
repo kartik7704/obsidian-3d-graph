@@ -16,6 +16,7 @@ export const FOCAL_FROM_CAMERA = 400;
 const selectedColor = "#CCA700";
 const PARTICLE_FREQUECY = 4;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
+const DISTANCE_FROM_FOCAL = 300;
 
 /**
  * this instance handle all the interaction. In other words, the interaction manager
@@ -196,6 +197,10 @@ export class ForceGraphEngine {
     this.highlightedLinks.clear();
   };
 
+  updateNodeLabelDiv() {
+    this.forceGraph.instance.nodeThreeObject(this.forceGraph.instance.nodeThreeObject());
+  }
+
   /**
    * this will update the color of the nodes and links
    */
@@ -240,6 +245,22 @@ export class ForceGraphEngine {
     this.updateColor();
   };
 
+  public getNodeOpacityEasedValue = (node: Node) => {
+    // get the position of the node
+    // @ts-ignore
+    const obj = node.__threeObj as THREE.Object3D | undefined;
+    if (!obj) return 0;
+    const nodePosition = obj.position;
+    // then get the distance between the node and this.myCube , console.log it
+    const distance = nodePosition.distanceTo(this.forceGraph.myCube.position);
+    // change the opacity of the nodeEl base on the distance
+    // the higher the distance, the lower the opacity
+    // when the distance is 300, the opacity is 0
+    const normalizedDistance = Math.min(distance, DISTANCE_FROM_FOCAL) / DISTANCE_FROM_FOCAL;
+    const easedValue = 0.5 - 0.5 * Math.cos(normalizedDistance * Math.PI);
+    return easedValue;
+  };
+
   getLinkDirectionalArrowLength = () => {
     const settings = this.forceGraph.view.settingManager.getCurrentSetting();
 
@@ -254,7 +275,7 @@ export class ForceGraphEngine {
     return this.highlightedLinks.has(link);
   };
 
-  private getNodeLabelText = (node: Node) => {
+  public getNodeLabelText = (node: Node) => {
     const settings = this.forceGraph.view.settingManager.getCurrentSetting();
     const fullPath = node.path;
     const fileNameWithExtension = node.name;
@@ -434,24 +455,21 @@ export class ForceGraphEngine {
     const searchResult = this.forceGraph.view.settingManager.searchResult;
     if (this.selectedNodes.has(node)) {
       color = selectedColor;
-    }
-    if (this.isHighlightedNode(node)) {
+    } else if (this.isHighlightedNode(node)) {
       color =
         node === this.hoveredNode
           ? settings.display.nodeHoverColor
           : settings.display.nodeHoverNeighbourColor;
     } else {
       color = theme.textMuted;
-      settings.groups
-        // we only want to use the groups that have a query
-        .filter((g) => g.query.trim().length !== 0)
-        .forEach((group, index) => {
-          const searchStateGroup = searchResult.value.groups[index]!;
-          const searchGroupfilePaths = searchStateGroup.files.map((file) => file.path);
+      settings.groups.forEach((group, index) => {
+        if (group.query.trim().length === 0) return;
+        const searchStateGroup = searchResult.value.groups[index]!;
+        const searchGroupfilePaths = searchStateGroup.files.map((file) => file.path);
 
-          // if the node path is in the searchGroupfiles, change the color to group.color
-          if (searchGroupfilePaths.includes(node.path)) color = group.color;
-        });
+        // if the node path is in the searchGroupfiles, change the color to group.color
+        if (searchGroupfilePaths.includes(node.path)) color = group.color;
+      });
     }
     const rgba = hexToRGBA(color, 1);
     return rgba;

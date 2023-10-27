@@ -92,14 +92,13 @@ export const FilterSettingsView = async (
             settingManager.displaySettingView.showDagOrientationSetting();
         });
     });
-
-    const triggerSearch = async () => {
-      searchInput?.triggerSearch();
-    };
-
-    return {
-      searchInput,
-      triggerSearch,
-    };
   }
+  const triggerSearch = async () => {
+    searchInput?.triggerSearch();
+  };
+
+  return {
+    searchInput,
+    triggerSearch,
+  };
 };

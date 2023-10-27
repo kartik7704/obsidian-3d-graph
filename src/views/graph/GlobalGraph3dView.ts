@@ -76,6 +76,8 @@ export class GlobalGraph3dView extends Graph3dView {
           showCenterCoordinates: newSetting.display.showCenterCoordinates,
         },
       });
+    } else if (path.includes("display.showExtension") || path.includes("display.showFullPath")) {
+      this.getForceGraph().interactionManager.updateNodeLabelDiv();
     }
   }
 

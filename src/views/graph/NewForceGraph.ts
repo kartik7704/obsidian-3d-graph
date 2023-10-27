@@ -5,12 +5,14 @@ import * as THREE from "three";
 import * as d3 from "d3-force-3d";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import { SavedSetting } from "@/SettingManager";
-import { CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { FOCAL_FROM_CAMERA, ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
 import { DeepPartial } from "ts-essentials";
 import { Node } from "@/graph/Node";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+
+import { rgba } from "polished";
 
 /**
  * the origin vectorss
@@ -39,7 +41,7 @@ export class NewForceGraph {
   public readonly myCube: THREE.Mesh;
 
   public readonly interactionManager: ForceGraphEngine;
-  public readonly nodeLabelEl: HTMLDivElement;
+  public nodeLabelEl: HTMLDivElement;
 
   /**
    *
@@ -55,14 +57,7 @@ export class NewForceGraph {
     const rootHtmlElement = view.contentEl as HTMLDivElement;
 
     // create the div element for the node label
-    const divEl = document.createElement("div");
-    divEl.style.zIndex = "0";
-    this.nodeLabelEl = divEl.createDiv({
-      cls: "node-label",
-      text: "",
-    });
-    this.nodeLabelEl.style.opacity = "0";
-
+    const divEl = this.createNodeLabel();
     // create the instance
     // these config will not changed by user
     this.instance = ForceGraph3D({
@@ -113,8 +108,33 @@ export class NewForceGraph {
     scene.add(this.centerCoordinates.arrowsGroup);
 
     this.myCube = this.createCube();
-
     scene.add(this.myCube);
+
+    // add node label
+    this.instance
+      .nodeThreeObject((node: Node) => {
+        const nodeEl = document.createElement("div");
+
+        const text = this.interactionManager.getNodeLabelText(node);
+        nodeEl.textContent = text;
+        // @ts-ignore
+        nodeEl.style.color = node.color;
+        nodeEl.className = "node-label";
+        nodeEl.style.top = "20px";
+        nodeEl.style.fontSize = "12px";
+        nodeEl.style.padding = "1px 4px";
+        nodeEl.style.borderRadius = "4px";
+        nodeEl.style.backgroundColor = rgba(0, 0, 0, 0.5);
+        nodeEl.style.userSelect = "none";
+
+        const cssObject = new CSS2DObject(nodeEl);
+        cssObject.onAfterRender = (renderer, scene, camera) => {
+          nodeEl.style.opacity = `${1 - this.interactionManager.getNodeOpacityEasedValue(node)}`;
+        };
+
+        return cssObject;
+      })
+      .nodeThreeObjectExtend(true);
 
     // init other setting
     this.updateConfig(this.view.settingManager.getCurrentSetting());
@@ -126,6 +146,17 @@ export class NewForceGraph {
     this.view.contentEl
       .querySelector(".scene-nav-info")
       ?.setText("Left-click: rotate, Mouse-wheel/middle-click: zoom, Cmd + left-click: pan");
+  }
+
+  private createNodeLabel() {
+    const divEl = document.createElement("div");
+    divEl.style.zIndex = "0";
+    this.nodeLabelEl = divEl.createDiv({
+      cls: "node-label",
+      text: "",
+    });
+    this.nodeLabelEl.style.opacity = "0";
+    return divEl;
   }
 
   private createCube() {
