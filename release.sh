@@ -1,15 +1,14 @@
 #!/bin/bash
 
+# Set the default update type
+UPDATE_TYPE="patch"
+
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
     -m | --minor)
         UPDATE_TYPE="minor"
-        shift
-        ;;
-    -p | --patch)
-        UPDATE_TYPE="patch"
         shift
         ;;
     -M | --major)
@@ -38,13 +37,10 @@ fi
 # Increment the version based on the specified update type
 if [ "$UPDATE_TYPE" = "minor" ]; then
     NEW_VERSION=$(semver $PACKAGE_VERSION -i minor)
-elif [ "$UPDATE_TYPE" = "patch" ]; then
-    NEW_VERSION=$(semver $PACKAGE_VERSION -i patch)
 elif [ "$UPDATE_TYPE" = "major" ]; then
     NEW_VERSION=$(semver $PACKAGE_VERSION -i major)
 else
-    echo "No update type specified."
-    exit 1
+    NEW_VERSION=$(semver $PACKAGE_VERSION -i patch)
 fi
 
 echo "Current version: $PACKAGE_VERSION"
@@ -67,4 +63,4 @@ echo "Created tag $NEW_VERSION"
 git push origin "$NEW_VERSION"
 echo "Pushed tag $NEW_VERSION to the origin branch $NEW_VERSION"
 git push
-echo "Pushed to origin master branch"
+echo "Pushed to the origin master branch"
