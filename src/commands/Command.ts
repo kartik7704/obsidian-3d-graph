@@ -12,12 +12,10 @@ export interface Command {
 export const commands: Command[] = [
   {
     title: "Delete Note",
-    showConditon: () => true,
     function: deleteNote,
   },
   {
     title: "Test Command",
-    showConditon: () => true,
     function: (view, nodes) => {
       for (const node of nodes) {
         const file = view.app.vault.getAbstractFileByPath(node.path);

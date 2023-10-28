@@ -1,9 +1,9 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import Graph3dPlugin from "@/main";
 import { SearchEngineType } from "@/SettingsSchemas";
+import { DEFAULT_SETTING } from "@/SettingManager";
 
-const DEFAULT_NUMBER = 200;
-
+const DEFAULT_NUMBER = DEFAULT_SETTING.pluginSetting.maxNodeNumber;
 export class SettingTab extends PluginSettingTab {
   plugin: Graph3dPlugin;
 

@@ -229,12 +229,12 @@ export class MySettingManager implements ISettingManager<Setting> {
   }
 }
 
-const DEFAULT_SETTING: Setting = {
+export const DEFAULT_SETTING: Setting = {
   savedSettings: [],
   temporaryLocalGraphSetting: MySettingManager.getNewSetting(GraphType.local),
   temporaryGlobalGraphSetting: MySettingManager.getNewSetting(GraphType.global),
   pluginSetting: {
-    maxNodeNumber: 200,
+    maxNodeNumber: 1000,
     searchEngine: SearchEngineType.default,
   },
 };

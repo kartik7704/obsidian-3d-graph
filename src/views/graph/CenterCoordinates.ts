@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { origin } from "@/views/graph/NewForceGraph";
+import { origin } from "@/views/graph/ForceGraph";
 
 export class CenterCoordinates {
   public readonly arrowsGroup = new THREE.Group();

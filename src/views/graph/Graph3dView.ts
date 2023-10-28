@@ -4,13 +4,13 @@ import { config } from "@/config";
 import { Graph } from "@/graph/Graph";
 import Graph3dPlugin from "@/main";
 import { createNotice } from "@/util/createNotice";
-import { NewForceGraph } from "@/views/graph/NewForceGraph";
+import { ForceGraph } from "@/views/graph/ForceGraph";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 
 export abstract class Graph3dView extends ItemView {
   readonly plugin: Graph3dPlugin;
-  protected forceGraph: NewForceGraph;
+  protected forceGraph: ForceGraph;
   readonly graphType: GraphType;
   public readonly settingManager: GraphSettingManager<typeof this>;
 
@@ -20,7 +20,7 @@ export abstract class Graph3dView extends ItemView {
     this.graphType = graphType;
     this.settingManager = new GraphSettingManager<typeof this>(this);
 
-    this.forceGraph = new NewForceGraph(this, graph);
+    this.forceGraph = new ForceGraph(this, graph);
 
     // set up some UI stuff
     this.contentEl.classList.add("graph-3d-view");
@@ -79,7 +79,7 @@ export abstract class Graph3dView extends ItemView {
     this.forceGraph?.instance._destructor();
 
     // reassign a new graph base on setting like the constructor
-    this.forceGraph = new NewForceGraph(this, graph);
+    this.forceGraph = new ForceGraph(this, graph);
 
     // move the setting to the front of the graph
     this.contentEl.appendChild(this.settingManager.containerEl);

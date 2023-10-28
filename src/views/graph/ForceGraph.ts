@@ -32,7 +32,7 @@ type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
 /**
  * this class control the config and graph of the force graph. The interaction is not control here.
  */
-export class NewForceGraph {
+export class ForceGraph {
   /**
    * this can be a local graph or a global graph
    */
@@ -93,7 +93,7 @@ export class NewForceGraph {
       .onNodeDragEnd(this.interactionManager.onNodeDragEnd)
       .onNodeRightClick(this.interactionManager.onNodeRightClick)
       .onNodeClick(this.interactionManager.onNodeClick)
-      .onLinkHover(this.interactionManager.onLinkHover)
+      // .onLinkHover(this.interactionManager.onLinkHover)
       .linkColor(this.interactionManager.getLinkColor)
       .linkWidth(this.interactionManager.getLinkWidth)
       .linkDirectionalParticles(this.interactionManager.getLinkDirectionalParticles)

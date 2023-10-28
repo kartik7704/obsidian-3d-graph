@@ -151,7 +151,7 @@ export default class Graph3dPlugin extends Plugin {
         deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
       );
 
-      // update global graph view
+      // update graph views
       this.activeGraphViews.forEach((view) => {
         view.handleMetadataCacheChange();
       });
