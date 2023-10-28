@@ -52,12 +52,17 @@ export class ForceGraph {
    * @param view
    * @param config you have to provide the full config here!!
    */
-  constructor(view: Graph3dView, graph: Graph) {
+  constructor(view: Graph3dView, _graph: Graph) {
     this.view = view;
     this.interactionManager = new ForceGraphEngine(this);
 
     // get the content element of the item view
     const rootHtmlElement = view.contentEl as HTMLDivElement;
+
+    const tooMany =
+      _graph.nodes.length > view.plugin.settingManager.getSettings().pluginSetting.maxNodeNumber;
+    const graph = tooMany ? Graph.createEmpty() : _graph;
+    if (tooMany) createNotice(`Too many nodes, there are ${_graph.nodes.length} nodes`);
 
     // create the div element for the node label
     const divEl = this.createNodeLabel();

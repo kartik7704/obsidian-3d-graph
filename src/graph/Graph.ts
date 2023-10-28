@@ -103,8 +103,15 @@ export class Graph {
   // Creates a graph using the Obsidian API
   public static createFromApp = (app: App): Graph => {
     const map = getMapFromMetaCache(app.metadataCache.resolvedLinks);
+    const config = app.vault.config;
+    const userExcludedFolders = config.userIgnoreFilters;
+    const allFiles = userExcludedFolders
+      ? app.vault
+          .getFiles()
+          .filter((file) => !userExcludedFolders.some((folder) => file.path.startsWith(folder)))
+      : app.vault.getFiles();
 
-    const nodes = Node.createFromFiles(app.vault.getFiles());
+    const nodes = Node.createFromFiles(allFiles);
     return Graph.createFromLinkMap(map, nodes);
   };
 

@@ -235,6 +235,6 @@ export const DEFAULT_SETTING: Setting = {
   temporaryGlobalGraphSetting: MySettingManager.getNewSetting(GraphType.global),
   pluginSetting: {
     maxNodeNumber: 1000,
-    searchEngine: SearchEngineType.default,
+    searchEngine: SearchEngineType.builtIn,
   },
 };
