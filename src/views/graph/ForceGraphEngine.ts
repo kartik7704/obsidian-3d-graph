@@ -464,11 +464,13 @@ export class ForceGraphEngine {
       color = theme.textMuted;
       settings.groups.forEach((group, index) => {
         if (group.query.trim().length === 0) return;
-        const searchStateGroup = searchResult.value.groups[index]!;
-        const searchGroupfilePaths = searchStateGroup.files.map((file) => file.path);
+        const searchStateGroup = searchResult.value.groups[index];
+        if (searchStateGroup) {
+          const searchGroupfilePaths = searchStateGroup.files.map((file) => file.path);
 
-        // if the node path is in the searchGroupfiles, change the color to group.color
-        if (searchGroupfilePaths.includes(node.path)) color = group.color;
+          // if the node path is in the searchGroupfiles, change the color to group.color
+          if (searchGroupfilePaths.includes(node.path)) color = group.color;
+        }
       });
     }
     const rgba = hexToRGBA(

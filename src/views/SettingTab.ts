@@ -55,7 +55,7 @@ export class SettingTab extends PluginSettingTab {
       .addDropdown((dropdown) => {
         dropdown
           .addOptions({
-            [SearchEngineType.builtIn]: SearchEngineType.builtIn,
+            [SearchEngineType.default]: SearchEngineType.default,
           })
           // you need to add options before set value
           .setValue(pluginSetting.searchEngine)

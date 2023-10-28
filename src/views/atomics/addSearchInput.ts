@@ -114,6 +114,25 @@ export const addSearchInput = async (
     );
   };
 
+  // debug
+  // const observer = new MutationObserver(async (mutations) => {
+  //   // if the search result is loading or the cache is not ready, then we know that the search must not be ready yet
+  //   if (!view.plugin.cacheIsReady) return;
+  //   //  disable this because seem like this will cause a bug of some group not updating color
+  //   // if (searchResultContainerEl.classList.contains("is-loading")) return;
+
+  //   const files = getFilesFromSearchResult(
+  //     await getResultFromSearchView(searchLeaf.view as SearchView)
+  //   );
+
+  //   console.log(files);
+  // });
+
+  // observer.observe(searchResultContainerEl, {
+  //   childList: true,
+  //   subtree: true,
+  // });
+
   const triggerSearch = () => {
     // if the input is empty, return
     if (inputEl.value === "") return;

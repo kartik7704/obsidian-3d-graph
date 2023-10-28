@@ -61,7 +61,7 @@ export class ForceGraph {
 
     const tooMany =
       _graph.nodes.length > view.plugin.settingManager.getSettings().pluginSetting.maxNodeNumber;
-    const graph = tooMany ? Graph.createEmpty() : _graph;
+    const graph = _graph;
     if (tooMany) createNotice(`Too many nodes, there are ${_graph.nodes.length} nodes`);
 
     // create the div element for the node label

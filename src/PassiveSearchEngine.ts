@@ -9,12 +9,12 @@ export type SearchResultFile = ReturnType<typeof getFilesFromSearchResult>[0];
 /**
  * given the result from `getResultFromSearchView`, return the files
  */
-const getFilesFromSearchResult = (rawSearchResult: unknown) => {
+export const getFilesFromSearchResult = (rawSearchResult: unknown) => {
   // @ts-ignore
   return Array.from(rawSearchResult.keys()) as TFile[];
 };
 
-const getResultFromSearchView = async (searchView: SearchView) => {
+export const getResultFromSearchView = async (searchView: SearchView) => {
   await waitForStable(() => {
     return searchView.dom.resultDomLookup.size;
   }, {});
@@ -24,7 +24,7 @@ const getResultFromSearchView = async (searchView: SearchView) => {
 /**
  * this is the built in search engine that uses the obsidian search engine
  */
-export class PassiveSearchEngine implements IPassiveSearchEngine {
+export class DefaultSearchEngine implements IPassiveSearchEngine {
   useBuiltInSearchInput = true;
   plugin: Graph3dPlugin;
 

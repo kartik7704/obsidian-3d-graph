@@ -3,7 +3,7 @@ import { addColorPicker } from "@/views/atomics/addColorPicker";
 import { addSearchInput } from "@/views/atomics/addSearchInput";
 import { GroupSettings } from "@/SettingManager";
 import { Graph3dView } from "@/views/graph/Graph3dView";
-import { PassiveSearchEngine } from "@/PassiveSearchEngine";
+import { DefaultSearchEngine } from "@/PassiveSearchEngine";
 
 /**
  * given a group and a container element,
@@ -34,7 +34,7 @@ export const AddNodeGroupItem = async (
     view
   );
 
-  if (searchInput && view.plugin.fileManager.searchEngine instanceof PassiveSearchEngine) {
+  if (searchInput && view.plugin.fileManager.searchEngine instanceof DefaultSearchEngine) {
     searchInput.addMutationObserver((files) => {
       if (view.settingManager.searchResult.value.groups[index] === undefined)
         view.settingManager.searchResult.value.groups[index] = { files: [] };

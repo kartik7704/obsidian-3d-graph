@@ -1,7 +1,7 @@
 import { BasicSearchEngine } from "@/BasicSearchEngine";
 import { DvSearchEngine } from "@/DvSearchEngine";
 import { IFileManager, IPassiveSearchEngine, IActiveSearchEngine } from "@/Interfaces";
-import { PassiveSearchEngine } from "@/PassiveSearchEngine";
+import { DefaultSearchEngine as DefaultSearchEngine } from "@/PassiveSearchEngine";
 import { SearchEngineType } from "@/SettingsSchemas";
 import Graph3dPlugin from "@/main";
 
@@ -23,7 +23,7 @@ export class MyFileManager implements IFileManager {
   setSearchEngine() {
     const searchEngine = this.plugin.settingManager.getSettings().pluginSetting.searchEngine;
     if (searchEngine === SearchEngineType.default)
-      this.searchEngine = new PassiveSearchEngine(this.plugin);
+      this.searchEngine = new DefaultSearchEngine(this.plugin);
     else if (searchEngine === SearchEngineType.dataview)
       this.searchEngine = new DvSearchEngine(this.plugin);
     else this.searchEngine = new BasicSearchEngine(this.plugin);
