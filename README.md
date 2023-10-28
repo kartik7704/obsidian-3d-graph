@@ -2,22 +2,20 @@
 
 ![Obsidian 3D graph](https://github.com/HananoshikaYomaru/obsidian-3d-graph/assets/43137033/c8a501e8-c5b6-4622-b5df-2a2335609cae)
 
-> This is a fork from the original https://github.com/AlexW00/obsidian-3d-graph.
->
-> ⚠️ This plugin is still under early development. Please open github issue if you have problems.
->
-> ⚠️ I need open source contributors to help with the force! I have no idea why the built in center force is not enough to hold nodes together. 💩
-
 A 3D Graph for Obsidian with dozen of features!
 
 see the demo: https://www.youtube.com/watch?v=HnqXH6z4WrY
 
 ## Installation
 
-### through BRAT
+### Through community plugin store
+
+Waiting for obsidian team approval: 
+
+### Through BRAT
 
 1. install the BRAT plugin
-2. go to the plugin option, add beta plugin, copy and paste the link of this repo
+2. go to the plugin option, add beta plugin, copy and paste the link of this repo.
 3. the plugin will automatically appear in the list of installed community plugins, enabled this plugin
 
 ### Manual installation
@@ -33,15 +31,20 @@ see the demo: https://www.youtube.com/watch?v=HnqXH6z4WrY
 
 Use ribbon button or command to open the global graph.
 
-You can do zooming (scroll you wheel), rotating (drag the scene) and panning (ctrl/cmd and drag the scene) in the graph.
+You can do zooming (scroll you wheel), rotating (drag the scene) and panning (`ctrl`/`cmd` and drag the scene) in the graph.
 
-> ⚠️ 3D graph has Performance issue that I don't know how to fix. You can set the max node number limit on the plugin setting. If the total node number on the graph beyond the limit, the graph will not be rendered to protect your computer from hanging.
+> ⚠️ The underly [3D graph](https://github.com/vasturiano/3d-force-graph) has Performance issue that I don't know how to fix. You can set the max node number limit on the plugin setting. If the total node number on the graph beyond the limit, the graph will not be rendered to protect your computer from hanging.
 
 ### Local Graph
 
-> ⚠️ Local graph currently has some problem. I want to focus on global graph first and therefore I disable it.
+In a note, you can run command `Open local 3D graph` to open a local graph. A local graph will only show nodes that connect to this nodes. 
 
-In a note, you can run command `Open local 3D graph` to open a local graph. A local graph will only show nodes that connect to this nodes.
+In local graph you will have all the features of global graph, plus: 
+
+1. depth: you can control the depth of maximum distance of the nodes away from the center node
+2. link type: show only inlinks, outlinks or both.
+
+> ✨ Tips: I set the `cmd + L` to open local 3D graph.
 
 ### Filter Node on global graph
 
@@ -53,7 +56,7 @@ In a note, you can run command `Open local 3D graph` to open a local graph. A lo
 
 ### Group and color nodes on global graph
 
-you can use query to color nodes on a global graph
+you can use query to create groups and color nodes on a global graph. 
 
 ### Label fade
 
@@ -73,6 +76,7 @@ You can change the following:
 7. show center coordination
 8. show link arrow
 9. don't node move on drag
+10. [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph) mode. See more on [DAG Mode](https://github.com/HananoshikaYomaru/obsidian-3d-graph#dag-mode). 
 
 ### Focus on node
 
@@ -88,16 +92,16 @@ hold `shift` and click on nodes to select multiple nodes. Then right click on on
 
 ### DAG mode
 
-You can see DAG(Directed acyclic graph) orientation on a graph.
+You can see DAG(Directed acyclic graph) orientation on a graph. This only has effect when the graph is acyclic.
 
-> ⚠️ Currently Dag mode has some issue, it cannot handle circular nodes and links but the plugin doesn't reflect that.
+## Save Setting
+
+You can save, update and restore previous settings. 
 
 ### Feature roadmap
 
-1. Save Setting, you will be able to save setting for future use
-2. Algorithm optimization and code best practice enforcement (but not graph performance optimization because I don't want to dig deep in d3)
-3. Searching enhancement, now use a lot of hacky why to make obsidian built in search bar work but new mechanism will be introduced in the future.
-4. local graph option, currently local graph has not setting.
+1. Use dataview as search engine.
+2. expose API to make it even more easier for other plugin to integrate.
 
 some other uncertain features are will sit in the github issues but I work on them base on ICE (Impact, confidence, effort)
 
@@ -108,7 +112,7 @@ some other uncertain features are will sit in the github issues but I work on th
 3. `cd obsidian-3d-graph && bun install && bun run dev`
 4. there you go 🎉
 
-for release, just run `bun release`
+for release, just run `bun release` to release patch. You can also add `--minor` or `--major` to change update version.
 
 ## Note
 
