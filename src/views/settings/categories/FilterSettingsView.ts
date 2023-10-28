@@ -1,57 +1,121 @@
 import { Setting } from "obsidian";
-import { FilterSettings } from "@/settings/categories/FilterSettings";
-import { State } from "@/util/State";
 
 import { addSearchInput } from "@/views/atomics/addSearchInput";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { BaseFilterSettings, LocalFilterSetting, LocalGraphSettings } from "@/SettingManager";
+import { GraphType } from "@/SettingsSchemas";
+import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
+import { State } from "@/util/State";
+import { PassiveSearchEngine } from "@/PassiveSearchEngine";
+import { waitForStable } from "@/util/waitFor";
 
 export const FilterSettingsView = async (
-  filterSettings: State<FilterSettings>,
+  filterSettings: BaseFilterSettings | LocalFilterSetting,
   containerEl: HTMLElement,
-  graphView: Graph3dView
+  settingManager: GraphSettingManager
 ) => {
-  const plugin = graphView.plugin;
-  const [_, triggerSearch] = await addSearchInput(
+  const graphView = settingManager.getGraphView();
+  const searchInput = await addSearchInput(
     containerEl,
-    filterSettings.value.searchQuery,
-    (value, files, init) => {
-      filterSettings.value.searchQuery = value;
-      plugin.searchState.value.filter.query = value;
-      plugin.searchState.value.filter.files = files;
+    filterSettings.searchQuery,
+    (value) => {
+      //update the current setting of the plugin
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.filter.searchQuery = value;
+      });
     },
-    plugin
+    graphView
   );
-  graphView.searchTriggers["filter"] = triggerSearch;
 
-  const dv = plugin.getDvApi();
-  // if user have dv installed, they can use dv query
-  if (dv && plugin.settingsState.value.other.useDataView) {
-    const dvQuerySetting = new Setting(containerEl).addText((text) => {
-      text
-        .setValue(filterSettings.value.dvQuery || "")
-        .setPlaceholder("Dv Query")
-        .onChange(async (value) => {
-          filterSettings.value.dvQuery = value;
-        });
-
-      text.inputEl.parentElement?.addClass("search-input-container");
+  // if this is a built-in search input, then we need to add a mutation observer
+  if (
+    searchInput &&
+    settingManager.getGraphView().plugin.fileManager.searchEngine instanceof PassiveSearchEngine
+  )
+    searchInput.addMutationObserver((files) => {
+      // the files is empty, by default, we will show all files
+      settingManager.searchResult.value.filter.files = files.map((file) => ({
+        name: file.name,
+        path: file.path,
+      }));
     });
-
-    const el = dvQuerySetting.infoEl;
-    if (el) el.style.display = "none";
-  }
 
   // add show attachments setting
   new Setting(containerEl).setName("Show Attachments").addToggle((toggle) => {
-    toggle.setValue(filterSettings.value.showAttachments || false).onChange(async (value) => {
-      filterSettings.value.showAttachments = value;
+    toggle.setValue(filterSettings.showAttachments || false).onChange(async (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.filter.showAttachments = value;
+      });
     });
   });
 
   // add show orphans setting
   new Setting(containerEl).setName("Show Orphans").addToggle((toggle) => {
-    toggle.setValue(filterSettings.value.showOrphans || false).onChange(async (value) => {
-      filterSettings.value.showOrphans = value;
+    toggle.setValue(filterSettings.showOrphans || false).onChange(async (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.filter.showOrphans = value;
+      });
     });
   });
+
+  if (graphView.graphType === GraphType.local) {
+    const localFilterSettings = filterSettings as LocalFilterSetting;
+    let latestValue = localFilterSettings.depth;
+    let activeCallId = 0; // Unique identifier for each call
+
+    //  add a slider for the depth
+    new Setting(containerEl).setName("Depth").addSlider((slider) => {
+      slider
+        .setLimits(1, 5, 1)
+        .setValue(localFilterSettings.depth)
+        .setDynamicTooltip()
+        .onChange((value) => {
+          latestValue = value;
+          const currentCallId = ++activeCallId; // Increment and store the unique ID for this call
+
+          waitForStable(() => latestValue, {
+            timeout: 3000, // wait for a max of 3 seconds for stability
+            minDelay: 300, // start checking after 300ms
+            interval: 100, // check every 100ms
+            rehitCount: 3, // require 3 consecutive checks with the same value
+          }).then((stableValue) => {
+            if (stableValue !== undefined && currentCallId === activeCallId) {
+              // Only proceed if this is the latest call
+              settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+                setting.value.filter.depth = stableValue;
+              });
+            }
+          });
+        });
+    });
+
+    // add dropdown show incoming links setting
+    new Setting(containerEl).setName("Show Incoming Links").addDropdown((dropdown) => {
+      dropdown
+        .addOptions({
+          both: "Both",
+          inlinks: "Inlinks",
+          outlinks: "Outlinks",
+        })
+        .setValue(localFilterSettings.linkType)
+        .onChange(async (value: "both" | "inlinks" | "outlinks") => {
+          // update the setting
+          settingManager.updateCurrentSettings((setting: State<LocalGraphSettings>) => {
+            setting.value.filter.linkType = value;
+            // we are putting false here because we know there are still some more to update
+          });
+
+          // if (value === "both") settingManager.displaySettingView.hideDagOrientationSetting();
+          // else if (settingManager.displaySettingView.isDropdownHidden())
+          //   settingManager.displaySettingView.showDagOrientationSetting();
+        });
+    });
+  }
+  const triggerSearch = async () => {
+    searchInput?.triggerSearch();
+  };
+
+  return {
+    searchInput,
+    triggerSearch,
+  };
 };

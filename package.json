@@ -1,5 +1,5 @@
 {
-  "name": "3d-graph",
+  "name": "3d-graph-new",
   "version": "1.0.15",
   "description": "A 3D graph for Obsidian",
   "main": "main.js",
@@ -47,11 +47,12 @@
   "dependencies": {
     "3d-force-graph": "^1.72.3",
     "@tweenjs/tween.js": "^21.0.0",
+    "copy-anything": "^3.0.5",
     "d3": "^7.8.5",
     "d3-force-3d": "^3.0.5",
     "observable-slim": "^0.1.6",
     "obsidian-dataview": "^0.5.61",
-    "radash": "^11.0.0",
-    "three": "^0.157.0"
+    "three": "^0.157.0",
+    "zod": "^3.22.4"
   }
 }

@@ -60,12 +60,11 @@ export class State<T> {
   };
 
   /**
+   * create a substate of this state.
    *
+   * @remarks You cannot create a substate for a primitive type state.
    */
-  public createSubState<S>(
-    key: T extends object ? `value.${NestedKeyof<T>}` : string,
-    type?: new (...a: never) => S
-  ): State<S> {
+  public createSubState<S>(key: T extends object ? `value.${NestedKeyof<T>}` : string): State<S> {
     const subStateKeys = key.split(".");
     const subStateValue: S = subStateKeys.reduce((obj: Record<string, unknown>, key: string) => {
       const val = obj[key];
@@ -74,16 +73,21 @@ export class State<T> {
       }
       throw new InvalidStateKeyError(key, this);
     }, this as Record<string, unknown>) as S;
-    if (typeof subStateValue === "object" && type) {
-      // check if is like generic type S
-      // @ts-ignore
-      if (subStateValue instanceof type || Boolean(subStateValue?.__getTarget)) {
-        // @ts-ignore
-        return new State(subStateValue.__getTarget);
-      } else {
-        throw new Error(`Substate ${key} of state ${this.id} is not of type ${type.name}`);
-      }
-    } else throw new Error("SubStates of properties that are Primitives are not supported yet.");
+
+    // if this is a primitive type, we cannot create a substate
+    if (typeof subStateValue !== "object") {
+      throw new Error("SubStates of properties that are Primitives are not supported yet.");
+    }
+
+    // @ts-ignore
+    return new State(subStateValue?.__getTarget);
+
+    // if (typeof subStateValue === "object" && type) {
+    //   // check if is like generic type S
+
+    //   // ts-ignore
+    //   return new State(subStateValue?.__getTarget);
+    // } else throw new Error("SubStates of properties that are Primitives are not supported yet.");
   }
 
   public getRawValue(): T {

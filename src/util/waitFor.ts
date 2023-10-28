@@ -37,13 +37,28 @@ export function waitForStable<T = unknown>(
     timeout = 30000,
     minDelay = 100,
     interval = 100,
+    rehitCount = 3,
   }: {
+    /**
+     * at most wait for timeout milliseconds
+     */
     timeout?: number;
+    /**
+     * start after reaching minDelay
+     */
     minDelay?: number;
+    /**
+     * check every interval milliseconds
+     */
     interval?: number;
+    /**
+     * number of time the value need to be the same before resolving
+     */
+    rehitCount?: number;
   }
 ) {
   let previousValue = accessor();
+  let hitCount = 0;
   const startTime = Date.now();
   return new Promise<T | undefined>((resolve) => {
     const intervalId = setInterval(() => {
@@ -54,12 +69,22 @@ export function waitForStable<T = unknown>(
         clearInterval(intervalId);
         resolve(undefined);
       }
-      if (currentValue === previousValue && Date.now() - startTime >= minDelay) {
+
+      if (currentValue === previousValue) {
+        hitCount += 1;
+      } else {
+        hitCount = 0;
+        previousValue = currentValue;
+      }
+
+      if (
+        hitCount >= rehitCount &&
+        currentValue === previousValue &&
+        Date.now() - startTime >= minDelay
+      ) {
         clearInterval(intervalId);
         resolve(currentValue);
       }
-      console.log(previousValue, currentValue);
-      previousValue = currentValue;
     }, interval);
   });
 }

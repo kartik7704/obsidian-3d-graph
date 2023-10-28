@@ -15,7 +15,7 @@ export const addColorPicker = (
   const input = document.createElement("input");
   input.type = "color";
   input.value = value;
-  input.addEventListener("change", () => {
+  input.addEventListener("input", () => {
     onChange(input.value);
   });
   containerEl.appendChild(input);

@@ -108,8 +108,7 @@ export class EmbeddedView extends nosuper(HoverPopover) {
   document: Document = this.targetEl?.ownerDocument ?? window.activeDocument ?? window.document;
 
   id = genId(8);
-  // @ts-ignore
-  bounce?: NodeJS.Timeout;
+  bounce?: Timer;
   boundOnZoomOut: () => void;
 
   originalPath: string; // these are kept to avoid adopting targets w/a different link
@@ -511,7 +510,6 @@ export class EmbeddedView extends nosuper(HoverPopover) {
     const state = this.buildState(parentMode, eState);
     const leaf = await this.openFile(file, state, createInLeaf);
     const leafViewType = leaf?.view?.getViewType();
-    // console.log(leaf);
     if (leafViewType === "image") {
       // TODO: temporary workaround to prevent image popover from disappearing immediately when using live preview
       if (

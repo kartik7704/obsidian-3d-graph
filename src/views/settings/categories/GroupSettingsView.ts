@@ -1,23 +1,26 @@
-import { GroupSettings } from "@/settings/categories/GroupSettings";
-import { State, StateChange } from "@/util/State";
 import { addNodeGroups } from "@/views/settings/categories/addNodeGroups";
 import { addNodeGroupButton } from "@/views/settings/categories/AddNodeGroupButton";
+import { GroupSettings } from "@/SettingManager";
 import { Graph3dView } from "@/views/graph/Graph3dView";
+import { addSearchInput } from "@/views/atomics/addSearchInput";
 
 export const GroupSettingsView = async (
-  groupSettings: State<GroupSettings>,
+  groupSettings: GroupSettings,
   containerEl: HTMLElement,
   view: Graph3dView
 ) => {
-  // add the nodeGroups
-  await addNodeGroups(groupSettings, containerEl, view);
-  addNodeGroupButton(groupSettings, containerEl, view);
+  const searchInputs: Awaited<ReturnType<typeof addSearchInput>>[] = [];
+  await addNodeGroups(groupSettings, containerEl, view, searchInputs);
+  addNodeGroupButton(containerEl, view, searchInputs);
 
-  groupSettings.onChange(async (change: StateChange) => {
-    if ((change.currentPath === "groups" && change.type === "add") || change.type === "delete") {
-      containerEl.empty();
-      await addNodeGroups(groupSettings, containerEl, view);
-      addNodeGroupButton(groupSettings, containerEl, view);
-    }
-  });
+  const triggerSearch = () => {
+    searchInputs.forEach((nodeGroup) => {
+      nodeGroup?.triggerSearch();
+    });
+  };
+
+  return {
+    searchInputs,
+    triggerSearch,
+  };
 };

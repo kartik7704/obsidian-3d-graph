@@ -17,5 +17,4 @@ export const addColorPickerSetting = (
 ) => {
   const setting = new Setting(containerEl).setName(options.name).setClass("mod-color-picker");
   addColorPicker(setting.settingEl, options.value, (value) => onChange(value));
-  return setting;
 };
