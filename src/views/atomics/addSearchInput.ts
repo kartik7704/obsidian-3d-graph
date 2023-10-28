@@ -59,7 +59,10 @@ export const addSearchInput = async (
     ".search-result-container"
   ) as HTMLDivElement;
   const searchResultInfoEl = searchElement.querySelector(".search-results-info") as HTMLDivElement;
-
+  const extraSettingButtonEl = searchRowEl.querySelector(
+    ".setting-editor-extra-setting-button"
+  ) as HTMLDivElement;
+  extraSettingButtonEl?.remove();
   searchResultContainerEl.style.visibility = "hidden";
   searchResultContainerEl.style.height = "0px";
   searchResultContainerEl.style.position = "absolute";
