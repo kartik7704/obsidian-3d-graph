@@ -4,7 +4,7 @@
 
 A 3D Graph for Obsidian with dozen of features!
 
-see the demo: https://www.youtube.com/watch?v=HnqXH6z4WrY
+see the demo: https://www.youtube.com/watch?v=w1H-pcM8nOU
 
 <a href="https://www.buymeacoffee.com/yomaru" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 105px !important;" ></a> [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/hananoshikayomaru)
 
