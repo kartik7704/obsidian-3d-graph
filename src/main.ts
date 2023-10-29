@@ -1,7 +1,6 @@
 import { Plugin } from "obsidian";
 import { State } from "@/util/State";
 import { Graph } from "@/graph/Graph";
-import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { ResolvedLinkCache } from "@/graph/Link";
 import { deepCompare } from "@/util/deepCompare";
 import "@total-typescript/ts-reset";
@@ -27,7 +26,6 @@ export default class Graph3dPlugin extends Plugin {
    *  we keep a global graph here because we dont want to create a new graph every time we open a graph view
    */
   public globalGraph: Graph;
-  public theme: ObsidianTheme;
 
   public fileManager: MyFileManager;
   public settingManager: MySettingManager;
@@ -51,7 +49,6 @@ export default class Graph3dPlugin extends Plugin {
     this.fileManager = new MyFileManager(this);
 
     // init the theme
-    this.theme = new ObsidianTheme(this.app.workspace.containerEl);
     this.cacheIsReady.value = this.app.metadataCache.resolvedLinks !== undefined;
     this.onGraphCacheChanged();
 

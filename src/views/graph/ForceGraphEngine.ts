@@ -214,7 +214,7 @@ export class ForceGraphEngine {
   getLinkColor = (link: Link) => {
     const color = this.isHighlightedLink(link)
       ? this.forceGraph.view.settingManager.getCurrentSetting().display.linkHoverColor
-      : this.forceGraph.view.plugin.theme.textMuted;
+      : this.forceGraph.view.theme.graphLine;
     return hexToRGBA(color, this.getIsAnyHighlighted() && !this.isHighlightedLink(link) ? 0.2 : 1);
   };
 
@@ -451,7 +451,7 @@ export class ForceGraphEngine {
   public getNodeColor = (node: Node): string => {
     let color: string;
     const settings = this.forceGraph.view.settingManager.getCurrentSetting();
-    const theme = this.forceGraph.view.plugin.theme;
+    const theme = this.forceGraph.view.theme;
     const searchResult = this.forceGraph.view.settingManager.searchResult;
     if (this.selectedNodes.has(node)) {
       color = selectedColor;
@@ -461,7 +461,7 @@ export class ForceGraphEngine {
           ? settings.display.nodeHoverColor
           : settings.display.nodeHoverNeighbourColor;
     } else {
-      color = theme.textMuted;
+      color = theme.graphNode;
       settings.groups.forEach((group, index) => {
         if (group.query.trim().length === 0) return;
         const searchStateGroup = searchResult.value.groups[index];

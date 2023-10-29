@@ -3,6 +3,7 @@ import { GraphType } from "@/SettingsSchemas";
 import { config } from "@/config";
 import { Graph } from "@/graph/Graph";
 import Graph3dPlugin from "@/main";
+import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
@@ -12,6 +13,7 @@ export abstract class Graph3dView extends ItemView {
   readonly plugin: Graph3dPlugin;
   protected forceGraph: ForceGraph;
   readonly graphType: GraphType;
+  public theme: ObsidianTheme;
   public readonly settingManager: GraphSettingManager<typeof this>;
 
   constructor(leaf: WorkspaceLeaf, plugin: Graph3dPlugin, graphType: GraphType, graph: Graph) {
@@ -19,11 +21,12 @@ export abstract class Graph3dView extends ItemView {
     this.plugin = plugin;
     this.graphType = graphType;
     this.settingManager = new GraphSettingManager<typeof this>(this);
+    // set up some UI stuff
+    this.contentEl.classList.add("graph-3d-view");
+    this.theme = new ObsidianTheme(this.plugin.app.workspace.containerEl);
 
     this.forceGraph = new ForceGraph(this, graph);
 
-    // set up some UI stuff
-    this.contentEl.classList.add("graph-3d-view");
     // move the setting to the front of the graph
     this.contentEl.appendChild(this.settingManager.containerEl);
   }
@@ -77,6 +80,8 @@ export abstract class Graph3dView extends ItemView {
 
     // destroy the old graph, remove the old graph completely from the DOM
     this.forceGraph?.instance._destructor();
+
+    this.theme = new ObsidianTheme(this.plugin.app.workspace.containerEl);
 
     // reassign a new graph base on setting like the constructor
     this.forceGraph = new ForceGraph(this, graph);

@@ -162,7 +162,9 @@ export class MySettingManager implements ISettingManager<Setting> {
       console.log("parsed loaded data successfully");
     }
     await this.plugin.saveData(this.setting.value);
-    console.log("saved: ", this.setting.value);
+
+    // debug
+    // console.log("saved: ", this.setting.value);
   }
 
   static getNewSetting<T extends GraphType>(

@@ -10,7 +10,7 @@ see the demo: https://www.youtube.com/watch?v=HnqXH6z4WrY
 
 ### Through community plugin store
 
-Waiting for obsidian team approval: 
+Waiting for obsidian team approval:
 
 ### Through BRAT
 
@@ -37,9 +37,9 @@ You can do zooming (scroll you wheel), rotating (drag the scene) and panning (`c
 
 ### Local Graph
 
-In a note, you can run command `Open local 3D graph` to open a local graph. A local graph will only show nodes that connect to this nodes. 
+In a note, you can run command `Open local 3D graph` to open a local graph. A local graph will only show nodes that connect to this nodes.
 
-In local graph you will have all the features of global graph, plus: 
+In local graph you will have all the features of global graph, plus:
 
 1. depth: you can control the depth of maximum distance of the nodes away from the center node
 2. link type: show only inlinks, outlinks or both.
@@ -56,7 +56,7 @@ In local graph you will have all the features of global graph, plus:
 
 ### Group and color nodes on global graph
 
-you can use query to create groups and color nodes on a global graph. 
+you can use query to create groups and color nodes on a global graph.
 
 ### Label fade
 
@@ -76,7 +76,7 @@ You can change the following:
 7. show center coordination
 8. show link arrow
 9. don't node move on drag
-10. [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph) mode. See more on [DAG Mode](https://github.com/HananoshikaYomaru/obsidian-3d-graph#dag-mode). 
+10. [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph) mode. See more on [DAG Mode](https://github.com/HananoshikaYomaru/obsidian-3d-graph#dag-mode).
 
 ### Focus on node
 
@@ -96,7 +96,22 @@ You can see DAG(Directed acyclic graph) orientation on a graph. This only has ef
 
 ## Save Setting
 
-You can save, update and restore previous settings. 
+You can save, update and restore previous settings.
+
+## Other customization
+
+You can change the default node color and default line color by css snippet.
+
+1. open your setting > appearance
+2. create a css snippet
+3. add the following
+
+```css
+body {
+  --graph-node: #00ff00;
+  --graph-line: #ff0000;
+}
+```
 
 ### Feature roadmap
 
