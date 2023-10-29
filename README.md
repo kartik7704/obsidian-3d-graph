@@ -96,11 +96,11 @@ hold `shift` and click on nodes to select multiple nodes. Then right click on on
 
 You can see DAG(Directed acyclic graph) orientation on a graph. This only has effect when the graph is acyclic.
 
-## Save Setting
+### Save Setting
 
 You can save, update and restore previous settings.
 
-## Other customization
+### Other customization
 
 You can change the default node color and default line color by css snippet.
 
