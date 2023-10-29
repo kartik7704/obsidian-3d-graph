@@ -6,6 +6,8 @@ A 3D Graph for Obsidian with dozen of features!
 
 see the demo: https://www.youtube.com/watch?v=HnqXH6z4WrY
 
+<a href="https://www.buymeacoffee.com/yomaru" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 105px !important;" ></a> [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/hananoshikayomaru)
+
 ## Installation
 
 ### Through community plugin store
@@ -137,9 +139,12 @@ for release, just run `bun release` to release patch. You can also add `--minor`
 
 ## Say thank you
 
-If you are enjoying this plugin then please support my work and enthusiasm by buying me a coffee on https://www.buymeacoffee.com/yomaru.
+If you are enjoying this plugin then please support my work and enthusiasm by sponsoring me on Github or buying me a coffee on https://www.buymeacoffee.com/yomaru.
 
-<a href="https://www.buymeacoffee.com/yomaru" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://www.buymeacoffee.com/yomaru" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 105px !important;" ></a> [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/hananoshikayomaru)
+
+
+
 
 ## Acknowledgement
 
