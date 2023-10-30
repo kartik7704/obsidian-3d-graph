@@ -73,12 +73,13 @@ You can change the following:
 2. Link thickness
 3. Link distance
 4. Node repulsion
-5. node hover color, node hover neighbour color, link hover color
-6. show file extension, show full path on label
-7. show center coordination
-8. show link arrow
-9. don't node move on drag
-10. [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph) mode. See more on [DAG Mode](https://github.com/HananoshikaYomaru/obsidian-3d-graph#dag-mode).
+5. Distance from Focal. This will affect the label fade. When distance from focal is smaller, node further away from what you are look at will have label with lower opacity.
+6. node hover color, node hover neighbour color, link hover color
+7. show file extension, show full path on label
+8. show center coordination
+9. show link arrow
+10. don't node move on drag
+11. [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph) mode. See more on [DAG Mode](https://github.com/HananoshikaYomaru/obsidian-3d-graph#dag-mode).
 
 ### Focus on node
 
@@ -102,7 +103,7 @@ You can save, update and restore previous settings.
 
 ### Other customization
 
-You can change the default node color and default line color by css snippet.
+You can change the style of the graphview by css snippet.
 
 1. open your setting > appearance
 2. create a css snippet
@@ -110,10 +111,24 @@ You can change the default node color and default line color by css snippet.
 
 ```css
 body {
+  /* change the default node color */
   --graph-node: #00ff00;
+  /* change the default link color */
   --graph-line: #ff0000;
 }
+
+.graph-3d-view canvas {
+  /* change the background color */
+  background: white;
+}
+
+.graph-3d-view .node-label {
+  /* change the default node label color */
+  color: #00ff00;
+}
 ```
+
+![](https://share.cleanshot.com/Ld9xzBJ4+)
 
 ### Feature roadmap
 
@@ -142,9 +157,6 @@ for release, just run `bun release` to release patch. You can also add `--minor`
 If you are enjoying this plugin then please support my work and enthusiasm by sponsoring me on Github or buying me a coffee on https://www.buymeacoffee.com/yomaru.
 
 <a href="https://www.buymeacoffee.com/yomaru" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 105px !important;" ></a> [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/hananoshikayomaru)
-
-
-
 
 ## Acknowledgement
 

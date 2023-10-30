@@ -16,7 +16,6 @@ export const FOCAL_FROM_CAMERA = 400;
 const selectedColor = "#CCA700";
 const PARTICLE_FREQUECY = 4;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
-const DISTANCE_FROM_FOCAL = 300;
 
 /**
  * this instance handle all the interaction. In other words, the interaction manager
@@ -256,7 +255,9 @@ export class ForceGraphEngine {
     // change the opacity of the nodeEl base on the distance
     // the higher the distance, the lower the opacity
     // when the distance is 300, the opacity is 0
-    const normalizedDistance = Math.min(distance, DISTANCE_FROM_FOCAL) / DISTANCE_FROM_FOCAL;
+    const distanceFromFocal =
+      this.forceGraph.view.settingManager.getCurrentSetting().display.distanceFromFocal;
+    const normalizedDistance = Math.min(distance, distanceFromFocal) / distanceFromFocal;
     const easedValue = 0.5 - 0.5 * Math.cos(normalizedDistance * Math.PI);
     return easedValue;
   };

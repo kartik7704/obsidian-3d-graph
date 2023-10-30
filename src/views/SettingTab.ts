@@ -41,6 +41,9 @@ export class SettingTab extends PluginSettingTab {
               this.plugin.settingManager.updateSettings((setting) => {
                 setting.value.pluginSetting.maxNodeNumber = Number(value);
               });
+
+              // force all the graph view to reset their settings
+              this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
             }
             text.inputEl.reportValidity();
           });

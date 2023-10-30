@@ -14,41 +14,44 @@ import {
   GraphType,
   SearchEngineType,
   SavedSettingSchema,
+  DagOrientation,
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
-
-const DEFAULT_NODE_SIZE = 3;
-const DEFAULT_LINK_THICKNESS = 2;
-const DEFAULT_LINK_DISTANCE = 100;
-const DEFAULT_NODE_REPULSION = 2800;
 
 export const nodeSize = {
   min: 1,
   max: 10,
   step: 0.1,
-  default: DEFAULT_NODE_SIZE, // 3
+  default: 3, // 3
 };
 
 export const linkThickness = {
   min: 1,
   max: 3,
   step: 0.1,
-  default: DEFAULT_LINK_THICKNESS, // 3
+  default: 2, // 3
 };
 
 export const linkDistance = {
   min: 10,
   max: 200,
   step: 1,
-  default: DEFAULT_LINK_DISTANCE, // 50
+  default: 100, // 50
 };
 
 export const nodeRepulsion = {
   min: 2500,
   max: 3000,
   step: 100,
-  default: DEFAULT_NODE_REPULSION, // 28
+  default: 2800, // 28
+};
+
+export const distanceFromFocal = {
+  min: 100,
+  max: 500,
+  step: 10,
+  default: 300,
 };
 
 export type BaseFilterSettings = Prettify<z.TypeOf<typeof BaseFilterSettingsSchema>>;
@@ -73,6 +76,64 @@ export type GraphSetting = Exclude<SavedSetting["setting"], undefined>;
 
 const corruptedMessage =
   "The setting is corrupted. You will not be able to save the setting. Please backup your data.json, remove it and reload the plugin. Then migrate your old setting back.";
+
+export const defaultGlobalGraphSetting = {
+  filter: {
+    searchQuery: "",
+    showOrphans: true,
+    showAttachments: false,
+  },
+  groups: [],
+  display: {
+    nodeSize: nodeSize.default,
+    linkThickness: linkThickness.default,
+    linkDistance: linkDistance.default,
+    nodeRepulsion: nodeRepulsion.default,
+    distanceFromFocal: 300,
+    // node hover color is red
+    nodeHoverColor: "#ff0000",
+    // node hover neighbour color is green
+    nodeHoverNeighbourColor: "#00ff00",
+    // link hover color is blue
+    linkHoverColor: "#0000ff",
+    showExtension: false,
+    showFullPath: false,
+    showCenterCoordinates: true,
+    showLinkArrow: true,
+    dontMoveWhenDrag: false,
+    dagOrientation: DagOrientation.null,
+  },
+};
+
+export const defaultLocalGraphSetting = {
+  filter: {
+    searchQuery: "",
+    showOrphans: true,
+    showAttachments: false,
+    depth: 1,
+    linkType: "both",
+  },
+  groups: [],
+  display: {
+    nodeSize: nodeSize.default,
+    linkThickness: linkThickness.default,
+    linkDistance: linkDistance.default,
+    nodeRepulsion: nodeRepulsion.default,
+    distanceFromFocal: 300,
+    // node hover color is red
+    nodeHoverColor: "#ff0000",
+    // node hover neighbour color is green
+    nodeHoverNeighbourColor: "#00ff00",
+    // link hover color is blue
+    linkHoverColor: "#0000ff",
+    showExtension: false,
+    showFullPath: false,
+    showCenterCoordinates: true,
+    showLinkArrow: true,
+    dontMoveWhenDrag: false,
+    dagOrientation: DagOrientation.null,
+  },
+};
 
 /**
  * @remarks the setting will not keep the temporary setting. It will only keep the saved settings.
@@ -167,74 +228,22 @@ export class MySettingManager implements ISettingManager<Setting> {
     // console.log("saved: ", this.setting.value);
   }
 
-  static getNewSetting<T extends GraphType>(
-    type: T
-  ): T extends GraphType.global ? GlobalGraphSettings : LocalGraphSettings {
+  static getNewSetting<T extends GraphType>(type: T) {
     if (type === GraphType.global) {
       // @ts-ignore
-      return {
-        filter: {
-          searchQuery: "",
-          showOrphans: true,
-          showAttachments: false,
-        },
-        groups: [],
-        display: {
-          nodeSize: nodeSize.default,
-          linkThickness: linkThickness.default,
-          linkDistance: linkDistance.default,
-          nodeRepulsion: nodeRepulsion.default,
-          // node hover color is red
-          nodeHoverColor: "#ff0000",
-          // node hover neighbour color is green
-          nodeHoverNeighbourColor: "#00ff00",
-          // link hover color is blue
-          linkHoverColor: "#0000ff",
-          showExtension: false,
-          showFullPath: false,
-          showCenterCoordinates: true,
-          showLinkArrow: true,
-          dontMoveWhenDrag: false,
-          dagOrientation: undefined,
-        },
-      } as GlobalGraphSettings;
+      return defaultGlobalGraphSetting as GlobalGraphSettings;
     } else {
-      return {
-        filter: {
-          searchQuery: "",
-          showOrphans: true,
-          showAttachments: false,
-          depth: 1,
-          linkType: "both",
-        },
-        groups: [],
-        display: {
-          nodeSize: nodeSize.default,
-          linkThickness: linkThickness.default,
-          linkDistance: linkDistance.default,
-          nodeRepulsion: nodeRepulsion.default,
-          // node hover color is red
-          nodeHoverColor: "#ff0000",
-          // node hover neighbour color is green
-          nodeHoverNeighbourColor: "#00ff00",
-          // link hover color is blue
-          linkHoverColor: "#0000ff",
-          showExtension: false,
-          showFullPath: false,
-          showCenterCoordinates: true,
-          showLinkArrow: true,
-          dontMoveWhenDrag: false,
-          dagOrientation: undefined,
-        },
-      } as LocalGraphSettings;
+      return defaultLocalGraphSetting as LocalGraphSettings;
     }
   }
 }
 
 export const DEFAULT_SETTING: Setting = {
   savedSettings: [],
-  temporaryLocalGraphSetting: MySettingManager.getNewSetting(GraphType.local),
-  temporaryGlobalGraphSetting: MySettingManager.getNewSetting(GraphType.global),
+  temporaryLocalGraphSetting: MySettingManager.getNewSetting(GraphType.local) as LocalGraphSettings,
+  temporaryGlobalGraphSetting: MySettingManager.getNewSetting(
+    GraphType.global
+  ) as GlobalGraphSettings,
   pluginSetting: {
     maxNodeNumber: 1000,
     searchEngine: SearchEngineType.default,

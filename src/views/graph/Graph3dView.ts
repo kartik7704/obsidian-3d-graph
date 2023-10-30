@@ -79,17 +79,14 @@ export abstract class Graph3dView extends ItemView {
     forceGraphEl?.remove();
 
     // destroy the old graph, remove the old graph completely from the DOM
-    this.forceGraph?.instance._destructor();
+    this.forceGraph.instance._destructor();
+
+    // @ts-ignore
+    this.forceGraph = null;
 
     this.theme = new ObsidianTheme(this.plugin.app.workspace.containerEl);
 
-    // reassign a new graph base on setting like the constructor
-    this.forceGraph = new ForceGraph(this, graph);
-
-    // move the setting to the front of the graph
-    this.contentEl.appendChild(this.settingManager.containerEl);
-
-    this.onResize();
+    this.updateGraphData(graph);
   }
 
   /**
@@ -101,7 +98,9 @@ export abstract class Graph3dView extends ItemView {
     if (tooLarge) {
       createNotice(`Graph is too large to be rendered. Have ${graph.nodes.length} nodes.`);
     }
-    this.forceGraph?.updateGraph(tooLarge ? Graph.createEmpty() : graph);
+    if (!this.forceGraph)
+      this.forceGraph = new ForceGraph(this, tooLarge ? Graph.createEmpty() : graph);
+    else this.forceGraph.updateGraph(tooLarge ? Graph.createEmpty() : graph);
     // get current focus element
     const focusEl = document.activeElement as HTMLElement | null;
     // move the setting to the front of the graph

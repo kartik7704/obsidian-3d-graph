@@ -2,6 +2,7 @@ import {
   GlobalGraphSettings,
   LocalDisplaySettings,
   LocalGraphSettings,
+  distanceFromFocal,
   linkDistance,
   linkThickness,
   nodeRepulsion,
@@ -77,6 +78,20 @@ export const DisplaySettingsView = (
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.display.nodeRepulsion = value;
+      });
+    }
+  );
+
+  addSimpleSliderSetting(
+    containerEl,
+    {
+      name: "Distance from focal",
+      value: displaySettings.distanceFromFocal,
+      stepOptions: distanceFromFocal,
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.distanceFromFocal = value;
       });
     }
   );

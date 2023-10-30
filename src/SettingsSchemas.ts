@@ -1,3 +1,4 @@
+import { defaultGlobalGraphSetting } from "@/SettingManager";
 import { z } from "zod";
 
 export enum GraphType {
@@ -30,19 +31,24 @@ export enum DagOrientation {
 }
 
 export const BaseDisplaySettingsSchema = z.object({
-  nodeSize: z.number(),
-  linkThickness: z.number(),
-  linkDistance: z.number(),
-  nodeHoverColor: z.string(),
-  nodeHoverNeighbourColor: z.string(),
-  nodeRepulsion: z.number(),
-  linkHoverColor: z.string(),
-  showExtension: z.boolean(),
-  showFullPath: z.boolean(),
-  showCenterCoordinates: z.boolean(),
-  showLinkArrow: z.boolean(),
-  dontMoveWhenDrag: z.boolean(),
-  dagOrientation: z.undefined().or(z.nativeEnum(DagOrientation)),
+  nodeSize: z.number().default(defaultGlobalGraphSetting.display.nodeSize),
+  linkThickness: z.number().default(defaultGlobalGraphSetting.display.linkThickness),
+  linkDistance: z.number().default(defaultGlobalGraphSetting.display.linkDistance),
+  nodeRepulsion: z.number().default(defaultGlobalGraphSetting.display.nodeRepulsion),
+  distanceFromFocal: z.number().default(defaultGlobalGraphSetting.display.distanceFromFocal),
+  nodeHoverColor: z.string().default(defaultGlobalGraphSetting.display.nodeHoverColor),
+  nodeHoverNeighbourColor: z
+    .string()
+    .default(defaultGlobalGraphSetting.display.nodeHoverNeighbourColor),
+  linkHoverColor: z.string().default(defaultGlobalGraphSetting.display.linkHoverColor),
+  showExtension: z.boolean().default(defaultGlobalGraphSetting.display.showExtension),
+  showFullPath: z.boolean().default(defaultGlobalGraphSetting.display.showFullPath),
+  showCenterCoordinates: z
+    .boolean()
+    .default(defaultGlobalGraphSetting.display.showCenterCoordinates),
+  showLinkArrow: z.boolean().default(defaultGlobalGraphSetting.display.showLinkArrow),
+  dontMoveWhenDrag: z.boolean().default(defaultGlobalGraphSetting.display.dontMoveWhenDrag),
+  dagOrientation: z.undefined().or(z.nativeEnum(DagOrientation)).default(DagOrientation.null),
 });
 export const LocalDisplaySettingsSchema = z.object({
   ...BaseDisplaySettingsSchema.shape,
