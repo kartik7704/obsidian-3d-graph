@@ -217,7 +217,7 @@ export const DisplaySettingsView = (
           !settingManager.getGraphView().getForceGraph().instance.graphData().isAcyclic() &&
           value !== DagOrientation.null
         ) {
-          createNotice("The graph is acyclic, dag orientation will be ignored");
+          createNotice("The graph is cyclic, dag orientation will be ignored");
         } else {
           setting.value.display.dagOrientation = value as LocalDisplaySettings["dagOrientation"];
         }

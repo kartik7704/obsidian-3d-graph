@@ -259,8 +259,11 @@ export class ForceGraph {
     if ((config as LocalGraphSettings)?.display?.dagOrientation !== undefined) {
       let dagOrientation = config?.display?.dagOrientation ?? DagOrientation.null;
       // check if graph is async or not
-      if (!this.instance.graphData().isAcyclic()) {
-        createNotice("The graph is acyclic, dag orientation will be ignored");
+      if (
+        !this.instance.graphData().isAcyclic() &&
+        this.view.settingManager.getCurrentSetting().display.dagOrientation !== DagOrientation.null
+      ) {
+        createNotice("The graph is cyclic, dag orientation will be ignored");
         dagOrientation = DagOrientation.null;
       }
 
