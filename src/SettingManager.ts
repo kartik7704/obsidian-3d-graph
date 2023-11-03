@@ -1,4 +1,3 @@
-import Graph3dPlugin from "@/main";
 import { ISettingManager } from "@/Interfaces";
 import { AsyncQueue } from "@/util/AsyncQueue";
 import { z } from "zod";
@@ -18,6 +17,7 @@ import {
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
+import { Plugin } from "obsidian";
 
 export const nodeSize = {
   min: 1,
@@ -139,7 +139,7 @@ export const defaultLocalGraphSetting = {
  * @remarks the setting will not keep the temporary setting. It will only keep the saved settings.
  */
 export class MySettingManager implements ISettingManager<Setting> {
-  private plugin: Graph3dPlugin;
+  private plugin: Plugin;
   private setting: State<Setting> = new State(DEFAULT_SETTING);
   private asyncQueue = new AsyncQueue();
 
@@ -151,7 +151,7 @@ export class MySettingManager implements ISettingManager<Setting> {
   /**
    * @remarks don't forget to call `loadSettings` after creating this class
    */
-  constructor(plugin: Graph3dPlugin) {
+  constructor(plugin: Plugin) {
     this.plugin = plugin;
   }
 
