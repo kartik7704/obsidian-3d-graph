@@ -114,7 +114,7 @@ export default class Graph3dPlugin extends Plugin {
    * And this will hit the else clause of the `onGraphCacheChanged` function
    */
   private onGraphCacheReady = () => {
-    console.log("Graph cache is ready");
+    // console.log("Graph cache is ready");
     this.cacheIsReady.value = true;
     this.onGraphCacheChanged();
   };
@@ -141,12 +141,12 @@ export default class Graph3dPlugin extends Plugin {
       }
     } else {
       this.isCacheReadyOnce = true;
-      console.log(
-        "changed but ",
-        this.cacheIsReady.value,
-        " and ",
-        deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
-      );
+      // console.log(
+      //   "changed but ",
+      //   this.cacheIsReady.value,
+      //   " and ",
+      //   deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
+      // );
 
       // update graph views
       this.activeGraphViews.forEach((view) => {
