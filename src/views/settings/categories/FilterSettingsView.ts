@@ -40,7 +40,7 @@ export const FilterSettingsView = async (
     });
 
   // add show attachments setting
-  new Setting(containerEl).setName("Show Attachments").addToggle((toggle) => {
+  new Setting(containerEl).setName("Show attachments").addToggle((toggle) => {
     toggle.setValue(filterSettings.showAttachments || false).onChange(async (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.filter.showAttachments = value;
@@ -49,7 +49,7 @@ export const FilterSettingsView = async (
   });
 
   // add show orphans setting
-  new Setting(containerEl).setName("Show Orphans").addToggle((toggle) => {
+  new Setting(containerEl).setName("Show orphans").addToggle((toggle) => {
     toggle.setValue(filterSettings.showOrphans || false).onChange(async (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.filter.showOrphans = value;

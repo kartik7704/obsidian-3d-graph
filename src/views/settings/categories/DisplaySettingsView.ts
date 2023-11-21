@@ -27,7 +27,7 @@ export const DisplaySettingsView = (
   addSimpleSliderSetting(
     containerEl,
     {
-      name: "Node Size",
+      name: "Node size",
       value: displaySettings.nodeSize,
       stepOptions: nodeSize,
     },
@@ -42,7 +42,7 @@ export const DisplaySettingsView = (
   addSimpleSliderSetting(
     containerEl,
     {
-      name: "Link Thickness",
+      name: "Link thickness",
       value: displaySettings.linkThickness,
       stepOptions: linkThickness,
     },
@@ -57,7 +57,7 @@ export const DisplaySettingsView = (
   addSimpleSliderSetting(
     containerEl,
     {
-      name: "Link Distance",
+      name: "Link distance",
       value: displaySettings.linkDistance,
       stepOptions: linkDistance,
     },
@@ -71,7 +71,7 @@ export const DisplaySettingsView = (
   addSimpleSliderSetting(
     containerEl,
     {
-      name: "Node Repulsion",
+      name: "Node repulsion",
       value: displaySettings.nodeRepulsion,
       stepOptions: nodeRepulsion,
     },
@@ -99,7 +99,7 @@ export const DisplaySettingsView = (
   addColorPickerSetting(
     containerEl,
     {
-      name: "Node Hover Color",
+      name: "Node hover color",
       value: displaySettings.nodeHoverColor,
     },
     (value) => {
@@ -113,7 +113,7 @@ export const DisplaySettingsView = (
   addColorPickerSetting(
     containerEl,
     {
-      name: "Node Hover Neighbour Color",
+      name: "Node hover neighbour color",
       value: displaySettings.nodeHoverNeighbourColor,
     },
     (value) => {
@@ -127,7 +127,7 @@ export const DisplaySettingsView = (
   addColorPickerSetting(
     containerEl,
     {
-      name: "Link Hover Color",
+      name: "Link hover color",
       value: displaySettings.linkHoverColor,
     },
     (value) => {
@@ -141,7 +141,7 @@ export const DisplaySettingsView = (
   addToggle(
     containerEl,
     {
-      name: "Show File Extension",
+      name: "Show file extension",
       value: displaySettings.showExtension,
     },
     (value) => {
@@ -155,7 +155,7 @@ export const DisplaySettingsView = (
   addToggle(
     containerEl,
     {
-      name: "Show Note Full Path",
+      name: "Show note full path",
       value: displaySettings.showFullPath,
     },
     (value) => {
@@ -168,7 +168,7 @@ export const DisplaySettingsView = (
   addToggle(
     containerEl,
     {
-      name: "Show Center Coordinates",
+      name: "Show center coordinates",
       value: displaySettings.showCenterCoordinates,
     },
     (value) => {
@@ -181,7 +181,7 @@ export const DisplaySettingsView = (
   addToggle(
     containerEl,
     {
-      name: "Show Link Arrow",
+      name: "Show link arrow",
       value: displaySettings.showLinkArrow,
     },
     (value) => {
@@ -194,7 +194,7 @@ export const DisplaySettingsView = (
   addToggle(
     containerEl,
     {
-      name: "Don't Move When Drag",
+      name: "Don't move when drag",
       value: displaySettings.dontMoveWhenDrag,
     },
     (value) => {
@@ -205,7 +205,7 @@ export const DisplaySettingsView = (
   );
 
   const localDisplaySettings = displaySettings as LocalDisplaySettings;
-  const dagDropDown = new Setting(containerEl).setName("Dag Orientation");
+  const dagDropDown = new Setting(containerEl).setName("Dag orientation");
 
   const dropdown = new DropdownComponent(dagDropDown.settingEl)
     .addOptions(DagOrientation)

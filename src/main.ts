@@ -14,7 +14,6 @@ import { GraphType } from "@/SettingsSchemas";
 import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
-import { createNotice } from "@/util/createNotice";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -159,8 +158,11 @@ export default class Graph3dPlugin extends Plugin {
    * Opens a local graph view in a new leaf
    */
   private openLocalGraph = () => {
-    if (this.activeGraphViews.some((view) => view.graphType === GraphType.local)) {
-      createNotice("Local Graph already open");
+    const localGraphView =
+      this.app.workspace.getActiveViewOfType(LocalGraph3dView) ??
+      this.activeGraphViews.find((view) => view.graphType === GraphType.local);
+    if (localGraphView) {
+      this.app.workspace.setActiveLeaf(localGraphView.leaf);
     } else this.openGraph(GraphType.local);
   };
 
@@ -168,12 +170,11 @@ export default class Graph3dPlugin extends Plugin {
    * Opens a global graph view in the current leaf
    */
   private openGlobalGraph = () => {
-    const globalGraphView = this.app.workspace.getActiveViewOfType(GlobalGraph3dView);
-    if (
-      globalGraphView ||
-      this.activeGraphViews.some((view) => view.graphType === GraphType.global)
-    ) {
-      createNotice("Global Graph already open");
+    const globalGraphView =
+      this.app.workspace.getActiveViewOfType(GlobalGraph3dView) ??
+      this.activeGraphViews.find((view) => view.graphType === GraphType.global);
+    if (globalGraphView) {
+      this.app.workspace.setActiveLeaf(globalGraphView.leaf);
     } else this.openGraph(GraphType.global);
   };
 
