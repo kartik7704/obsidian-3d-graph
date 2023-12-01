@@ -12,7 +12,7 @@ see the demo: https://www.youtube.com/watch?v=w1H-pcM8nOU
 
 ### Through community plugin store
 
-Waiting for obsidian team approval: https://github.com/obsidianmd/obsidian-releases/pull/2635
+You can install this on community plugin store 😎
 
 ### Through BRAT
 
