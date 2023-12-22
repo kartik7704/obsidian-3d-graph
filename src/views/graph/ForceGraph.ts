@@ -10,12 +10,12 @@ import { Graph3dView } from "@/views/graph/Graph3dView";
 import { FOCAL_FROM_CAMERA, ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
 import { DeepPartial } from "ts-essentials";
 import { Node } from "@/graph/Node";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 import { rgba } from "polished";
 import { createNotice } from "@/util/createNotice";
 import { DagOrientation, GraphType } from "@/SettingsSchemas";
 import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
 /**
  * the origin vectorss
@@ -56,6 +56,8 @@ export class ForceGraph {
     this.view = view;
     this.interactionManager = new ForceGraphEngine(this);
 
+    const pluginSetting = this.view.plugin.settingManager.getSettings().pluginSetting;
+
     // get the content element of the item view
     const rootHtmlElement = view.contentEl as HTMLDivElement;
 
@@ -69,7 +71,7 @@ export class ForceGraph {
     // create the instance
     // these config will not changed by user
     this.instance = ForceGraph3D({
-      controlType: "orbit",
+      controlType: pluginSetting.rightClickToPan ? undefined : "orbit",
       extraRenderers: [
         // @ts-ignore https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/html-nodes/index.html#L27C9-L29
         new CSS2DRenderer({
@@ -90,6 +92,9 @@ export class ForceGraph {
             ? 3
             : 1)
         );
+      })
+      .onBackgroundRightClick(() => {
+        this.interactionManager.removeSelection();
       })
       .nodeOpacity(0.9)
       .linkOpacity(0.3)
@@ -162,13 +167,22 @@ export class ForceGraph {
     // init other setting
     this.updateConfig(this.view.settingManager.getCurrentSetting());
 
-    const controls = this.instance.controls() as OrbitControls;
-    controls.mouseButtons.RIGHT = undefined;
+    // this disable the right click to pan
+    if (!pluginSetting.rightClickToPan) {
+      const controls = this.instance.controls() as OrbitControls;
+      controls.mouseButtons.RIGHT = undefined;
+      // also if right click to pan cmd + left pan should be disabled
+      // to disable it, we just need to remove the orbit controls
+    }
 
     //  change the nav info text
     this.view.contentEl
       .querySelector(".scene-nav-info")
-      ?.setText("Left-click: rotate, Mouse-wheel/middle-click: zoom, Cmd + left-click: pan");
+      ?.setText(
+        `Left-click: rotate, Mouse-wheel/middle-click: zoom, ${
+          pluginSetting.rightClickToPan ? "Right click" : "Cmd + left click"
+        }: pan`
+      );
   }
 
   private createNodeLabel() {

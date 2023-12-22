@@ -247,5 +247,6 @@ export const DEFAULT_SETTING: Setting = {
   pluginSetting: {
     maxNodeNumber: 1000,
     searchEngine: SearchEngineType.default,
+    rightClickToPan: false,
   },
 };

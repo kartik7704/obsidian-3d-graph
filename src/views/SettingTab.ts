@@ -75,5 +75,22 @@ export class SettingTab extends PluginSettingTab {
             this.plugin.activeGraphViews.forEach((view) => view.settingManager.resetSettings());
           });
       });
+
+    new Setting(containerEl)
+      .setName("Right click to pan")
+      .setDesc(
+        "If true, right click will pan the graph. Otherwise, Cmd + left click will pan the graph."
+      )
+      .addToggle((toggle) => {
+        toggle.setValue(pluginSetting.rightClickToPan).onChange(async (value) => {
+          // update the json
+          this.plugin.settingManager.updateSettings((setting) => {
+            setting.value.pluginSetting.rightClickToPan = value;
+          });
+
+          // force all the graph view to reset their settings
+          this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
+        });
+      });
   }
 }

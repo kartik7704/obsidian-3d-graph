@@ -94,5 +94,6 @@ export const SettingSchema = z.object({
   pluginSetting: z.object({
     maxNodeNumber: z.number(),
     searchEngine: z.nativeEnum(SearchEngineType),
+    rightClickToPan: z.boolean().default(false),
   }),
 });
