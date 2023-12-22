@@ -179,7 +179,7 @@ export class MySettingManager implements ISettingManager<Setting> {
     // load the data, this can be null if the plugin is used for the first time
     const loadedData = (await this.plugin.loadData()) as unknown | null;
 
-    console.log("loaded: ", loadedData);
+    // console.log("loaded: ", loadedData);
 
     // if the data is null, then we need to initialize the data
     if (!loadedData) {
@@ -199,7 +199,7 @@ export class MySettingManager implements ISettingManager<Setting> {
       return this.setting.value;
     }
 
-    console.log("parsed loaded data successfully");
+    // console.log("parsed loaded data successfully");
 
     this.setting.value = result.data;
     return this.setting.value;
@@ -220,7 +220,7 @@ export class MySettingManager implements ISettingManager<Setting> {
       }
 
       this.isLoaded = true;
-      console.log("parsed loaded data successfully");
+      // console.log("parsed loaded data successfully");
     }
     await this.plugin.saveData(this.setting.value);
 
