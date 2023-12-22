@@ -5,9 +5,10 @@ import { Node } from "@/graph/Node";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import { Link } from "@/graph/Link";
 import { CommandModal } from "@/commands/CommandModal";
-import { GraphType } from "@/SettingsSchemas";
+import { CommandClickNodeAction, GraphType } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { hexToRGBA } from "@/util/hexToRGBA";
+import { TFile } from "obsidian";
 
 const origin = new THREE.Vector3(0, 0, 0);
 const cameraLookAtCenterTransitionDuration = 1000;
@@ -123,7 +124,23 @@ export class ForceGraphEngine {
     }
   };
 
-  onNodeRightClick = (node: Node, mouseEvent: MouseEvent) => {
+  onNodeRightClick = (node: Node & Coords, event: MouseEvent) => {
+    const plugin = this.forceGraph.view.plugin;
+    const pluginSetting = plugin.settingManager.getSettings().pluginSetting;
+    if (this.commandDown || event.ctrlKey) {
+      const clickedNodeFile = this.findFileByNode(node);
+      if (
+        pluginSetting.commandRightClickNode === CommandClickNodeAction.openNodeInNewTab &&
+        clickedNodeFile
+      ) {
+        // open file in new tab
+        this.openFileInNewTab(clickedNodeFile);
+      } else if (pluginSetting.commandRightClickNode === CommandClickNodeAction.focusNode)
+        this.focusOnCoords(node);
+      return;
+    }
+
+    // open context menu
     if (!this.selectedNodes.has(node)) {
       this.selectedNodes.clear();
       this.selectedNodes.add(node);
@@ -140,23 +157,31 @@ export class ForceGraphEngine {
 
   onNodeClick = (node: Node & Coords, event: MouseEvent) => {
     const plugin = this.forceGraph.view.plugin;
+    const pluginSetting = plugin.settingManager.getSettings().pluginSetting;
     if (event.shiftKey) {
       const isSelected = this.selectedNodes.has(node);
       // multi-selection
       isSelected ? this.selectedNodes.delete(node) : this.selectedNodes.add(node);
       return;
     }
+    const clickedNodeFile = this.findFileByNode(node);
 
     if (this.commandDown || event.ctrlKey) {
-      this.focusOnCoords(node);
+      if (
+        pluginSetting.commandLeftClickNode === CommandClickNodeAction.openNodeInNewTab &&
+        clickedNodeFile
+      ) {
+        // open file in new tab
+        this.openFileInNewTab(clickedNodeFile);
+      } else if (pluginSetting.commandLeftClickNode === CommandClickNodeAction.focusNode)
+        this.focusOnCoords(node);
       return;
     }
 
-    const clickedNodeFile = plugin.app.vault.getFiles().find((f) => f.path === node.path);
-
     if (clickedNodeFile) {
       if (this.forceGraph.view.graphType === GraphType.local) {
-        plugin.app.workspace.getLeaf(false).openFile(clickedNodeFile);
+        // open file in new tab
+        this.openFileInNewTab(clickedNodeFile);
       } else {
         this.forceGraph.view.leaf.openFile(clickedNodeFile);
       }
@@ -242,6 +267,10 @@ export class ForceGraphEngine {
       this.highlightedNodes.add(link.target.id);
     }
     this.updateColor();
+  };
+
+  findFileByNode = (node: Node): TFile | undefined => {
+    return this.forceGraph.view.plugin.app.vault.getFiles().find((f) => f.path === node.path);
   };
 
   public getNodeOpacityEasedValue = (node: Node) => {
@@ -494,5 +523,9 @@ export class ForceGraphEngine {
     const targetNode = this.forceGraph.instance.graphData().getNodeByPath(path);
     if (targetNode) this.focusOnCoords(targetNode as Node & Coords);
     else createNotice("The node doesn't exist in the graph");
+  }
+
+  public openFileInNewTab(file: TFile) {
+    this.forceGraph.view.plugin.app.workspace.getLeaf(false).openFile(file);
   }
 }

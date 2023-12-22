@@ -30,6 +30,11 @@ export enum DagOrientation {
   null = "null",
 }
 
+export enum CommandClickNodeAction {
+  openNodeInNewTab = "openNodeInNewTab",
+  focusNode = "focusNode",
+}
+
 export const BaseDisplaySettingsSchema = z.object({
   nodeSize: z.number().default(defaultGlobalGraphSetting.display.nodeSize),
   linkThickness: z.number().default(defaultGlobalGraphSetting.display.linkThickness),
@@ -95,5 +100,11 @@ export const SettingSchema = z.object({
     maxNodeNumber: z.number(),
     searchEngine: z.nativeEnum(SearchEngineType),
     rightClickToPan: z.boolean().default(false),
+    commandLeftClickNode: z
+      .nativeEnum(CommandClickNodeAction)
+      .default(CommandClickNodeAction.openNodeInNewTab),
+    commandRightClickNode: z
+      .nativeEnum(CommandClickNodeAction)
+      .default(CommandClickNodeAction.focusNode),
   }),
 });

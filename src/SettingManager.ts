@@ -14,6 +14,7 @@ import {
   SearchEngineType,
   SavedSettingSchema,
   DagOrientation,
+  CommandClickNodeAction,
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
@@ -248,5 +249,7 @@ export const DEFAULT_SETTING: Setting = {
     maxNodeNumber: 1000,
     searchEngine: SearchEngineType.default,
     rightClickToPan: false,
+    commandLeftClickNode: CommandClickNodeAction.openNodeInNewTab,
+    commandRightClickNode: CommandClickNodeAction.focusNode,
   },
 };

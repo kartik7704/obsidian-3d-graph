@@ -1,6 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import Graph3dPlugin from "@/main";
-import { SearchEngineType } from "@/SettingsSchemas";
+import { CommandClickNodeAction, SearchEngineType } from "@/SettingsSchemas";
 import { DEFAULT_SETTING } from "@/SettingManager";
 
 const DEFAULT_NUMBER = DEFAULT_SETTING.pluginSetting.maxNodeNumber;
@@ -17,6 +17,7 @@ export class SettingTab extends PluginSettingTab {
     const { containerEl } = this;
 
     containerEl.empty();
+    containerEl.addClasses(["graph-3d-setting-tab"]);
 
     new Setting(containerEl)
       .setName("Maximum node number in graph")
@@ -76,6 +77,9 @@ export class SettingTab extends PluginSettingTab {
           });
       });
 
+    // create an H2 element called "Controls"
+    containerEl.createEl("h2", { text: "Controls" });
+
     new Setting(containerEl)
       .setName("Right click to pan")
       .setDesc(
@@ -91,6 +95,50 @@ export class SettingTab extends PluginSettingTab {
           // force all the graph view to reset their settings
           this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
         });
+      });
+
+    new Setting(containerEl)
+      .setName("Command + left click node")
+      .setDesc("What to do when command + left click a node")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOptions({
+            [CommandClickNodeAction.openNodeInNewTab]: "Open node in new tab",
+            [CommandClickNodeAction.focusNode]: "Focus on node",
+          })
+          // you need to add options before set value
+          .setValue(pluginSetting.commandLeftClickNode)
+          .onChange(async (value: string) => {
+            // update the json
+            this.plugin.settingManager.updateSettings((setting) => {
+              setting.value.pluginSetting.commandLeftClickNode = value as CommandClickNodeAction;
+            });
+
+            // force all the graph view to reset their settings
+            this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Command + right click node")
+      .setDesc("What to do when command + right click a node")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOptions({
+            [CommandClickNodeAction.openNodeInNewTab]: "Open node in new tab",
+            [CommandClickNodeAction.focusNode]: "Focus on node",
+          })
+          // you need to add options before set value
+          .setValue(pluginSetting.commandRightClickNode)
+          .onChange(async (value: string) => {
+            // update the json
+            this.plugin.settingManager.updateSettings((setting) => {
+              setting.value.pluginSetting.commandRightClickNode = value as CommandClickNodeAction;
+            });
+
+            // force all the graph view to reset their settings
+            this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
+          });
       });
   }
 }
