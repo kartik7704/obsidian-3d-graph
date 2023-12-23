@@ -14,10 +14,10 @@ import { State, StateChange } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettingsView";
 import { Graph3dView } from "@/views/graph/Graph3dView";
-import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
 import { AsyncQueue } from "@/util/AsyncQueue";
 import { waitFor } from "@/util/waitFor";
 import { GraphType } from "@/SettingsSchemas";
+import { type LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
 
 export type SearchResult = {
   filter: {
@@ -95,7 +95,7 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
     // this ensure that the graph controls element is empty
     this.graphControlsEl?.remove();
     // also remove all the search result container
-    this.graphView.containerEl
+    this.graphView.itemView.containerEl
       .querySelectorAll(".search-result-container")
       .forEach((el) => el.remove());
 

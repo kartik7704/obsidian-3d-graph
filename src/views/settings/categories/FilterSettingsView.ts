@@ -2,11 +2,11 @@ import { Setting } from "obsidian";
 
 import { addSearchInput } from "@/views/atomics/addSearchInput";
 import { BaseFilterSettings, LocalFilterSetting, LocalGraphSettings } from "@/SettingManager";
-import { GraphType } from "@/SettingsSchemas";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
 import { State } from "@/util/State";
 import { waitForStable } from "@/util/waitFor";
 import { DefaultSearchEngine } from "@/PassiveSearchEngine";
+import { GraphType } from "@/SettingsSchemas";
 
 export const FilterSettingsView = async (
   filterSettings: BaseFilterSettings | LocalFilterSetting,

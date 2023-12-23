@@ -1,18 +1,16 @@
+import { GlobalGraphSettings, LocalDisplaySettings, LocalGraphSettings } from "@/SettingManager";
+import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
+import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
+import { addToggle } from "@/views/atomics/addToggle";
+import { DropdownComponent, Setting } from "obsidian";
 import {
-  GlobalGraphSettings,
-  LocalDisplaySettings,
-  LocalGraphSettings,
+  DagOrientation,
   distanceFromFocal,
   linkDistance,
   linkThickness,
   nodeRepulsion,
   nodeSize,
-} from "@/SettingManager";
-import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
-import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
-import { addToggle } from "@/views/atomics/addToggle";
-import { DropdownComponent, Setting } from "obsidian";
-import { DagOrientation } from "@/SettingsSchemas";
+} from "@/SettingsSchemas";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
 import { State } from "@/util/State";
 import { createNotice } from "@/util/createNotice";

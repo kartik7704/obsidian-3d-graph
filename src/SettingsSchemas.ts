@@ -1,5 +1,39 @@
-import { defaultGlobalGraphSetting } from "@/SettingManager";
 import { z } from "zod";
+
+export const nodeSize = {
+  min: 1,
+  max: 10,
+  step: 0.1,
+  default: 3, // 3
+};
+
+export const linkThickness = {
+  min: 1,
+  max: 3,
+  step: 0.1,
+  default: 2, // 3
+};
+
+export const linkDistance = {
+  min: 10,
+  max: 200,
+  step: 1,
+  default: 100, // 50
+};
+
+export const nodeRepulsion = {
+  min: 2500,
+  max: 3000,
+  step: 100,
+  default: 2800, // 28
+};
+
+export const distanceFromFocal = {
+  min: 100,
+  max: 500,
+  step: 10,
+  default: 300,
+};
 
 export enum GraphType {
   /**
@@ -10,6 +44,7 @@ export enum GraphType {
    * the local graph
    */
   local = "local",
+  postProcessor = "postProcessor",
 }
 
 export enum SearchEngineType {
@@ -34,6 +69,64 @@ export enum CommandClickNodeAction {
   openNodeInNewTab = "openNodeInNewTab",
   focusNode = "focusNode",
 }
+
+export const defaultGlobalGraphSetting = {
+  filter: {
+    searchQuery: "",
+    showOrphans: true,
+    showAttachments: false,
+  },
+  groups: [],
+  display: {
+    nodeSize: nodeSize.default,
+    linkThickness: linkThickness.default,
+    linkDistance: linkDistance.default,
+    nodeRepulsion: nodeRepulsion.default,
+    distanceFromFocal: 300,
+    // node hover color is red
+    nodeHoverColor: "#ff0000",
+    // node hover neighbour color is green
+    nodeHoverNeighbourColor: "#00ff00",
+    // link hover color is blue
+    linkHoverColor: "#0000ff",
+    showExtension: false,
+    showFullPath: false,
+    showCenterCoordinates: true,
+    showLinkArrow: true,
+    dontMoveWhenDrag: false,
+    dagOrientation: DagOrientation.null,
+  },
+};
+
+export const defaultLocalGraphSetting = {
+  filter: {
+    searchQuery: "",
+    showOrphans: true,
+    showAttachments: false,
+    depth: 1,
+    linkType: "both",
+  },
+  groups: [],
+  display: {
+    nodeSize: nodeSize.default,
+    linkThickness: linkThickness.default,
+    linkDistance: linkDistance.default,
+    nodeRepulsion: nodeRepulsion.default,
+    distanceFromFocal: 300,
+    // node hover color is red
+    nodeHoverColor: "#ff0000",
+    // node hover neighbour color is green
+    nodeHoverNeighbourColor: "#00ff00",
+    // link hover color is blue
+    linkHoverColor: "#0000ff",
+    showExtension: false,
+    showFullPath: false,
+    showCenterCoordinates: true,
+    showLinkArrow: true,
+    dontMoveWhenDrag: false,
+    dagOrientation: DagOrientation.null,
+  },
+};
 
 export const BaseDisplaySettingsSchema = z.object({
   nodeSize: z.number().default(defaultGlobalGraphSetting.display.nodeSize),

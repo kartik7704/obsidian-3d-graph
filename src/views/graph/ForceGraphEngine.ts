@@ -183,7 +183,8 @@ export class ForceGraphEngine {
         // open file in new tab
         this.openFileInNewTab(clickedNodeFile);
       } else {
-        this.forceGraph.view.leaf.openFile(clickedNodeFile);
+        // open file in current tab (active leaf)
+        this.forceGraph.view.itemView.leaf.openFile(clickedNodeFile);
       }
     }
   };

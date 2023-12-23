@@ -1,4 +1,4 @@
-import { Link } from "@/graph/Link";
+import { type Link } from "@/graph/Link";
 import { TAbstractFile } from "obsidian";
 
 export class Node {

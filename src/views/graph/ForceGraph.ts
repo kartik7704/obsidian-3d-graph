@@ -13,14 +13,9 @@ import { Node } from "@/graph/Node";
 
 import { rgba } from "polished";
 import { createNotice } from "@/util/createNotice";
-import { DagOrientation, GraphType } from "@/SettingsSchemas";
-import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
+import { DagOrientation } from "@/SettingsSchemas";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-
-/**
- * the origin vectorss
- */
-export const origin = new THREE.Vector3(0, 0, 0);
+import { TFile } from "obsidian";
 
 type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
   graphData: {
@@ -87,8 +82,8 @@ export class ForceGraph {
       .nodeVal((node: Node) => {
         return (
           (node.links.length + 1) *
-          (this.view.graphType === GraphType.local &&
-          (this.view as LocalGraph3dView).currentFile?.path === node.path
+          // if the view has a currentFile, then it can be either local graph view or post processor view
+          ("currentFile" in this.view && (this.view.currentFile as TFile)?.path === node.path
             ? 3
             : 1)
         );
@@ -292,6 +287,7 @@ export class ForceGraph {
     const needReheat =
       config?.display?.nodeRepulsion !== undefined ||
       config?.display?.linkDistance !== undefined ||
+      config?.display?.linkThickness !== undefined ||
       (config as LocalGraphSettings)?.display?.dagOrientation !== undefined;
 
     if (needReheat) {

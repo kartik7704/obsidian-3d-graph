@@ -13,47 +13,13 @@ import {
   GraphType,
   SearchEngineType,
   SavedSettingSchema,
-  DagOrientation,
   CommandClickNodeAction,
+  defaultLocalGraphSetting,
+  defaultGlobalGraphSetting,
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
 import { Plugin } from "obsidian";
-
-export const nodeSize = {
-  min: 1,
-  max: 10,
-  step: 0.1,
-  default: 3, // 3
-};
-
-export const linkThickness = {
-  min: 1,
-  max: 3,
-  step: 0.1,
-  default: 2, // 3
-};
-
-export const linkDistance = {
-  min: 10,
-  max: 200,
-  step: 1,
-  default: 100, // 50
-};
-
-export const nodeRepulsion = {
-  min: 2500,
-  max: 3000,
-  step: 100,
-  default: 2800, // 28
-};
-
-export const distanceFromFocal = {
-  min: 100,
-  max: 500,
-  step: 10,
-  default: 300,
-};
 
 export type BaseFilterSettings = Prettify<z.TypeOf<typeof BaseFilterSettingsSchema>>;
 
@@ -77,64 +43,6 @@ export type GraphSetting = Exclude<SavedSetting["setting"], undefined>;
 
 const corruptedMessage =
   "The setting is corrupted. You will not be able to save the setting. Please backup your data.json, remove it and reload the plugin. Then migrate your old setting back.";
-
-export const defaultGlobalGraphSetting = {
-  filter: {
-    searchQuery: "",
-    showOrphans: true,
-    showAttachments: false,
-  },
-  groups: [],
-  display: {
-    nodeSize: nodeSize.default,
-    linkThickness: linkThickness.default,
-    linkDistance: linkDistance.default,
-    nodeRepulsion: nodeRepulsion.default,
-    distanceFromFocal: 300,
-    // node hover color is red
-    nodeHoverColor: "#ff0000",
-    // node hover neighbour color is green
-    nodeHoverNeighbourColor: "#00ff00",
-    // link hover color is blue
-    linkHoverColor: "#0000ff",
-    showExtension: false,
-    showFullPath: false,
-    showCenterCoordinates: true,
-    showLinkArrow: true,
-    dontMoveWhenDrag: false,
-    dagOrientation: DagOrientation.null,
-  },
-};
-
-export const defaultLocalGraphSetting = {
-  filter: {
-    searchQuery: "",
-    showOrphans: true,
-    showAttachments: false,
-    depth: 1,
-    linkType: "both",
-  },
-  groups: [],
-  display: {
-    nodeSize: nodeSize.default,
-    linkThickness: linkThickness.default,
-    linkDistance: linkDistance.default,
-    nodeRepulsion: nodeRepulsion.default,
-    distanceFromFocal: 300,
-    // node hover color is red
-    nodeHoverColor: "#ff0000",
-    // node hover neighbour color is green
-    nodeHoverNeighbourColor: "#00ff00",
-    // link hover color is blue
-    linkHoverColor: "#0000ff",
-    showExtension: false,
-    showFullPath: false,
-    showCenterCoordinates: true,
-    showLinkArrow: true,
-    dontMoveWhenDrag: false,
-    dagOrientation: DagOrientation.null,
-  },
-};
 
 /**
  * @remarks the setting will not keep the temporary setting. It will only keep the saved settings.
@@ -231,7 +139,6 @@ export class MySettingManager implements ISettingManager<Setting> {
 
   static getNewSetting<T extends GraphType>(type: T) {
     if (type === GraphType.global) {
-      // @ts-ignore
       return defaultGlobalGraphSetting as GlobalGraphSettings;
     } else {
       return defaultLocalGraphSetting as LocalGraphSettings;

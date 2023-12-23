@@ -1,12 +1,13 @@
 import { LocalGraphSettings } from "@/SettingManager";
-import { GraphType } from "@/SettingsSchemas";
 import { Graph } from "@/graph/Graph";
 import { Node } from "@/graph/Node";
 import { Link } from "@/graph/Link";
 import Graph3dPlugin from "@/main";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { SearchResult } from "@/views/settings/GraphSettingsManager";
-import { TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
+import { TAbstractFile, TFile } from "obsidian";
+import { type LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
+import { GraphType } from "@/SettingsSchemas";
 
 /**
  *
@@ -90,7 +91,7 @@ const traverseNode = (
  * this is called by the plugin to create a new local graph.
  * It will not have any setting. The files is also
  */
-const getNewLocalGraph = (
+export const getNewLocalGraph = (
   plugin: Graph3dPlugin,
   config?: {
     centerFile: TAbstractFile | null;
@@ -153,19 +154,20 @@ const getNewLocalGraph = (
   return graph;
 };
 
-export class LocalGraph3dView extends Graph3dView {
+export class LocalGraph3dView extends Graph3dView<LocalGraphItemView> {
   /**
    * when the app is just open, this can be null
    */
   public currentFile: TAbstractFile | null;
 
-  constructor(plugin: Graph3dPlugin, leaf: WorkspaceLeaf) {
-    super(leaf, plugin, GraphType.local, getNewLocalGraph(plugin));
+  constructor(plugin: Graph3dPlugin, contentEl: HTMLDivElement, itemView: LocalGraphItemView) {
+    super(contentEl, plugin, GraphType.local, getNewLocalGraph(plugin), itemView);
 
-    this.currentFile = this.app.workspace.getActiveFile();
+    this.currentFile = this.plugin.app.workspace.getActiveFile();
 
-    // if this is a local graph, then we need to listen to change of active file
-    this.registerEvent(this.app.workspace.on("file-open", this.handleFileChange.bind(this)));
+    this.itemView.registerEvent(
+      this.plugin.app.workspace.on("file-open", this.handleFileChange.bind(this))
+    );
   }
 
   public handleFileChange = (file: TFile) => {

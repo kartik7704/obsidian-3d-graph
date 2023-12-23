@@ -8,7 +8,7 @@ export class CommandModal extends FuzzySuggestModal<Command> {
   private view: Graph3dView;
 
   constructor(view: Graph3dView, selectedNodes: Set<Node>) {
-    super(view.app);
+    super(view.plugin.app);
     this.nodes = selectedNodes;
     this.view = view;
   }

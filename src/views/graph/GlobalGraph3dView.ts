@@ -1,9 +1,9 @@
 import { GlobalGraphSettings } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
 import Graph3dPlugin from "@/main";
+import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { SearchResult } from "@/views/settings/GraphSettingsManager";
-import { WorkspaceLeaf } from "obsidian";
 
 const getNewGlobalGraph = (
   plugin: Graph3dPlugin,
@@ -31,8 +31,8 @@ const getNewGlobalGraph = (
 };
 
 export class GlobalGraph3dView extends Graph3dView {
-  constructor(plugin: Graph3dPlugin, leaf: WorkspaceLeaf) {
-    super(leaf, plugin, GraphType.global, plugin.globalGraph);
+  constructor(plugin: Graph3dPlugin, contentEl: HTMLDivElement, itemView: GlobalGraphItemView) {
+    super(contentEl, plugin, GraphType.global, plugin.globalGraph, itemView);
   }
 
   public handleGroupColorSearchResultChange(): void {

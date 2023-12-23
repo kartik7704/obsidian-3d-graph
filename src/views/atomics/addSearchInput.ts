@@ -95,7 +95,7 @@ export const addSearchInput = async (
   };
 
   // this make search that the search result container el is alaways visible
-  view.containerEl.appendChild(searchResultContainerEl);
+  if (view.itemView) view.itemView.containerEl.appendChild(searchResultContainerEl);
 
   // if it is a passive engine, we need to enable mutation observer
 

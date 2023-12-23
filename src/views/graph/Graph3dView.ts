@@ -1,25 +1,36 @@
 import { GlobalGraphSettings, GraphSetting, LocalGraphSettings } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
-import { config } from "@/config";
 import { Graph } from "@/graph/Graph";
 import Graph3dPlugin from "@/main";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { type ItemView } from "obsidian";
 
-export abstract class Graph3dView extends ItemView {
+export abstract class Graph3dView<T extends ItemView = ItemView> {
   readonly plugin: Graph3dPlugin;
-  protected forceGraph: ForceGraph;
   readonly graphType: GraphType;
+  protected forceGraph: ForceGraph;
   public theme: ObsidianTheme;
   public readonly settingManager: GraphSettingManager<typeof this>;
+  public readonly contentEl: HTMLDivElement;
+  /**
+   * this view can be either Graph Item view or markdown view if it is a post processor view
+   */
+  itemView: T;
 
-  constructor(leaf: WorkspaceLeaf, plugin: Graph3dPlugin, graphType: GraphType, graph: Graph) {
-    super(leaf);
+  constructor(
+    contentEl: HTMLDivElement,
+    plugin: Graph3dPlugin,
+    graphType: GraphType,
+    graph: Graph,
+    itemView: T
+  ) {
+    this.contentEl = contentEl;
     this.plugin = plugin;
     this.graphType = graphType;
+    this.itemView = itemView;
     this.settingManager = new GraphSettingManager<typeof this>(this);
     // set up some UI stuff
     this.contentEl.classList.add("graph-3d-view");
@@ -29,34 +40,6 @@ export abstract class Graph3dView extends ItemView {
 
     // move the setting to the front of the graph
     this.contentEl.appendChild(this.settingManager.containerEl);
-  }
-
-  onload(): void {
-    super.onload();
-    this.plugin.activeGraphViews.push(this);
-  }
-
-  onunload(): void {
-    super.onunload();
-    this.forceGraph?.instance._destructor();
-    this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter((view) => view !== this);
-  }
-
-  getDisplayText(): string {
-    return config.displayText[this.graphType];
-  }
-
-  getViewType(): string {
-    return config.viewType[this.graphType];
-  }
-
-  getIcon(): string {
-    return config.icon;
-  }
-
-  onResize() {
-    super.onResize();
-    if (this.forceGraph) this.forceGraph.updateDimensions();
   }
 
   /**
@@ -113,8 +96,8 @@ export abstract class Graph3dView extends ItemView {
       console.error(e.message);
     }
 
-    // make sure the render is at the right place
-    this.onResize();
+    // make sure the render is at the right place if it is an item view
+    if (this.itemView) this.itemView.onResize();
   }
 
   /**
@@ -162,6 +145,13 @@ export abstract class Graph3dView extends ItemView {
       this.forceGraph?.updateConfig({
         display: {
           linkDistance: newSetting.display.linkDistance,
+        },
+      });
+    }
+    if (path.includes("display.linkThickness")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          linkThickness: newSetting.display.linkThickness,
         },
       });
     }

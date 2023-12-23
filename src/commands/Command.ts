@@ -18,7 +18,7 @@ export const commands: Command[] = [
     title: "Test Command",
     function: (view, nodes) => {
       for (const node of nodes) {
-        const file = view.app.vault.getAbstractFileByPath(node.path);
+        const file = view.plugin.app.vault.getAbstractFileByPath(node.path);
         if (file) createNotice(`run on ${file.name}`);
       }
     },
