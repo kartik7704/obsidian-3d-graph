@@ -4,7 +4,7 @@
 
 A 3D Graph for Obsidian with dozen of features!
 
-see the demo: https://www.youtube.com/watch?v=w1H-pcM8nOU
+see the demo: <https://www.youtube.com/watch?v=w1H-pcM8nOU>
 
 <a href="https://www.buymeacoffee.com/yomaru" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 105px !important;" ></a> [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/hananoshikayomaru)
 
@@ -80,6 +80,7 @@ You can change the following:
 9. show link arrow
 10. don't node move on drag
 11. [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph) mode. See more on [DAG Mode](https://github.com/HananoshikaYomaru/obsidian-3d-graph#dag-mode).
+12. embedding graph into note (working in progress)
 
 ### Focus on node
 
@@ -149,12 +150,12 @@ for release, just run `bun release` to release patch. You can also add `--minor`
 ## Note
 
 1. I have been developing this for free. I try to prioritize the functions before fanciness. I also prioritize my tasks base on ICE (Impact, Confidence, Effort).
-2. I have other on-going projects. I need open source helpers. Sponsorship will give me motivation and code contributors are very appreciate. I am open for discussion through https://cal.com/manlung.
+2. I have other on-going projects. I need open source helpers. Sponsorship will give me motivation and code contributors are very appreciate. I am open for discussion through <https://cal.com/manlung>.
 3. If you have an question or feature request, please open Github issues.
 
 ## Say thank you
 
-If you are enjoying this plugin then please support my work and enthusiasm by sponsoring me on Github or buying me a coffee on https://www.buymeacoffee.com/yomaru.
+If you are enjoying this plugin then please support my work and enthusiasm by sponsoring me on Github or buying me a coffee on <https://www.buymeacoffee.com/yomaru>.
 
 <a href="https://www.buymeacoffee.com/yomaru" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 30px !important;width: 105px !important;" ></a> [![](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/hananoshikayomaru)
 
@@ -162,5 +163,5 @@ If you are enjoying this plugin then please support my work and enthusiasm by sp
 
 Just want to say thanks to those people. Without them, this repo will not be here.
 
-1. The original repo: https://github.com/AlexW00/obsidian-3d-graph
-2. The 3d force graph by @vasturiano: https://github.com/vasturiano/3d-force-graph
+1. The original repo: <https://github.com/AlexW00/obsidian-3d-graph>
+2. The 3d force graph by @vasturiano: <https://github.com/vasturiano/3d-force-graph>

@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { MarkdownView, Plugin } from "obsidian";
 import { State } from "@/util/State";
 import { Graph } from "@/graph/Graph";
 import { ResolvedLinkCache } from "@/graph/Link";
@@ -14,6 +14,7 @@ import { GraphType } from "@/SettingsSchemas";
 import { Graph3dView } from "@/views/graph/Graph3dView";
 import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
+import { Test } from "@/views/graph/PostProcessorGraph3dView";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -82,8 +83,10 @@ export default class Graph3dPlugin extends Plugin {
 
     // register markdown code block processor
     this.registerMarkdownCodeBlockProcessor("3d-graph", (source, el, ctx) => {
-      // create the local graph on el
-      // new GraphPostProcessor(source, el, ctx, this);
+      // get the markdown view of this file
+      // @ts-ignore
+      const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView;
+      ctx.addChild(new Test(el, this, source, ctx, markdownView));
     });
   }
 

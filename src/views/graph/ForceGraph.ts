@@ -220,10 +220,13 @@ export class ForceGraph {
   /**
    * update the dimensions of the graph
    */
-  public updateDimensions() {
-    const rootHtmlElement = this.view.contentEl as HTMLDivElement;
-    const [width, height] = [rootHtmlElement.offsetWidth, rootHtmlElement.offsetHeight];
-    this.instance.width(width).height(height);
+  public updateDimensions(dimension?: [number, number]) {
+    if (dimension) this.instance.width(dimension[0]).height(dimension[1]);
+    else {
+      const rootHtmlElement = this.view.contentEl as HTMLDivElement;
+      const [width, height] = [rootHtmlElement.offsetWidth, rootHtmlElement.offsetHeight];
+      this.instance.width(width).height(height);
+    }
   }
 
   public updateConfig(config: DeepPartial<LocalGraphSettings | GlobalGraphSettings>) {
