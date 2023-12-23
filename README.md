@@ -80,7 +80,10 @@ You can change the following:
 9. show link arrow
 10. don't node move on drag
 11. [dag](https://en.wikipedia.org/wiki/Directed_acyclic_graph) mode. See more on [DAG Mode](https://github.com/HananoshikaYomaru/obsidian-3d-graph#dag-mode).
-12. embedding graph into note (working in progress)
+12. embedding graph into note through `3d-graph` code block post processor (working in progress)
+
+> [!CAUTION] The `3d-graph` code block post processor is still in working progress.
+> It is definitely not stable yet, use it in your own risk.
 
 ### Focus on node
 
