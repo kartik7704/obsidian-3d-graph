@@ -11,7 +11,7 @@ import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import { GraphItemView } from "@/views/graph/GraphItemView";
-import { GSettingManager } from "@/views/settings/GraphSettingsManager";
+import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { MarkdownView, TFile } from "obsidian";
 
 type ItemView =

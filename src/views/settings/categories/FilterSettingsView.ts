@@ -1,6 +1,6 @@
 import { Setting } from "obsidian";
 import { addSearchInput } from "@/views/atomics/addSearchInput";
-import { GSettingManager } from "@/views/settings/GraphSettingsManager";
+import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { State } from "@/util/State";
 import { waitForStable } from "@/util/waitFor";
 import { DefaultSearchEngine } from "@/PassiveSearchEngine";

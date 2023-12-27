@@ -3,7 +3,7 @@ import { Graph } from "@/graph/Graph";
 import Graph3dPlugin from "@/main";
 import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { getNewLocalGraph } from "@/views/graph/3dView/LocalGraph3dView";
-import { PostProcessorGraphSettingManager } from "@/views/settings/PostProcessorGraphSettingManager";
+import { PostProcessorGraphSettingManager } from "@/views/settings/graphSettingManagers/PostProcessorGraphSettingManager";
 import { MarkdownView, TFile } from "obsidian";
 import { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
 

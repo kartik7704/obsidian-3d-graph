@@ -13,7 +13,7 @@ import {
   nodeRepulsion,
   nodeSize,
 } from "@/SettingsSchemas";
-import { GSettingManager } from "@/views/settings/GraphSettingsManager";
+import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { State } from "@/util/State";
 import { createNotice } from "@/util/createNotice";
 

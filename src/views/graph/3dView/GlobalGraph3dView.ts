@@ -2,8 +2,8 @@ import { GlobalGraphSettings, GraphType } from "@/SettingsSchemas";
 import Graph3dPlugin from "@/main";
 import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
-import { SearchResult } from "@/views/settings/GraphSettingsManager";
-import { GlobalGraphSettingManager } from "@/views/settings/GlobalGraphSettingManager";
+import { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import { GlobalGraphSettingManager } from "@/views/settings/graphSettingManagers/GlobalGraphSettingManager";
 import { createInstance } from "@/util/LifeCycle";
 
 const getNewGlobalGraph = (
