@@ -1,6 +1,6 @@
 import { ButtonComponent } from "obsidian";
 import { getMySwitcher } from "@/views/settings/categories/getMySwitcher";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 
 export const UtilitySettingsView = async (containerEl: HTMLElement, view: Graph3dView) => {
   const plugin = view.plugin;

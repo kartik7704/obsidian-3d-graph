@@ -1,45 +1,56 @@
-import { GlobalGraphSettings, GraphSetting, LocalGraphSettings } from "@/SettingManager";
-import { GraphType } from "@/SettingsSchemas";
+import {
+  GlobalGraphSettings,
+  GraphSetting,
+  GraphType,
+  LocalGraphSettings,
+} from "@/SettingsSchemas";
 import { Graph } from "@/graph/Graph";
 import Graph3dPlugin from "@/main";
+import { LifeCycle } from "@/util/LifeCycle";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
 import { ForceGraph } from "@/views/graph/ForceGraph";
-import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
-import { type ItemView } from "obsidian";
+import { GraphItemView } from "@/views/graph/GraphItemView";
+import { GSettingManager } from "@/views/settings/GraphSettingsManager";
+import { MarkdownView, TFile } from "obsidian";
 
-export abstract class Graph3dView<T extends ItemView = ItemView> {
+type ItemView =
+  | (MarkdownView & {
+      file: TFile;
+    })
+  | GraphItemView;
+
+export abstract class Graph3dView implements LifeCycle {
   readonly plugin: Graph3dPlugin;
   readonly graphType: GraphType;
   protected forceGraph: ForceGraph;
   public theme: ObsidianTheme;
-  public readonly settingManager: GraphSettingManager<typeof this>;
+
+  public abstract readonly settingManager: GSettingManager;
   public readonly contentEl: HTMLDivElement;
   /**
    * this view can be either Graph Item view or markdown view if it is a post processor view
+   *
+   * @remark this is the parent view
    */
-  itemView: T;
+  abstract itemView: ItemView;
 
-  constructor(
+  protected constructor(
     contentEl: HTMLDivElement,
     plugin: Graph3dPlugin,
     graphType: GraphType,
-    graph: Graph,
-    itemView: T
+    graph: Graph
   ) {
     this.contentEl = contentEl;
+    this.contentEl.classList.add("graph-3d-view");
     this.plugin = plugin;
     this.graphType = graphType;
-    this.itemView = itemView;
-    this.settingManager = new GraphSettingManager<typeof this>(this);
-    // set up some UI stuff
-    this.contentEl.classList.add("graph-3d-view");
     this.theme = new ObsidianTheme(this.plugin.app.workspace.containerEl);
-
     this.forceGraph = new ForceGraph(this, graph);
+  }
 
-    // move the setting to the front of the graph
-    this.contentEl.appendChild(this.settingManager.containerEl);
+  onReady() {
+    // do something after ready
   }
 
   /**
@@ -93,7 +104,7 @@ export abstract class Graph3dView<T extends ItemView = ItemView> {
     try {
       focusEl?.focus();
     } catch (e) {
-      console.error(e.message);
+      console.error((e as Error).message);
     }
 
     // make sure the render is at the right place if it is an item view

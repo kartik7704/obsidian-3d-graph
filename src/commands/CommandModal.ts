@@ -1,6 +1,6 @@
 import { FuzzySuggestModal } from "obsidian";
 import { Node } from "@/graph/Node";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { Command, commands } from "@/commands/Command";
 
 export class CommandModal extends FuzzySuggestModal<Command> {

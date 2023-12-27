@@ -1,9 +1,10 @@
-import { GlobalGraphSettings } from "@/SettingManager";
-import { GraphType } from "@/SettingsSchemas";
+import { GlobalGraphSettings, GraphType } from "@/SettingsSchemas";
 import Graph3dPlugin from "@/main";
 import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { SearchResult } from "@/views/settings/GraphSettingsManager";
+import { GlobalGraphSettingManager } from "@/views/settings/GlobalGraphSettingManager";
+import { createInstance } from "@/util/LifeCycle";
 
 const getNewGlobalGraph = (
   plugin: Graph3dPlugin,
@@ -30,9 +31,19 @@ const getNewGlobalGraph = (
     });
 };
 
+type ConstructorParameters = [
+  plugin: Graph3dPlugin,
+  contentEl: HTMLDivElement,
+  itemView: GlobalGraphItemView
+];
+
 export class GlobalGraph3dView extends Graph3dView {
-  constructor(plugin: Graph3dPlugin, contentEl: HTMLDivElement, itemView: GlobalGraphItemView) {
-    super(contentEl, plugin, GraphType.global, plugin.globalGraph, itemView);
+  itemView: GlobalGraphItemView;
+  settingManager: GlobalGraphSettingManager;
+  private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
+    super(contentEl, plugin, GraphType.global, plugin.globalGraph);
+    this.itemView = itemView;
+    this.settingManager = new GlobalGraphSettingManager(this);
   }
 
   public handleGroupColorSearchResultChange(): void {
@@ -56,5 +67,10 @@ export class GlobalGraph3dView extends Graph3dView {
 
   public handleMetadataCacheChange(): void {
     this.updateGraphData();
+  }
+
+  static new(...args: ConstructorParameters) {
+    // @ts-ignore
+    return createInstance(GlobalGraph3dView, ...args);
   }
 }

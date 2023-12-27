@@ -1,5 +1,5 @@
 import { IActiveSearchEngine } from "@/Interfaces";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { spawnLeafView } from "@/views/leafView";
 import { SearchView, TAbstractFile, TextComponent } from "obsidian";
 

@@ -1,9 +1,8 @@
 import { GraphType } from "@/SettingsSchemas";
 import { config } from "@/config";
 import type Graph3dPlugin from "@/main";
-import { GlobalGraph3dView } from "@/views/graph/GlobalGraph3dView";
-import { Graph3dView } from "@/views/graph/Graph3dView";
-import { LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
+import { GlobalGraph3dView } from "@/views/graph/3dView/GlobalGraph3dView";
+import { LocalGraph3dView } from "@/views/graph/3dView/LocalGraph3dView";
 import { ItemView, WorkspaceLeaf } from "obsidian";
 
 export abstract class GraphItemView extends ItemView {
@@ -12,16 +11,19 @@ export abstract class GraphItemView extends ItemView {
    * although we have a graph type in graph 3d view, we still need this graph type here in the item view
    * because the `getViewType` and `getDisplayText` method is called before the graph 3d view is created
    */
-  readonly graphType: GraphType;
-  graph3dView: Graph3dView;
-  constructor(leaf: WorkspaceLeaf, plugin: Graph3dPlugin, graphType: GraphType) {
+  abstract readonly graphType: GraphType.local | GraphType.global;
+  /**
+   * in the graph item view, the graph 3d view can only be either local or global
+   */
+  abstract graph3dView: LocalGraph3dView | GlobalGraph3dView;
+
+  constructor(
+    leaf: WorkspaceLeaf,
+    plugin: Graph3dPlugin
+    // graphType: GraphType.local | GraphType.global
+  ) {
     super(leaf);
     this.plugin = plugin;
-    this.graphType = graphType;
-    this.graph3dView =
-      graphType === GraphType.local
-        ? new LocalGraph3dView(this.plugin, this.contentEl as HTMLDivElement, this)
-        : new GlobalGraph3dView(this.plugin, this.contentEl as HTMLDivElement, this);
   }
 
   onload(): void {
@@ -38,11 +40,11 @@ export abstract class GraphItemView extends ItemView {
   }
 
   getDisplayText(): string {
-    return config.displayText[this.graphType === GraphType.local ? "local" : "global"];
+    return config.displayText[this.graphType];
   }
 
   getViewType(): string {
-    return config.viewType[this.graphType === GraphType.local ? "local" : "global"];
+    return config.viewType[this.graphType];
   }
 
   getIcon(): string {

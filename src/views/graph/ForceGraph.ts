@@ -4,18 +4,17 @@ import { CenterCoordinates } from "@/views/graph/CenterCoordinates";
 import * as THREE from "three";
 import * as d3 from "d3-force-3d";
 import { hexToRGBA } from "@/util/hexToRGBA";
-import { GlobalGraphSettings, LocalGraphSettings } from "@/SettingManager";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { Graph3dView } from "@/views/graph/Graph3dView";
 import { FOCAL_FROM_CAMERA, ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
 import { DeepPartial } from "ts-essentials";
 import { Node } from "@/graph/Node";
 
 import { rgba } from "polished";
 import { createNotice } from "@/util/createNotice";
-import { DagOrientation } from "@/SettingsSchemas";
+import { DagOrientation, GlobalGraphSettings, LocalGraphSettings } from "@/SettingsSchemas";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { TFile } from "obsidian";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 
 type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
   graphData: {
@@ -62,7 +61,8 @@ export class ForceGraph {
     if (tooMany) createNotice(`Too many nodes, there are ${_graph.nodes.length} nodes`);
 
     // create the div element for the node label
-    const divEl = this.createNodeLabel();
+    const { divEl, nodeLabelEl } = this.createNodeLabel();
+    this.nodeLabelEl = nodeLabelEl;
     // create the instance
     // these config will not changed by user
     this.instance = ForceGraph3D({
@@ -183,12 +183,12 @@ export class ForceGraph {
   private createNodeLabel() {
     const divEl = document.createElement("div");
     divEl.style.zIndex = "0";
-    this.nodeLabelEl = divEl.createDiv({
+    const nodeLabelEl = divEl.createDiv({
       cls: "node-label",
       text: "",
     });
-    this.nodeLabelEl.style.opacity = "0";
-    return divEl;
+    nodeLabelEl.style.opacity = "0";
+    return { divEl, nodeLabelEl };
   }
 
   private createCube() {

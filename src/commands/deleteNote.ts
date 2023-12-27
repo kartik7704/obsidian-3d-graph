@@ -1,4 +1,4 @@
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { Node } from "@/graph/Node";
 
 export const deleteNote = (view: Graph3dView, nodes: Set<Node>) => {

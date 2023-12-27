@@ -3,21 +3,19 @@ import { ExtraButtonComponent, TAbstractFile } from "obsidian";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { SavedSettingsView } from "@/views/settings/categories/SavedSettingsView";
 import { FilterSettingsView } from "@/views/settings/categories/FilterSettingsView";
-import {
-  GlobalGraphSettings,
-  GraphSetting,
-  LocalGraphSettings,
-  MySettingManager,
-  SavedSetting,
-} from "@/SettingManager";
+import { PluginSettingManager } from "@/SettingManager";
 import { State, StateChange } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettingsView";
-import { Graph3dView } from "@/views/graph/Graph3dView";
-import { AsyncQueue } from "@/util/AsyncQueue";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { waitFor } from "@/util/waitFor";
-import { GraphType } from "@/SettingsSchemas";
-import { type LocalGraph3dView } from "@/views/graph/LocalGraph3dView";
+import {
+  GlobalGraphSettings,
+  GraphSetting,
+  GraphType,
+  LocalGraphSettings,
+  SavedSetting,
+} from "@/SettingsSchemas";
 
 export type SearchResult = {
   filter: {
@@ -28,70 +26,63 @@ export type SearchResult = {
   }[];
 };
 
-/**
- * this setting manager is responsible for managing the settings of a graph view
- */
-export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
-  private graphView: T;
+export abstract class GSettingManager {
+  protected abstract graphView: Graph3dView;
+  protected abstract currentSetting: State<GraphSetting>;
+  protected abstract settingChanges: StateChange<unknown, GraphSetting>[];
 
-  public readonly containerEl: HTMLDivElement;
-  private settingsButton: ExtraButtonComponent;
-  private graphControlsEl: HTMLDivElement;
+  readonly containerEl: HTMLDivElement;
+  protected settingsButton: ExtraButtonComponent;
+  protected graphControlsEl?: HTMLDivElement;
 
-  public filterSettingView: Awaited<ReturnType<typeof FilterSettingsView>>;
-  public groupSettingView: Awaited<ReturnType<typeof GroupSettingsView>>;
-  public displaySettingView: Awaited<ReturnType<typeof DisplaySettingsView>>;
-
-  protected currentSetting: State<SavedSetting["setting"]>;
-  protected settingChanges: StateChange<unknown, GraphSetting>[] = [];
+  public filterSettingView?: Awaited<ReturnType<typeof FilterSettingsView>>;
+  public groupSettingView?: Awaited<ReturnType<typeof GroupSettingsView>>;
+  public displaySettingView?: Awaited<ReturnType<typeof DisplaySettingsView>>;
 
   public searchResult: State<SearchResult> = new State({
     filter: { files: [] },
     groups: [],
   } as SearchResult);
   protected searchResultChanges: StateChange<unknown, SearchResult>[] = [];
-  private asyncQueue = new AsyncQueue();
 
-  constructor(parentView: T) {
-    this.graphView = parentView;
+  protected constructor() {
     this.containerEl = document.createElement("div");
     this.containerEl.classList.add("graph-settings-view");
-
-    const pluginSetting = this.graphView.plugin.settingManager.getSettings();
-    this.currentSetting = new State(
-      this.graphView.graphType === GraphType.local
-        ? pluginSetting.temporaryLocalGraphSetting
-        : pluginSetting.temporaryGlobalGraphSetting
-    );
 
     this.settingsButton = new ExtraButtonComponent(this.containerEl)
       .setIcon("settings")
       .setTooltip("Open graph settings")
       .onClick(this.onSettingsButtonClicked);
 
-    // add this setting view to the parent view
-    this.graphView.contentEl.appendChild(this.containerEl);
-    this.initNewView(true);
-
-    this.currentSetting.onChange((change: StateChange<unknown, GraphSetting>) =>
-      this.settingChanges.push(change)
-    );
-
-    // tell the graph view to handle search result change
-    this.searchResult.onChange((change: StateChange<unknown, SearchResult>) => {
-      // push to search result change first
-      this.searchResultChanges.push(change);
-      if (change.currentPath === "filter.files") {
-        // update the graph data
-        this.graphView.handleSearchResultChange();
-      } else if (change.currentPath.startsWith("groups")) {
-        // update the graph setting
-        this.graphView.handleGroupColorSearchResultChange();
-      }
-    });
+    this.settingsButton.extraSettingsEl.addClasses([
+      "clickable-icon",
+      "graph-controls-button",
+      "mod-open",
+    ]);
   }
 
-  initNewView(collapsed = false) {
+  private onSettingsButtonClicked = () => {
+    this.toggleCollapsed(false);
+  };
+
+  // toggle the view to collapsed or expanded
+  toggleCollapsed(collapsed: boolean) {
+    if (collapsed) {
+      this.settingsButton.setDisabled(false);
+      this.settingsButton.extraSettingsEl.classList.remove("hidden");
+      this.graphControlsEl?.classList.add("hidden");
+    } else {
+      this.settingsButton.setDisabled(true);
+      this.settingsButton.extraSettingsEl.classList.add("hidden");
+      this.graphControlsEl?.classList.remove("hidden");
+    }
+  }
+
+  protected initNewView(collapsed = false) {
+    // check if the contentEl of the graph View already contains the containerEl of setting manager, if not add it
+    if (!this.graphView.contentEl.contains(this.containerEl))
+      this.graphView.contentEl.appendChild(this.containerEl);
+
     // this ensure that the graph controls element is empty
     this.graphControlsEl?.remove();
     // also remove all the search result container
@@ -129,6 +120,7 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
       }
     );
 
+    // add the display settings
     this.appendSettingGroup(
       this.graphControlsEl,
       this.currentSetting.value,
@@ -138,10 +130,13 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
         return this.displaySettingView;
       }
     );
+
+    // add the utility settings
     this.appendSettingGroup(this.graphControlsEl, undefined, "Utils", (_, containerEl) =>
       UtilitySettingsView(containerEl, this.graphView)
     );
 
+    // add the saved settings
     this.appendSettingGroup(this.graphControlsEl, undefined, "Saved settings", (_, containerEl) =>
       SavedSettingsView(containerEl, this.graphView)
     );
@@ -154,22 +149,24 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
     }, {});
   }
 
-  // toggle the view to collapsed or expanded
-  toggleCollapsed(collapsed: boolean) {
-    if (collapsed) {
-      this.settingsButton.setDisabled(false);
-      this.settingsButton.extraSettingsEl.classList.remove("hidden");
-      this.graphControlsEl.classList.add("hidden");
-    } else {
-      this.settingsButton.setDisabled(true);
-      this.settingsButton.extraSettingsEl.classList.add("hidden");
-      this.graphControlsEl.classList.remove("hidden");
-    }
+  /**
+   * return the current setting. This is useful for saving the setting
+   */
+  // @ts-ignore
+  public getCurrentSetting(): (typeof this)["currentSetting"]["value"] {
+    return this.currentSetting.value;
   }
 
-  private onSettingsButtonClicked = () => {
-    this.toggleCollapsed(false);
-  };
+  public getGraphView() {
+    return this.graphView;
+  }
+
+  triggerSearch() {
+    // console.log(this.filterSettingView, this.groupSettingView);
+    this.filterSettingView?.triggerSearch();
+    this.groupSettingView?.triggerSearch();
+    return Boolean(this.filterSettingView && this.groupSettingView);
+  }
 
   private appendGraphControlsItems(containerEl: HTMLElement) {
     new ExtraButtonComponent(containerEl)
@@ -214,7 +211,7 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
 
     // reset the current setting
     this.updateCurrentSettings((setting) => {
-      setting.value = MySettingManager.getNewSetting(this.graphView.graphType);
+      setting.value = PluginSettingManager.getNewSetting(this.graphView.graphType);
     });
 
     this.initNewView(false);
@@ -230,13 +227,6 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
       setting.value = newSetting;
     });
     this.initNewView(false);
-  }
-
-  triggerSearch() {
-    // console.log(this.filterSettingView, this.groupSettingView);
-    this.filterSettingView?.triggerSearch();
-    this.groupSettingView?.triggerSearch();
-    return Boolean(this.filterSettingView && this.groupSettingView);
   }
 
   /**
@@ -291,16 +281,33 @@ export class GraphSettingManager<T extends Graph3dView = Graph3dView> {
     this.settingChanges = [];
   }
 
-  /**
-   * return the current setting. This is useful for saving the setting
-   */
-  public getCurrentSetting() {
-    return this.currentSetting.value as T extends LocalGraph3dView
-      ? LocalGraphSettings
-      : GlobalGraphSettings;
-  }
+  // static create(parentView: LocalGraph3dView): LocalGraphSettingManager;
+  // static create(parentView: GlobalGraph3dView): GlobalGraphSettingManager;
+  // static create(parentView: PostProcessorGraph3dView): PostProcessorGraphSettingManager;
+  // static create(parentView: Graph3dView): GSettingManager {
+  //   const manager: GSettingManager =
+  //     parentView instanceof LocalGraph3dView
+  //       ? new LocalGraphSettingManager(parentView)
+  //       : parentView instanceof GlobalGraph3dView
+  //       ? new GlobalGraphSettingManager(parentView)
+  //       : new PostProcessorGraphSettingManager(parentView as PostProcessorGraph3dView);
+  //   manager.afterCreate();
+  //   return manager;
+  // }
 
-  public getGraphView() {
-    return this.graphView;
+  /**
+   * you should use this function to create setting manager
+   */
+  afterCreate() {
+    this.initNewView(true);
+    this.currentSetting.onChange((change) => this.settingChanges.push(change));
+    this.searchResult.onChange((change) => {
+      this.searchResultChanges.push(change);
+      if (change.currentPath === "filter.files") {
+        this.graphView.handleSearchResultChange();
+      } else if (change.currentPath.startsWith("groups")) {
+        this.graphView.handleGroupColorSearchResultChange();
+      }
+    });
   }
 }

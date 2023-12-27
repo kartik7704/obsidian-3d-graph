@@ -1,24 +1,26 @@
-import { GlobalGraphSettings, LocalDisplaySettings, LocalGraphSettings } from "@/SettingManager";
 import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";
 import { DropdownComponent, Setting } from "obsidian";
 import {
   DagOrientation,
+  GlobalGraphSettings,
+  LocalDisplaySettings,
+  LocalGraphSettings,
   distanceFromFocal,
   linkDistance,
   linkThickness,
   nodeRepulsion,
   nodeSize,
 } from "@/SettingsSchemas";
-import { GraphSettingManager } from "@/views/settings/GraphSettingsManager";
+import { GSettingManager } from "@/views/settings/GraphSettingsManager";
 import { State } from "@/util/State";
 import { createNotice } from "@/util/createNotice";
 
 export const DisplaySettingsView = (
   graphSetting: GlobalGraphSettings | LocalGraphSettings,
   containerEl: HTMLElement,
-  settingManager: GraphSettingManager
+  settingManager: GSettingManager
 ) => {
   const displaySettings = graphSetting.display;
   // add the node size setting

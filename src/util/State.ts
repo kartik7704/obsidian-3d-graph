@@ -53,7 +53,7 @@ export class State<T> {
     ]);
   }
 
-  public onChange = (callback: (change: StateChange) => void): (() => void) => {
+  public onChange = (callback: (change: StateChange<unknown, T>) => void): (() => void) => {
     const listenerId = this.generateListenerId();
     this.listeners.set(listenerId, callback);
     return () => this.unsubscribe(listenerId); // return unsubscribe function

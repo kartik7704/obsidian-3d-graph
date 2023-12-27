@@ -1,13 +1,14 @@
-import { LocalGraphSettings } from "@/SettingManager";
 import { Graph } from "@/graph/Graph";
 import { Node } from "@/graph/Node";
 import { Link } from "@/graph/Link";
 import Graph3dPlugin from "@/main";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { SearchResult } from "@/views/settings/GraphSettingsManager";
+import { LocalGraphSettingManager } from "@/views/settings/LocalGraphSettingManager";
 import { TAbstractFile, TFile } from "obsidian";
 import { type LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
-import { GraphType } from "@/SettingsSchemas";
+import { GraphType, LocalGraphSettings } from "@/SettingsSchemas";
+import { createInstance } from "@/util/LifeCycle";
 
 /**
  *
@@ -154,17 +155,29 @@ export const getNewLocalGraph = (
   return graph;
 };
 
-export class LocalGraph3dView extends Graph3dView<LocalGraphItemView> {
+type ConstructorParameters = [
+  plugin: Graph3dPlugin,
+  contentEl: HTMLDivElement,
+  itemView: LocalGraphItemView
+];
+
+export class LocalGraph3dView extends Graph3dView {
+  itemView: LocalGraphItemView;
+  settingManager: LocalGraphSettingManager;
   /**
    * when the app is just open, this can be null
    */
   public currentFile: TAbstractFile | null;
 
-  constructor(plugin: Graph3dPlugin, contentEl: HTMLDivElement, itemView: LocalGraphItemView) {
-    super(contentEl, plugin, GraphType.local, getNewLocalGraph(plugin), itemView);
-
+  private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
+    super(contentEl, plugin, GraphType.local, getNewLocalGraph(plugin));
     this.currentFile = this.plugin.app.workspace.getActiveFile();
+    this.itemView = itemView;
+    this.settingManager = new LocalGraphSettingManager(this);
+  }
 
+  onReady() {
+    super.onReady();
     this.itemView.registerEvent(
       this.plugin.app.workspace.on("file-open", this.handleFileChange.bind(this))
     );
@@ -209,5 +222,10 @@ export class LocalGraph3dView extends Graph3dView<LocalGraphItemView> {
     if (path.some((p) => p === "filter.depth" || p === "filter.linkType")) {
       this.updateGraphData();
     }
+  }
+
+  static new(...args: ConstructorParameters) {
+    // @ts-ignore
+    return createInstance(LocalGraph3dView, ...args);
   }
 }

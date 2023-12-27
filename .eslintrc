@@ -36,6 +36,7 @@
         "argsIgnorePattern": "^_"
       }
     ],
+    "@typescript-eslint/no-namespace": "off",
     "@typescript-eslint/ban-ts-comment": "off",
     "no-prototype-builtins": "off",
     "@typescript-eslint/no-empty-function": "off",

@@ -1,8 +1,8 @@
 import { addNodeGroups } from "@/views/settings/categories/addNodeGroups";
 import { addNodeGroupButton } from "@/views/settings/categories/AddNodeGroupButton";
-import { GroupSettings } from "@/SettingManager";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { addSearchInput } from "@/views/atomics/addSearchInput";
+import { GroupSettings } from "@/SettingsSchemas";
 
 export const GroupSettingsView = async (
   groupSettings: GroupSettings,

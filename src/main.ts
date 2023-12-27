@@ -9,12 +9,12 @@ import { eventBus } from "@/util/EventBus";
 import { SettingTab } from "@/views/SettingTab";
 import { config } from "@/config";
 import { MyFileManager } from "@/FileManager";
-import { MySettingManager } from "@/SettingManager";
+import { PluginSettingManager } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
-import { Graph3dView } from "@/views/graph/Graph3dView";
+import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
-import { Test } from "@/views/graph/PostProcessorGraph3dView";
+import { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
 
 export default class Graph3dPlugin extends Plugin {
   _resolvedCache: ResolvedLinkCache;
@@ -28,7 +28,7 @@ export default class Graph3dPlugin extends Plugin {
   public globalGraph: Graph;
 
   public fileManager: MyFileManager;
-  public settingManager: MySettingManager;
+  public settingManager: PluginSettingManager;
 
   public activeGraphViews: Graph3dView[] = [];
 
@@ -37,7 +37,7 @@ export default class Graph3dPlugin extends Plugin {
    */
   async onload() {
     // initialize the setting manager
-    this.settingManager = new MySettingManager(this);
+    this.settingManager = new PluginSettingManager(this);
 
     // load the setting using setting manager
     await this.settingManager.loadSettings();
@@ -86,7 +86,11 @@ export default class Graph3dPlugin extends Plugin {
       // get the markdown view of this file
       // @ts-ignore
       const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView;
-      ctx.addChild(new Test(el, this, source, ctx, markdownView));
+      ctx.addChild(new Graph3DViewMarkdownRenderChild(el, this, source, ctx, markdownView));
+    });
+
+    this.registerMarkdownCodeBlockProcessor("test", (source, el, ctx) => {
+      el.createDiv({ text: "test" });
     });
   }
 

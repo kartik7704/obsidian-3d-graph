@@ -1,11 +1,8 @@
-import { GraphType } from "@/SettingsSchemas";
-import { Graph } from "@/graph/Graph";
 import Graph3dPlugin from "@/main";
-import { Graph3dView } from "@/views/graph/Graph3dView";
-import { getNewLocalGraph } from "@/views/graph/LocalGraph3dView";
-import { MarkdownPostProcessorContext, MarkdownRenderChild, MarkdownView, TFile } from "obsidian";
+import { PostProcessorGraph3dView } from "@/views/graph/3dView/PostProcessorGraph3dView";
+import { MarkdownPostProcessorContext, MarkdownRenderChild, MarkdownView } from "obsidian";
 
-export class Test extends MarkdownRenderChild {
+export class Graph3DViewMarkdownRenderChild extends MarkdownRenderChild {
   plugin: Graph3dPlugin;
   source: string;
   ctx: MarkdownPostProcessorContext;
@@ -38,7 +35,7 @@ export class Test extends MarkdownRenderChild {
     // Start observing the content element
     this.resizeObserver.observe(contentEl);
 
-    this.graph3dView = new PostProcessorGraph3dView(
+    this.graph3dView = PostProcessorGraph3dView.new(
       this.plugin,
       this.containerEl,
       this.markdownView,
@@ -56,8 +53,9 @@ export class Test extends MarkdownRenderChild {
     // the unload is called when the markdown view doesn't exist anymore
     // change to another file doesn't count
     // close the file count
-    console.log("unload");
+    // console.log("unload");
     this.resizeObserver.disconnect();
+    // destroy the graph and remove from the active graph views
     this.graph3dView.getForceGraph().instance._destructor();
     this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter(
       (view) => view !== this.graph3dView
@@ -74,55 +72,5 @@ export class Test extends MarkdownRenderChild {
 
     // If you need to redraw or adjust anything related to the plugin or content,
     // this is where you'd do it.
-  }
-}
-
-export class PostProcessorGraph3dView extends Graph3dView {
-  parent: Test;
-  currentFile: TFile | null;
-  public handleSearchResultChange(): void {
-    this.updateGraphData();
-  }
-  public handleGroupColorSearchResultChange(): void {
-    this.forceGraph.interactionManager.updateColor();
-  }
-  public handleMetadataCacheChange(): void {
-    this.updateGraphData();
-  }
-
-  protected updateGraphData() {
-    super.updateGraphData(this.getNewGraphData());
-  }
-
-  protected getNewGraphData(): Graph {
-    const graph = getNewLocalGraph(this.plugin, {
-      centerFile: this.parent.markdownView.file,
-      searchResults: this.settingManager.searchResult.value.filter.files,
-      filterSetting: {
-        // TODO: since this `getNewLocalGraph` function is originally for local graph, the setting is a bit different, we have to manually set it for now
-        ...this.settingManager.getCurrentSetting().filter,
-        depth: 1,
-        linkType: "both",
-      },
-    });
-    return graph;
-  }
-  constructor(
-    plugin: Graph3dPlugin,
-    contentEl: HTMLElement,
-    markdownView: MarkdownView,
-    parent: Test
-  ) {
-    super(
-      contentEl as HTMLDivElement,
-      plugin,
-      GraphType.postProcessor,
-      getNewLocalGraph(plugin),
-      // @ts-ignore
-      markdownView
-    );
-
-    this.parent = parent;
-    this.currentFile = this.parent.markdownView.file;
   }
 }

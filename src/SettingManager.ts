@@ -1,53 +1,31 @@
 import { ISettingManager } from "@/Interfaces";
 import { AsyncQueue } from "@/util/AsyncQueue";
-import { z } from "zod";
 import {
-  BaseFilterSettingsSchema,
-  LocalFilterSettingSchema,
-  GroupSettingsSchema,
-  BaseDisplaySettingsSchema,
-  LocalDisplaySettingsSchema,
-  GlobalGraphSettingsSchema,
-  LocalGraphSettingsSchema,
   SettingSchema,
   GraphType,
   SearchEngineType,
-  SavedSettingSchema,
   CommandClickNodeAction,
   defaultLocalGraphSetting,
   defaultGlobalGraphSetting,
+  defaultMarkdownPostProcessorGraphSetting,
+  Setting,
+  GlobalGraphSettings,
+  LocalGraphSettings,
+  MarkdownPostProcessorGraphSettings,
+  GraphSetting,
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
 import { Plugin } from "obsidian";
 
-export type BaseFilterSettings = Prettify<z.TypeOf<typeof BaseFilterSettingsSchema>>;
-
-export type LocalFilterSetting = Prettify<z.TypeOf<typeof LocalFilterSettingSchema>>;
-
-export type GroupSettings = Prettify<z.TypeOf<typeof GroupSettingsSchema>>;
-
-export type BaseDisplaySettings = Prettify<z.TypeOf<typeof BaseDisplaySettingsSchema>>;
-
-export type LocalDisplaySettings = Prettify<z.TypeOf<typeof LocalDisplaySettingsSchema>>;
-
-export type GlobalGraphSettings = Prettify<z.TypeOf<typeof GlobalGraphSettingsSchema>>;
-
-export type LocalGraphSettings = Prettify<z.TypeOf<typeof LocalGraphSettingsSchema>>;
-
-export type SavedSetting = Prettify<z.TypeOf<typeof SavedSettingSchema>>;
-
-export type Setting = Prettify<z.TypeOf<typeof SettingSchema>>;
-
-export type GraphSetting = Exclude<SavedSetting["setting"], undefined>;
-
 const corruptedMessage =
   "The setting is corrupted. You will not be able to save the setting. Please backup your data.json, remove it and reload the plugin. Then migrate your old setting back.";
 
 /**
+ * the plugin setting manager
  * @remarks the setting will not keep the temporary setting. It will only keep the saved settings.
  */
-export class MySettingManager implements ISettingManager<Setting> {
+export class PluginSettingManager implements ISettingManager<Setting> {
   private plugin: Plugin;
   private setting: State<Setting> = new State(DEFAULT_SETTING);
   private asyncQueue = new AsyncQueue();
@@ -137,21 +115,25 @@ export class MySettingManager implements ISettingManager<Setting> {
     // console.log("saved: ", this.setting.value);
   }
 
-  static getNewSetting<T extends GraphType>(type: T) {
+  static getNewSetting(type: GraphType.global): GlobalGraphSettings;
+  static getNewSetting(type: GraphType.local): LocalGraphSettings;
+  static getNewSetting(type: GraphType.postProcessor): MarkdownPostProcessorGraphSettings;
+  static getNewSetting(type: GraphType): GraphSetting;
+  static getNewSetting(type: GraphType) {
     if (type === GraphType.global) {
-      return defaultGlobalGraphSetting as GlobalGraphSettings;
+      return defaultGlobalGraphSetting;
+    } else if (type === GraphType.local) {
+      return defaultLocalGraphSetting;
     } else {
-      return defaultLocalGraphSetting as LocalGraphSettings;
+      return defaultMarkdownPostProcessorGraphSetting;
     }
   }
 }
 
 export const DEFAULT_SETTING: Setting = {
   savedSettings: [],
-  temporaryLocalGraphSetting: MySettingManager.getNewSetting(GraphType.local) as LocalGraphSettings,
-  temporaryGlobalGraphSetting: MySettingManager.getNewSetting(
-    GraphType.global
-  ) as GlobalGraphSettings,
+  temporaryLocalGraphSetting: defaultLocalGraphSetting,
+  temporaryGlobalGraphSetting: defaultGlobalGraphSetting,
   pluginSetting: {
     maxNodeNumber: 1000,
     searchEngine: SearchEngineType.default,
