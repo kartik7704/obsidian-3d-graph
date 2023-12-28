@@ -1,3 +1,4 @@
+import type { App, PluginManifest } from "obsidian";
 import { MarkdownView, Plugin } from "obsidian";
 import { State } from "@/util/State";
 import { Graph } from "@/graph/Graph";
@@ -32,13 +33,26 @@ export default class Graph3dPlugin extends Plugin {
 
   public activeGraphViews: Graph3dView[] = [];
 
+  constructor(app: App, manifest: PluginManifest) {
+    super(app, manifest);
+
+    // this will be initialized in the on cache changed function
+    this._resolvedCache = undefined as unknown as ResolvedLinkCache;
+    // this will be initialized in the on cache changed function
+    this.globalGraph = undefined as unknown as Graph;
+
+    this.onGraphCacheChanged();
+
+    this.settingManager = new PluginSettingManager(this);
+
+    // this will be initialized in the onload function because we need to wait for the setting manager to initialize
+    this.fileManager = undefined as unknown as MyFileManager;
+  }
+
   /**
    * initialize all the things here
    */
   async onload() {
-    // initialize the setting manager
-    this.settingManager = new PluginSettingManager(this);
-
     // load the setting using setting manager
     await this.settingManager.loadSettings();
 

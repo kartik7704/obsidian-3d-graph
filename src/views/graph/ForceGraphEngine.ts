@@ -36,7 +36,7 @@ export class ForceGraphEngine {
    * the links connected to the hover node
    */
   public readonly highlightedLinks: Set<Link> = new Set();
-  hoveredNode: Node | null;
+  hoveredNode: Node | null = null;
 
   // zooming
   private isZooming = false;
