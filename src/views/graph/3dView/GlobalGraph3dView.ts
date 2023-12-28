@@ -1,10 +1,12 @@
-import { GlobalGraphSettings, GraphType } from "@/SettingsSchemas";
-import Graph3dPlugin from "@/main";
-import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
+import type { GlobalGraphSettings } from "@/SettingsSchemas";
+import { GraphType } from "@/SettingsSchemas";
+import type Graph3dPlugin from "@/main";
+import type { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
-import { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import type { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { GlobalGraphSettingManager } from "@/views/settings/graphSettingManagers/GlobalGraphSettingManager";
 import { createInstance } from "@/util/LifeCycle";
+import { ForceGraph } from "@/views/graph/ForceGraph";
 
 const getNewGlobalGraph = (
   plugin: Graph3dPlugin,
@@ -41,7 +43,7 @@ export class GlobalGraph3dView extends Graph3dView {
   itemView: GlobalGraphItemView;
   settingManager: GlobalGraphSettingManager;
   private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
-    super(contentEl, plugin, GraphType.global, plugin.globalGraph);
+    super(contentEl, plugin, GraphType.global);
     this.itemView = itemView;
     this.settingManager = new GlobalGraphSettingManager(this);
   }
@@ -72,5 +74,9 @@ export class GlobalGraph3dView extends Graph3dView {
   static new(...args: ConstructorParameters) {
     // @ts-ignore
     return createInstance(GlobalGraph3dView, ...args);
+  }
+
+  onReady(): void {
+    this.forceGraph = new ForceGraph(this, this.plugin.globalGraph);
   }
 }

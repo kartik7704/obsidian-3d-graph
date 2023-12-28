@@ -1,5 +1,12 @@
-import { ISettingManager } from "@/Interfaces";
+import type { ISettingManager } from "@/Interfaces";
 import { AsyncQueue } from "@/util/AsyncQueue";
+import type {
+  Setting,
+  GlobalGraphSettings,
+  LocalGraphSettings,
+  MarkdownPostProcessorGraphSettings,
+  GraphSetting,
+} from "@/SettingsSchemas";
 import {
   SettingSchema,
   GraphType,
@@ -8,15 +15,10 @@ import {
   defaultLocalGraphSetting,
   defaultGlobalGraphSetting,
   defaultMarkdownPostProcessorGraphSetting,
-  Setting,
-  GlobalGraphSettings,
-  LocalGraphSettings,
-  MarkdownPostProcessorGraphSettings,
-  GraphSetting,
 } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { State } from "@/util/State";
-import { Plugin } from "obsidian";
+import type { Plugin } from "obsidian";
 
 const corruptedMessage =
   "The setting is corrupted. You will not be able to save the setting. Please backup your data.json, remove it and reload the plugin. Then migrate your old setting back.";
@@ -46,7 +48,7 @@ export class PluginSettingManager implements ISettingManager<Setting> {
    * this function will update the setting and save it to the json file. But it is still a sync function.
    * You should always use this function to update setting
    */
-  updateSettings(updateFunc: (setting: typeof this.setting) => void): Setting {
+  updateSettings(updateFunc: (setting: State<Setting>) => void): Setting {
     // update the setting first
     updateFunc(this.setting);
     // save the setting to json

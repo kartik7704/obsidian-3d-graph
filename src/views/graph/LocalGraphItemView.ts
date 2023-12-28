@@ -1,8 +1,8 @@
 import { GraphType } from "@/SettingsSchemas";
-import Graph3dPlugin from "@/main";
+import type Graph3dPlugin from "@/main";
 import { LocalGraph3dView } from "@/views/graph/3dView/LocalGraph3dView";
 import { GraphItemView } from "@/views/graph/GraphItemView";
-import { WorkspaceLeaf } from "obsidian";
+import type { WorkspaceLeaf } from "obsidian";
 
 export class LocalGraphItemView extends GraphItemView {
   graphType = GraphType.local as const;

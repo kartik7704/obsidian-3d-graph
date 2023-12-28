@@ -3,20 +3,22 @@
 // You can use this file as a basic leaf view create method in anywhere
 // Please rememeber if you want to use this file, you should patch the types-obsidian.d.ts file
 // And also monkey around the Obsidian original method.
-import {
-  Component,
+import type {
   EphemeralState,
-  HoverPopover,
   MarkdownEditView,
-  parseLinktext,
   Plugin,
-  PopoverState,
-  requireApiVersion,
-  resolveSubpath,
   TFile,
   View,
   Workspace,
   WorkspaceLeaf,
+} from "obsidian";
+import {
+  Component,
+  HoverPopover,
+  parseLinktext,
+  PopoverState,
+  requireApiVersion,
+  resolveSubpath,
   WorkspaceSplit,
   WorkspaceTabs,
 } from "obsidian";
@@ -86,6 +88,7 @@ export class EmbeddedView extends nosuper(HoverPopover) {
   onTarget: boolean;
   setActive: (event: MouseEvent) => void;
 
+  // @ts-ignore
   lockedOut: boolean;
   abortController? = this.addChild(new Component());
   detaching = false;
@@ -98,6 +101,7 @@ export class EmbeddedView extends nosuper(HoverPopover) {
 
   isPinned = true;
 
+  // @ts-ignore
   titleEl: HTMLElement;
   containerEl: HTMLElement;
 
@@ -109,9 +113,12 @@ export class EmbeddedView extends nosuper(HoverPopover) {
 
   id = genId(8);
   bounce?: Timer;
+  // @ts-ignore
   boundOnZoomOut: () => void;
 
+  // @ts-ignore
   originalPath: string; // these are kept to avoid adopting targets w/a different link
+  // @ts-ignore
   originalLinkText: string;
   static activePopover?: EmbeddedView;
 

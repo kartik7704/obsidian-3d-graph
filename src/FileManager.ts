@@ -1,32 +1,45 @@
 import { BasicSearchEngine } from "@/BasicSearchEngine";
 import { DvSearchEngine } from "@/DvSearchEngine";
-import { IFileManager, IPassiveSearchEngine, IActiveSearchEngine } from "@/Interfaces";
+import type { IFileManager, PassiveSearchEngine } from "@/Interfaces";
+import { ActiveSearchEngine } from "@/Interfaces";
 import { DefaultSearchEngine as DefaultSearchEngine } from "@/PassiveSearchEngine";
 import { SearchEngineType } from "@/SettingsSchemas";
-import Graph3dPlugin from "@/main";
+import type Graph3dPlugin from "@/main";
 
 /**
  * this class will handle the active searching of a graph view.
  */
 export class MyFileManager implements IFileManager {
   private plugin: Graph3dPlugin;
-  public searchEngine: IActiveSearchEngine | IPassiveSearchEngine;
+
+  private _searchEngine: ActiveSearchEngine | PassiveSearchEngine;
 
   constructor(plugin: Graph3dPlugin) {
     this.plugin = plugin;
-    this.setSearchEngine();
+    this._searchEngine = this._setSearchEngine();
   }
 
   /**
-   * this will set the search engine base on the setting
+   * @internal
    */
+  private _setSearchEngine() {
+    const getSearchEngine = (searchEngine: SearchEngineType, plugin: Graph3dPlugin) => {
+      if (searchEngine === SearchEngineType.default) return new DefaultSearchEngine(plugin);
+      else if (searchEngine === SearchEngineType.dataview) return new DvSearchEngine(plugin);
+      else return new BasicSearchEngine(plugin);
+    };
+    return getSearchEngine(
+      this.plugin.settingManager.getSettings().pluginSetting.searchEngine,
+      this.plugin
+    );
+  }
+
+  get searchEngine() {
+    return this._searchEngine;
+  }
+
   setSearchEngine() {
-    const searchEngine = this.plugin.settingManager.getSettings().pluginSetting.searchEngine;
-    if (searchEngine === SearchEngineType.default)
-      this.searchEngine = new DefaultSearchEngine(this.plugin);
-    else if (searchEngine === SearchEngineType.dataview)
-      this.searchEngine = new DvSearchEngine(this.plugin);
-    else this.searchEngine = new BasicSearchEngine(this.plugin);
+    this._searchEngine = this._setSearchEngine();
   }
 
   getFiles() {
@@ -40,8 +53,8 @@ export class MyFileManager implements IFileManager {
   }
   searchFiles(query: string) {
     // check whether it is active search engine
-    if (this.searchEngine instanceof IActiveSearchEngine) {
-      return this.searchEngine.searchFiles(this.searchEngine.parseQueryToConfig(query));
+    if (this._searchEngine instanceof ActiveSearchEngine) {
+      return this._searchEngine.searchFiles(this._searchEngine.parseQueryToConfig(query));
     }
     throw new Error("passive search engine cannot search files");
   }

@@ -2,19 +2,21 @@ import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";
 import { DropdownComponent, Setting } from "obsidian";
-import {
-  DagOrientation,
+import type {
   GlobalGraphSettings,
   LocalDisplaySettings,
   LocalGraphSettings,
+} from "@/SettingsSchemas";
+import {
+  DagOrientation,
   distanceFromFocal,
   linkDistance,
   linkThickness,
   nodeRepulsion,
   nodeSize,
 } from "@/SettingsSchemas";
-import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
-import { State } from "@/util/State";
+import type { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import type { State } from "@/util/State";
 import { createNotice } from "@/util/createNotice";
 
 export const DisplaySettingsView = (

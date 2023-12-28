@@ -1,7 +1,7 @@
 import { ButtonComponent } from "obsidian";
 import { AddNodeGroupItem } from "@/views/settings/categories/AddGroupSettingItem";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
-import { addSearchInput } from "@/views/atomics/addSearchInput";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { addSearchInput } from "@/views/atomics/addSearchInput";
 
 const getRandomColor = () => {
   return "#" + Math.floor(Math.random() * 16777215).toString(16);

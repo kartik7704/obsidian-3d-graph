@@ -1,4 +1,5 @@
-import { SearchView, TAbstractFile } from "obsidian";
+import type { State } from "@/util/State";
+import type { SearchView, TAbstractFile } from "obsidian";
 
 /**
  * the config object of the search engine
@@ -21,10 +22,9 @@ export interface ISettingManager<SettingType = unknown> {
 
   /**
    * update the settings of the plugin. The updateFunc will be called with the current settings as the argument
-   *
    * @returns the updated settings
    */
-  updateSettings(updateFunc: (setting: typeof this.setting) => void): SettingType;
+  updateSettings(updateFunc: (setting: State<SettingType>) => void): SettingType;
 
   /**
    * get the settings of the plugin
@@ -37,11 +37,15 @@ export interface ISettingManager<SettingType = unknown> {
   loadSettings(): Promise<SettingType>;
 }
 
-abstract class ISearchEngine {
+abstract class SearchEngine {
   readonly useBuiltInSearchInput: boolean;
+
+  constructor(useBuiltInSearchInput: boolean) {
+    this.useBuiltInSearchInput = useBuiltInSearchInput;
+  }
 }
 
-export abstract class IActiveSearchEngine extends ISearchEngine {
+export abstract class ActiveSearchEngine extends SearchEngine {
   /**
    * parse the query to config
    */
@@ -52,7 +56,10 @@ export abstract class IActiveSearchEngine extends ISearchEngine {
   abstract searchFiles(config: SearchConfig): TAbstractFile[];
 }
 
-export abstract class IPassiveSearchEngine extends ISearchEngine {
+/**
+ *  a passive search engine is not responsible for searching files, but it will listen to the change of the search result container and return the files
+ */
+export abstract class PassiveSearchEngine extends SearchEngine {
   abstract addMutationObserver(
     searchResultContainerEl: HTMLDivElement,
     view: SearchView,

@@ -1,4 +1,5 @@
-import ForceGraph3D, { ForceGraph3DInstance } from "3d-force-graph";
+import type { ForceGraph3DInstance } from "3d-force-graph";
+import ForceGraph3D from "3d-force-graph";
 import { Graph } from "@/graph/Graph";
 import { CenterCoordinates } from "@/views/graph/CenterCoordinates";
 import * as THREE from "three";
@@ -6,15 +7,19 @@ import * as d3 from "d3-force-3d";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
 import { FOCAL_FROM_CAMERA, ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
-import { DeepPartial } from "ts-essentials";
-import { Node } from "@/graph/Node";
+import type { DeepPartial } from "ts-essentials";
+import type { Node } from "@/graph/Node";
 
 import { rgba } from "polished";
 import { createNotice } from "@/util/createNotice";
-import { DagOrientation, GlobalGraphSettings, LocalGraphSettings } from "@/SettingsSchemas";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { TFile } from "obsidian";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { GlobalGraphSettings, LocalGraphSettings } from "@/SettingsSchemas";
+import { DagOrientation } from "@/SettingsSchemas";
+import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { TFile } from "obsidian";
+
+export const getTooManyNodeMessage = (nodeNumber: number) =>
+  `Graph is too large to be rendered. Have ${nodeNumber} nodes.`;
 
 type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
   graphData: {
@@ -51,14 +56,14 @@ export class ForceGraph {
     this.interactionManager = new ForceGraphEngine(this);
 
     const pluginSetting = this.view.plugin.settingManager.getSettings().pluginSetting;
+    const determineTooManyNode = () => {
+      const tooMany = _graph.nodes.length > pluginSetting.maxNodeNumber;
+      if (tooMany) createNotice(getTooManyNodeMessage(_graph.nodes.length));
+    };
 
-    // get the content element of the item view
-    const rootHtmlElement = view.contentEl as HTMLDivElement;
+    determineTooManyNode();
 
-    const tooMany =
-      _graph.nodes.length > view.plugin.settingManager.getSettings().pluginSetting.maxNodeNumber;
     const graph = _graph;
-    if (tooMany) createNotice(`Too many nodes, there are ${_graph.nodes.length} nodes`);
 
     // create the div element for the node label
     const { divEl, nodeLabelEl } = this.createNodeLabel();
@@ -73,7 +78,7 @@ export class ForceGraph {
           element: divEl,
         }),
       ],
-    })(rootHtmlElement)
+    })(this.view.contentEl)
       .graphData(graph)
       .nodeColor(this.interactionManager.getNodeColor)
       // @ts-ignore
@@ -106,8 +111,8 @@ export class ForceGraph {
       .linkDirectionalArrowLength(this.interactionManager.getLinkDirectionalArrowLength)
       .linkDirectionalArrowRelPos(1)
       // the options here are auto
-      .width(rootHtmlElement.innerWidth)
-      .height(rootHtmlElement.innerHeight)
+      .width(this.view.contentEl.innerWidth)
+      .height(this.view.contentEl.innerHeight)
       .d3Force("collide", d3.forceCollide(5))
       //   transparent
       .backgroundColor(hexToRGBA("#000000", 0)) as unknown as MyForceGraph3DInstance;

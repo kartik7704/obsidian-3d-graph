@@ -15,6 +15,12 @@
   },
   "rules": {
     "no-unused-vars": "off",
+    "@typescript-eslint/consistent-type-imports": [
+      "error",
+      {
+        "fixStyle": "separate-type-imports"
+      }
+    ],
     "no-restricted-imports": [
       "error",
       {

@@ -1,7 +1,9 @@
 import { PluginSettingManager } from "@/SettingManager";
-import { State, StateChange } from "@/util/State";
-import { GraphType, MarkdownPostProcessorGraphSettings } from "@/SettingsSchemas";
-import { PostProcessorGraph3dView } from "@/views/graph/3dView/PostProcessorGraph3dView";
+import type { StateChange } from "@/util/State";
+import { State } from "@/util/State";
+import type { MarkdownPostProcessorGraphSettings } from "@/SettingsSchemas";
+import { GraphType } from "@/SettingsSchemas";
+import type { PostProcessorGraph3dView } from "@/views/graph/3dView/PostProcessorGraph3dView";
 import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 
 export class PostProcessorGraphSettingManager extends GSettingManager {

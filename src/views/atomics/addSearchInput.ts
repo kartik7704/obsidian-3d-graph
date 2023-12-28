@@ -1,7 +1,8 @@
-import { IActiveSearchEngine } from "@/Interfaces";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import { ActiveSearchEngine } from "@/Interfaces";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { spawnLeafView } from "@/views/leafView";
-import { SearchView, TAbstractFile, TextComponent } from "obsidian";
+import type { SearchView, TAbstractFile } from "obsidian";
+import { TextComponent } from "obsidian";
 
 /**
  * depends on the search engine, this might be a normal text input or a built-in search input
@@ -101,7 +102,7 @@ export const addSearchInput = async (
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const addMutationObserver = (callback: (files: TAbstractFile[]) => void, data?: any) => {
-    if (view.plugin.fileManager.searchEngine instanceof IActiveSearchEngine)
+    if (view.plugin.fileManager.searchEngine instanceof ActiveSearchEngine)
       throw new Error(
         "you don't need mutation observer for active search engine, this function should not be called"
       );

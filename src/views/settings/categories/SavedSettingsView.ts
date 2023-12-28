@@ -1,6 +1,6 @@
-import { SavedSetting } from "@/SettingsSchemas";
+import type { SavedSetting } from "@/SettingsSchemas";
 import { generateUUID } from "@/util/generateUUID";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { addSaveSettingGroupItem } from "@/views/settings/categories/SaveSettingGroupItem";
 import { Setting } from "obsidian";
 

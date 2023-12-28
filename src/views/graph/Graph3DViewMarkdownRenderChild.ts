@@ -1,6 +1,7 @@
-import Graph3dPlugin from "@/main";
+import type Graph3dPlugin from "@/main";
 import { PostProcessorGraph3dView } from "@/views/graph/3dView/PostProcessorGraph3dView";
-import { MarkdownPostProcessorContext, MarkdownRenderChild, MarkdownView } from "obsidian";
+import type { MarkdownPostProcessorContext, MarkdownView } from "obsidian";
+import { MarkdownRenderChild } from "obsidian";
 
 export class Graph3DViewMarkdownRenderChild extends MarkdownRenderChild {
   plugin: Graph3dPlugin;

@@ -1,7 +1,7 @@
 import { MarkdownView, Plugin } from "obsidian";
 import { State } from "@/util/State";
 import { Graph } from "@/graph/Graph";
-import { ResolvedLinkCache } from "@/graph/Link";
+import type { ResolvedLinkCache } from "@/graph/Link";
 import { deepCompare } from "@/util/deepCompare";
 import "@total-typescript/ts-reset";
 import "@total-typescript/ts-reset/dom";
@@ -11,7 +11,7 @@ import { config } from "@/config";
 import { MyFileManager } from "@/FileManager";
 import { PluginSettingManager } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
@@ -84,7 +84,6 @@ export default class Graph3dPlugin extends Plugin {
     // register markdown code block processor
     this.registerMarkdownCodeBlockProcessor("3d-graph", (source, el, ctx) => {
       // get the markdown view of this file
-      // @ts-ignore
       const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView;
       ctx.addChild(new Graph3DViewMarkdownRenderChild(el, this, source, ctx, markdownView));
     });

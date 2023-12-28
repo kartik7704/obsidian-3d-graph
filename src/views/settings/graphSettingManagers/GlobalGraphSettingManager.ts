@@ -1,6 +1,7 @@
-import { State, StateChange } from "@/util/State";
-import { GlobalGraphSettings } from "@/SettingsSchemas";
-import { GlobalGraph3dView } from "@/views/graph/3dView/GlobalGraph3dView";
+import type { StateChange } from "@/util/State";
+import { State } from "@/util/State";
+import type { GlobalGraphSettings } from "@/SettingsSchemas";
+import type { GlobalGraph3dView } from "@/views/graph/3dView/GlobalGraph3dView";
 import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 
 export class GlobalGraphSettingManager extends GSettingManager {

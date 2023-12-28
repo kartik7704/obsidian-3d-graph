@@ -1,9 +1,9 @@
 import { ExtraButtonComponent } from "obsidian";
 import { addColorPicker } from "@/views/atomics/addColorPicker";
 import { addSearchInput } from "@/views/atomics/addSearchInput";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { DefaultSearchEngine } from "@/PassiveSearchEngine";
-import { GroupSettings } from "@/SettingsSchemas";
+import type { GroupSettings } from "@/SettingsSchemas";
 
 /**
  * given a group and a container element,

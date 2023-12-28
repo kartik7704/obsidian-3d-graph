@@ -1,6 +1,6 @@
-import { SavedSetting } from "@/SettingsSchemas";
+import type { SavedSetting } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { ExtraButtonComponent, TextComponent } from "obsidian";
 
 /**

@@ -1,9 +1,10 @@
-import { GraphType } from "@/SettingsSchemas";
+import type { GraphType } from "@/SettingsSchemas";
 import { config } from "@/config";
 import type Graph3dPlugin from "@/main";
-import { GlobalGraph3dView } from "@/views/graph/3dView/GlobalGraph3dView";
-import { LocalGraph3dView } from "@/views/graph/3dView/LocalGraph3dView";
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import type { GlobalGraph3dView } from "@/views/graph/3dView/GlobalGraph3dView";
+import type { LocalGraph3dView } from "@/views/graph/3dView/LocalGraph3dView";
+import type { WorkspaceLeaf } from "obsidian";
+import { ItemView } from "obsidian";
 
 export abstract class GraphItemView extends ItemView {
   readonly plugin: Graph3dPlugin;

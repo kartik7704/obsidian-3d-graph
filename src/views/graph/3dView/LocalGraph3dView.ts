@@ -1,14 +1,16 @@
 import { Graph } from "@/graph/Graph";
-import { Node } from "@/graph/Node";
-import { Link } from "@/graph/Link";
-import Graph3dPlugin from "@/main";
+import type { Node } from "@/graph/Node";
+import type { Link } from "@/graph/Link";
+import type Graph3dPlugin from "@/main";
 import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
-import { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import type { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { LocalGraphSettingManager } from "@/views/settings/graphSettingManagers/LocalGraphSettingManager";
-import { TAbstractFile, TFile } from "obsidian";
+import type { TAbstractFile, TFile } from "obsidian";
 import { type LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
-import { GraphType, LocalGraphSettings } from "@/SettingsSchemas";
+import type { LocalGraphSettings } from "@/SettingsSchemas";
+import { GraphType } from "@/SettingsSchemas";
 import { createInstance } from "@/util/LifeCycle";
+import { ForceGraph } from "@/views/graph/ForceGraph";
 
 /**
  *
@@ -170,14 +172,14 @@ export class LocalGraph3dView extends Graph3dView {
   public currentFile: TAbstractFile | null;
 
   private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
-    super(contentEl, plugin, GraphType.local, getNewLocalGraph(plugin));
+    super(contentEl, plugin, GraphType.local);
     this.currentFile = this.plugin.app.workspace.getActiveFile();
     this.itemView = itemView;
     this.settingManager = new LocalGraphSettingManager(this);
   }
 
   onReady() {
-    super.onReady();
+    this.forceGraph = new ForceGraph(this, getNewLocalGraph(this.plugin));
     this.itemView.registerEvent(
       this.plugin.app.workspace.on("file-open", this.handleFileChange.bind(this))
     );

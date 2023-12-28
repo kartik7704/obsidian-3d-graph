@@ -1,5 +1,6 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
-import Graph3dPlugin from "@/main";
+import type { App } from "obsidian";
+import { PluginSettingTab, Setting } from "obsidian";
+import type Graph3dPlugin from "@/main";
 import { CommandClickNodeAction, SearchEngineType } from "@/SettingsSchemas";
 import { DEFAULT_SETTING } from "@/SettingManager";
 

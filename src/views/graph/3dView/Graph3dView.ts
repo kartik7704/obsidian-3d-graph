@@ -1,18 +1,18 @@
-import {
+import type {
   GlobalGraphSettings,
   GraphSetting,
   GraphType,
   LocalGraphSettings,
 } from "@/SettingsSchemas";
 import { Graph } from "@/graph/Graph";
-import Graph3dPlugin from "@/main";
-import { LifeCycle } from "@/util/LifeCycle";
+import type Graph3dPlugin from "@/main";
+import type { LifeCycle } from "@/util/LifeCycle";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
-import { ForceGraph } from "@/views/graph/ForceGraph";
-import { GraphItemView } from "@/views/graph/GraphItemView";
-import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
-import { MarkdownView, TFile } from "obsidian";
+import { ForceGraph, getTooManyNodeMessage } from "@/views/graph/ForceGraph";
+import type { GraphItemView } from "@/views/graph/GraphItemView";
+import type { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import type { MarkdownView, TFile } from "obsidian";
 
 type ItemView =
   | (MarkdownView & {
@@ -35,23 +35,20 @@ export abstract class Graph3dView implements LifeCycle {
    */
   abstract itemView: ItemView;
 
-  protected constructor(
-    contentEl: HTMLDivElement,
-    plugin: Graph3dPlugin,
-    graphType: GraphType,
-    graph: Graph
-  ) {
+  protected constructor(contentEl: HTMLDivElement, plugin: Graph3dPlugin, graphType: GraphType) {
     this.contentEl = contentEl;
     this.contentEl.classList.add("graph-3d-view");
     this.plugin = plugin;
     this.graphType = graphType;
     this.theme = new ObsidianTheme(this.plugin.app.workspace.containerEl);
-    this.forceGraph = new ForceGraph(this, graph);
+    // in the graph 3d view constructor, we need to initialize it in the on Ready
+    this.forceGraph = undefined as unknown as ForceGraph;
   }
 
-  onReady() {
-    // do something after ready
-  }
+  /**
+   * need to initialize force graph here but this class doesn't know how to initialize it
+   */
+  abstract onReady(): void;
 
   /**
    * get the current force graph object
@@ -90,7 +87,7 @@ export abstract class Graph3dView implements LifeCycle {
     const tooLarge =
       graph.nodes.length > this.plugin.settingManager.getSettings().pluginSetting.maxNodeNumber;
     if (tooLarge) {
-      createNotice(`Graph is too large to be rendered. Have ${graph.nodes.length} nodes.`);
+      createNotice(getTooManyNodeMessage(graph.nodes.length));
     }
     if (!this.forceGraph)
       this.forceGraph = new ForceGraph(this, tooLarge ? Graph.createEmpty() : graph);

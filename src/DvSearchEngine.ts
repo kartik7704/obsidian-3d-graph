@@ -1,13 +1,14 @@
-import { IActiveSearchEngine, SearchConfig } from "@/Interfaces";
-import Graph3dPlugin from "@/main";
+import type { SearchConfig } from "@/Interfaces";
+import { ActiveSearchEngine } from "@/Interfaces";
+import type Graph3dPlugin from "@/main";
 import { createNotice } from "@/util/createNotice";
-import { TAbstractFile } from "obsidian";
+import type { TAbstractFile } from "obsidian";
 import { getAPI } from "obsidian-dataview";
 
-export class DvSearchEngine implements IActiveSearchEngine {
-  public readonly useBuiltInSearchInput: boolean = false;
+export class DvSearchEngine extends ActiveSearchEngine {
   private plugin: Graph3dPlugin;
   constructor(plugin: Graph3dPlugin) {
+    super(false);
     this.plugin = plugin;
   }
 

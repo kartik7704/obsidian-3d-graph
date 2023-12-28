@@ -1,8 +1,8 @@
-import { IPassiveSearchEngine } from "@/Interfaces";
-import Graph3dPlugin from "@/main";
+import type { PassiveSearchEngine } from "@/Interfaces";
+import type Graph3dPlugin from "@/main";
 import { AsyncQueue } from "@/util/AsyncQueue";
 import { waitForStable } from "@/util/waitFor";
-import { SearchView, TAbstractFile, TFile } from "obsidian";
+import type { SearchView, TAbstractFile, TFile } from "obsidian";
 
 export type SearchResultFile = ReturnType<typeof getFilesFromSearchResult>[0];
 
@@ -24,7 +24,7 @@ export const getResultFromSearchView = async (searchView: SearchView) => {
 /**
  * this is the built in search engine that uses the obsidian search engine
  */
-export class DefaultSearchEngine implements IPassiveSearchEngine {
+export class DefaultSearchEngine implements PassiveSearchEngine {
   useBuiltInSearchInput = true;
   plugin: Graph3dPlugin;
 

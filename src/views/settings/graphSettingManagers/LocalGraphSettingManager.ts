@@ -1,5 +1,6 @@
-import { State, StateChange } from "@/util/State";
-import { LocalGraphSettings } from "@/SettingsSchemas";
+import type { StateChange } from "@/util/State";
+import { State } from "@/util/State";
+import type { LocalGraphSettings } from "@/SettingsSchemas";
 import { type LocalGraph3dView } from "@/views/graph/3dView/LocalGraph3dView";
 import { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 

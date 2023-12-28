@@ -1,4 +1,4 @@
-import { Node } from "@/graph/Node";
+import type { Node } from "@/graph/Node";
 
 export class NodeGroup {
   query: string;

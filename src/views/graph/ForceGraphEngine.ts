@@ -1,14 +1,14 @@
 import * as TWEEN from "@tweenjs/tween.js";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { Node } from "@/graph/Node";
-import { ForceGraph } from "@/views/graph/ForceGraph";
-import { Link } from "@/graph/Link";
+import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import type { Node } from "@/graph/Node";
+import type { ForceGraph } from "@/views/graph/ForceGraph";
+import type { Link } from "@/graph/Link";
 import { CommandModal } from "@/commands/CommandModal";
 import { CommandClickNodeAction, GraphType } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { hexToRGBA } from "@/util/hexToRGBA";
-import { TFile } from "obsidian";
+import type { TFile } from "obsidian";
 
 const origin = new THREE.Vector3(0, 0, 0);
 const cameraLookAtCenterTransitionDuration = 1000;

@@ -1,21 +1,23 @@
 import { TreeItem } from "@/views/atomics/TreeItem";
-import { ExtraButtonComponent, TAbstractFile } from "obsidian";
+import type { TAbstractFile } from "obsidian";
+import { ExtraButtonComponent } from "obsidian";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { SavedSettingsView } from "@/views/settings/categories/SavedSettingsView";
 import { FilterSettingsView } from "@/views/settings/categories/FilterSettingsView";
 import { PluginSettingManager } from "@/SettingManager";
-import { State, StateChange } from "@/util/State";
+import type { StateChange } from "@/util/State";
+import { State } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettingsView";
-import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { waitFor } from "@/util/waitFor";
-import {
+import type {
   GlobalGraphSettings,
   GraphSetting,
-  GraphType,
   LocalGraphSettings,
   SavedSetting,
 } from "@/SettingsSchemas";
+import { GraphType } from "@/SettingsSchemas";
 
 export type SearchResult = {
   filter: {
@@ -46,14 +48,15 @@ export abstract class GSettingManager {
   protected searchResultChanges: StateChange<unknown, SearchResult>[] = [];
 
   protected constructor() {
+    // create a div for the setting
     this.containerEl = document.createElement("div");
     this.containerEl.classList.add("graph-settings-view");
 
+    // add the setting button to this div
     this.settingsButton = new ExtraButtonComponent(this.containerEl)
       .setIcon("settings")
       .setTooltip("Open graph settings")
       .onClick(this.onSettingsButtonClicked);
-
     this.settingsButton.extraSettingsEl.addClasses([
       "clickable-icon",
       "graph-controls-button",

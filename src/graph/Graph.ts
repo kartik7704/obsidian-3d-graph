@@ -1,7 +1,8 @@
-import { Link, ResolvedLinkCache } from "@/graph/Link";
+import type { ResolvedLinkCache } from "@/graph/Link";
+import { Link } from "@/graph/Link";
 import { Node } from "@/graph/Node";
 import { copy } from "copy-anything";
-import { App, TAbstractFile } from "obsidian";
+import type { App, TAbstractFile } from "obsidian";
 
 export class Graph {
   public readonly nodes: Node[];

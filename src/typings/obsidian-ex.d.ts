@@ -1,6 +1,6 @@
 // copied from https://github.com/Fevol/obsidian-typings/blob/e1ff0b68a2d4e6d6ff42b23b5eb18f1e30a4054c/obsidian-ex.d.ts
-
-import {
+// import "obsidian";
+import type {
   App,
   CachedMetadata,
   Command,
@@ -36,8 +36,8 @@ import {
   WorkspaceWindow,
   WorkspaceWindowInitData,
 } from "obsidian";
-import { EditorView } from "@codemirror/view";
-import { EditorState, Extension } from "@codemirror/state";
+import type { EditorView } from "@codemirror/view";
+import type { EditorState, Extension } from "@codemirror/state";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -1669,6 +1669,9 @@ interface ImportedAttachments {
 }
 
 declare module "obsidian" {
+  interface MarkdownView {
+    file: TFile;
+  }
   interface App {
     /**
      * The account signed in to Obsidian
@@ -3531,6 +3534,10 @@ interface CMState extends EditorState {
     lastKeydown: string;
   };
 }
+
+// interface MarkdownView {
+//   file: TFile;
+// }
 
 interface CMView extends EditorView {
   state: CMState;

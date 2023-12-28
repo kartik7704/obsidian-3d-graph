@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "obsidian";
-import { EphemeralState, SuggestModal, TFile, View, WorkspaceLeaf } from "obsidian";
-import { EmbeddedViewParent } from "@/views/leafView";
+import type { EphemeralState, SuggestModal, TFile, View, WorkspaceLeaf } from "obsidian";
+import type { EmbeddedViewParent } from "@/views/leafView";
 
 interface InternalPlugins {
   switcher: QuickSwitcherPlugin;
@@ -123,6 +123,10 @@ declare module "obsidian" {
 
     containerEl: HTMLElement;
     children: any;
+  }
+
+  interface MarkdownView {
+    file: TFile;
   }
 
   interface MarkdownEditView {
