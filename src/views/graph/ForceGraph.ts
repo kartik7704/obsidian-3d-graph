@@ -12,11 +12,12 @@ import type { Node } from "@/graph/Node";
 
 import { rgba } from "polished";
 import { createNotice } from "@/util/createNotice";
-import type { GlobalGraphSettings, LocalGraphSettings } from "@/SettingsSchemas";
+import type { GlobalGraphSettings, GraphSetting, LocalGraphSettings } from "@/SettingsSchemas";
 import { DagOrientation } from "@/SettingsSchemas";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
-import type { TFile } from "obsidian";
+import type { BaseGraph3dView, Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { ItemView, TFile } from "obsidian";
+import type { GraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 
 export const getTooManyNodeMessage = (nodeNumber: number) =>
   `Graph is too large to be rendered. Have ${nodeNumber} nodes.`;
@@ -28,14 +29,16 @@ type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
   };
 };
 
+export type BaseForceGraph = ForceGraph<BaseGraph3dView>;
+
 /**
  * this class control the config and graph of the force graph. The interaction is not control here.
  */
-export class ForceGraph {
+export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, V>, ItemView>> {
   /**
    * this can be a local graph or a global graph
    */
-  public readonly view: Graph3dView;
+  public readonly view: V;
   // private config: LocalGraphSettings | GlobalGraphSettings;
 
   public readonly instance: MyForceGraph3DInstance;
@@ -51,7 +54,7 @@ export class ForceGraph {
    * @param view
    * @param config you have to provide the full config here!!
    */
-  constructor(view: Graph3dView, _graph: Graph) {
+  constructor(view: V, _graph: Graph) {
     this.view = view;
     this.interactionManager = new ForceGraphEngine(this);
 

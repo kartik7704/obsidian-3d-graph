@@ -1,5 +1,5 @@
 import { TreeItem } from "@/views/atomics/TreeItem";
-import type { TAbstractFile } from "obsidian";
+import type { ItemView, TAbstractFile } from "obsidian";
 import { ExtraButtonComponent } from "obsidian";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { SavedSettingsView } from "@/views/settings/categories/SavedSettingsView";
@@ -9,7 +9,7 @@ import type { StateChange } from "@/util/State";
 import { State } from "@/util/State";
 import { GroupSettingsView } from "@/views/settings/categories/GroupSettingsView";
 import { DisplaySettingsView } from "@/views/settings/categories/DisplaySettingsView";
-import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { BaseGraph3dView, Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { waitFor } from "@/util/waitFor";
 import type {
   GlobalGraphSettings,
@@ -30,10 +30,15 @@ export type SearchResult = {
   }[];
 };
 
-export abstract class GraphSettingManager extends classes(LifeCycle) {
-  protected abstract graphView: Graph3dView;
-  protected abstract currentSetting: State<GraphSetting>;
-  protected abstract settingChanges: StateChange<unknown, GraphSetting>[];
+export type BaseGraphSettingManager = GraphSettingManager<GraphSetting, BaseGraph3dView>;
+
+export abstract class GraphSettingManager<
+  S extends GraphSetting,
+  V extends Graph3dView<GraphSettingManager<S, V>, ItemView>
+> extends classes(LifeCycle) {
+  protected graphView: V;
+  protected abstract currentSetting: State<S>;
+  protected settingChanges: StateChange<unknown, S>[] = [];
 
   readonly containerEl: HTMLDivElement;
   protected settingsButton: ExtraButtonComponent;
@@ -49,8 +54,9 @@ export abstract class GraphSettingManager extends classes(LifeCycle) {
   } as SearchResult);
   protected searchResultChanges: StateChange<unknown, SearchResult>[] = [];
 
-  protected constructor() {
+  protected constructor(graphView: V) {
     super();
+    this.graphView = graphView;
     // create a div for the setting
     this.containerEl = document.createElement("div");
     this.containerEl.classList.add("graph-settings-view");
@@ -158,8 +164,7 @@ export abstract class GraphSettingManager extends classes(LifeCycle) {
   /**
    * return the current setting. This is useful for saving the setting
    */
-  // @ts-ignore
-  public getCurrentSetting(): (typeof this)["currentSetting"]["value"] {
+  public getCurrentSetting(): State<S>["value"] {
     return this.currentSetting.value;
   }
 
@@ -217,7 +222,10 @@ export abstract class GraphSettingManager extends classes(LifeCycle) {
 
     // reset the current setting
     this.updateCurrentSettings((setting) => {
-      setting.value = PluginSettingManager.getNewSetting(this.graphView.graphType);
+      // @ts-ignore
+      setting.value =
+        //
+        PluginSettingManager.getNewSetting(this.graphView.graphType);
     });
 
     this.initNewView(false);
@@ -230,7 +238,10 @@ export abstract class GraphSettingManager extends classes(LifeCycle) {
       files: [],
     }));
     this.updateCurrentSettings((setting) => {
-      setting.value = newSetting;
+      // @ts-ignore
+      setting.value =
+        //
+        newSetting;
     });
     this.initNewView(false);
   }
@@ -242,7 +253,7 @@ export abstract class GraphSettingManager extends classes(LifeCycle) {
     /**
      * user can directly update the setting
      */
-    updateFunc: (setting: typeof this.currentSetting) => void,
+    updateFunc: (setting: State<S>) => void,
     /**
      * you can use this to tell the graph view to update the graph view.
      * Set this to false when there are sequential update
@@ -273,14 +284,13 @@ export abstract class GraphSettingManager extends classes(LifeCycle) {
    * Then reset the state changes
    */
   private unpackStateChanges() {
-    const changes = [
-      ...new Set(this.settingChanges.map((c) => c.currentPath as NestedKeyOf<GraphSetting>)),
-    ];
+    const changes = [...new Set(this.settingChanges.map((c) => c.currentPath as NestedKeyOf<S>))];
     // if it is replace the whole setting, then we will not unpack the changes
     // if (!changes.includes("") && !changes.includes("filter.searchQuery"))
     this.graphView.handleSettingUpdate(
       this.currentSetting.value,
       // remove duplicates
+      // @ts-ignore
       ...changes
     );
 

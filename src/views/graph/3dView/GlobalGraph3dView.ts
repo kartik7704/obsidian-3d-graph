@@ -32,18 +32,14 @@ const getNewGlobalGraph = (
     });
 };
 
-type ConstructorParameters = [
-  plugin: Graph3dPlugin,
-  contentEl: HTMLDivElement,
-  itemView: GlobalGraphItemView
-];
-
-export class GlobalGraph3dView extends Graph3dView {
-  itemView: GlobalGraphItemView;
+export class GlobalGraph3dView extends Graph3dView<GlobalGraphSettingManager, GlobalGraphItemView> {
   settingManager: GlobalGraphSettingManager;
-  private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
-    super(contentEl, plugin, GraphType.global);
-    this.itemView = itemView;
+  private constructor(
+    plugin: Graph3dPlugin,
+    contentEl: HTMLDivElement,
+    itemView: GlobalGraphItemView
+  ) {
+    super(contentEl, plugin, GraphType.global, itemView);
     this.settingManager = GlobalGraphSettingManager.new(this);
   }
 
@@ -70,15 +66,15 @@ export class GlobalGraph3dView extends Graph3dView {
     this.updateGraphData();
   }
 
-  static new(...args: ConstructorParameters) {
-    const view = new GlobalGraph3dView(...args);
+  static new(plugin: Graph3dPlugin, contentEl: HTMLDivElement, itemView: GlobalGraphItemView) {
+    const view = new GlobalGraph3dView(plugin, contentEl, itemView);
     view.onReady();
     return view;
   }
 
   protected onReady(): void {
     // first we need to create the force graph
-    this.forceGraph = new ForceGraph(this, this.plugin.globalGraph);
+    this.forceGraph = new ForceGraph(this as typeof this.forceGraph.view, this.plugin.globalGraph);
     // then we need to init the setting manager
     this.settingManager.initNewView(true);
   }

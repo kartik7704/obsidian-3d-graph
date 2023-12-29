@@ -2,7 +2,7 @@ import * as TWEEN from "@tweenjs/tween.js";
 import * as THREE from "three";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import type { Node } from "@/graph/Node";
-import type { ForceGraph } from "@/views/graph/ForceGraph";
+import type { BaseForceGraph } from "@/views/graph/ForceGraph";
 import type { Link } from "@/graph/Link";
 import { CommandModal } from "@/commands/CommandModal";
 import { CommandClickNodeAction, GraphType } from "@/SettingsSchemas";
@@ -22,7 +22,7 @@ const LINK_ARROW_WIDTH_MULTIPLIER = 5;
  * this instance handle all the interaction. In other words, the interaction manager
  */
 export class ForceGraphEngine {
-  private forceGraph: ForceGraph;
+  private forceGraph: BaseForceGraph;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private tween: { [tweenId: string]: TWEEN.Tween<any> | undefined } = {};
   private spaceDown = false;
@@ -43,7 +43,7 @@ export class ForceGraphEngine {
   private startZoomTimeout: Timer | undefined;
   private endZoomTimeout: Timer | undefined;
 
-  constructor(forceGraph: ForceGraph) {
+  constructor(forceGraph: BaseForceGraph) {
     this.forceGraph = forceGraph;
     this.initListeners();
   }

@@ -162,18 +162,20 @@ type ConstructorParameters = [
   itemView: LocalGraphItemView
 ];
 
-export class LocalGraph3dView extends Graph3dView {
-  itemView: LocalGraphItemView;
+export class LocalGraph3dView extends Graph3dView<LocalGraphSettingManager, LocalGraphItemView> {
   settingManager: LocalGraphSettingManager;
   /**
    * when the app is just open, this can be null
    */
   currentFile: TAbstractFile | null;
 
-  private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
-    super(contentEl, plugin, GraphType.local);
+  private constructor(
+    plugin: Graph3dPlugin,
+    contentEl: HTMLDivElement,
+    itemView: LocalGraphItemView
+  ) {
+    super(contentEl, plugin, GraphType.local, itemView);
     this.currentFile = this.plugin.app.workspace.getActiveFile();
-    this.itemView = itemView;
     this.settingManager = LocalGraphSettingManager.new(this);
 
     // register event on this item view
@@ -183,7 +185,8 @@ export class LocalGraph3dView extends Graph3dView {
   }
 
   protected onReady() {
-    this.forceGraph = new ForceGraph(this, getNewLocalGraph(this.plugin));
+    type LocalGraph3dView = typeof this.forceGraph.view;
+    this.forceGraph = new ForceGraph(this as LocalGraph3dView, getNewLocalGraph(this.plugin));
     this.settingManager.initNewView(true);
   }
 

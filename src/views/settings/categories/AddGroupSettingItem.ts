@@ -1,7 +1,7 @@
 import { ExtraButtonComponent } from "obsidian";
 import { addColorPicker } from "@/views/atomics/addColorPicker";
 import { addSearchInput } from "@/views/atomics/addSearchInput";
-import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { BaseGraph3dView } from "@/views/graph/3dView/Graph3dView";
 import { DefaultSearchEngine } from "@/PassiveSearchEngine";
 import type { GroupSettings } from "@/SettingsSchemas";
 
@@ -12,7 +12,7 @@ import type { GroupSettings } from "@/SettingsSchemas";
 export const AddNodeGroupItem = async (
   newGroup: GroupSettings[number],
   containerEl: HTMLElement,
-  view: Graph3dView,
+  view: BaseGraph3dView,
   /**
    * the index of this group
    */

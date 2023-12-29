@@ -1,13 +1,13 @@
 import { deleteNote } from "@/commands/deleteNote";
 import { createNotice } from "@/util/createNotice";
-import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { BaseGraph3dView } from "@/views/graph/3dView/Graph3dView";
 import type { Node } from "@/graph/Node";
 import { showShortestPath } from "@/commands/showShortestPath";
 
 export interface Command {
   title: string;
-  showConditon?: (view: Graph3dView, nodes: Set<Node>) => boolean;
-  function: (view: Graph3dView, nodes: Set<Node>) => void;
+  showConditon?: (view: BaseGraph3dView, nodes: Set<Node>) => boolean;
+  function: (view: BaseGraph3dView, nodes: Set<Node>) => void;
 }
 export const commands: Command[] = [
   {

@@ -12,7 +12,7 @@ import { config } from "@/config";
 import { MyFileManager } from "@/FileManager";
 import { PluginSettingManager } from "@/SettingManager";
 import { GraphType } from "@/SettingsSchemas";
-import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { BaseGraph3dView } from "@/views/graph/3dView/Graph3dView";
 import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
@@ -31,7 +31,7 @@ export default class Graph3dPlugin extends Plugin {
   public fileManager: MyFileManager;
   public settingManager: PluginSettingManager;
 
-  public activeGraphViews: Graph3dView[] = [];
+  public activeGraphViews: BaseGraph3dView[] = [];
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);

@@ -10,41 +10,49 @@ import { LifeCycle } from "@/util/LifeCycle";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
 import { ForceGraph, getTooManyNodeMessage } from "@/views/graph/ForceGraph";
-import type { GraphItemView } from "@/views/graph/GraphItemView";
-import type { GraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
-import type { MarkdownView, TFile } from "obsidian";
+import type {
+  BaseGraphSettingManager,
+  GraphSettingManager,
+} from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import type { ItemView } from "obsidian";
 import { classes } from "polytype";
 
-type ItemView =
-  | (MarkdownView & {
-      file: TFile;
-    })
-  | GraphItemView;
+export type BaseGraph3dView = Graph3dView<BaseGraphSettingManager, ItemView>;
 
-export abstract class Graph3dView extends classes(LifeCycle) {
+export abstract class Graph3dView<
+  M extends GraphSettingManager<GraphSetting, Graph3dView<M, V>>,
+  V extends ItemView
+> extends classes(LifeCycle) {
   readonly plugin: Graph3dPlugin;
   readonly graphType: GraphType;
-  protected forceGraph: ForceGraph;
+  protected forceGraph: ForceGraph<Graph3dView<M, ItemView>>;
   public theme: ObsidianTheme;
 
-  public abstract readonly settingManager: GraphSettingManager;
+  public abstract readonly settingManager: M;
   public readonly contentEl: HTMLDivElement;
   /**
    * this view can be either Graph Item view or markdown view if it is a post processor view
    *
    * @remark this is the parent view
    */
-  abstract itemView: ItemView;
+  itemView: V;
 
-  protected constructor(contentEl: HTMLDivElement, plugin: Graph3dPlugin, graphType: GraphType) {
+  protected constructor(
+    contentEl: HTMLDivElement,
+    plugin: Graph3dPlugin,
+    graphType: GraphType,
+    itemView: V
+  ) {
     super();
     this.contentEl = contentEl;
     this.contentEl.classList.add("graph-3d-view");
     this.plugin = plugin;
+    this.itemView = itemView;
     this.graphType = graphType;
     this.theme = new ObsidianTheme(this.plugin.app.workspace.containerEl);
+    // since setting manager need to be initialized first before the force graph
     // in the graph 3d view constructor, we need to initialize it in the in the onReady function
-    this.forceGraph = undefined as unknown as ForceGraph;
+    this.forceGraph = undefined as unknown as ForceGraph<Graph3dView<M, ItemView>>;
   }
 
   /**
@@ -92,8 +100,12 @@ export abstract class Graph3dView extends classes(LifeCycle) {
     if (tooLarge) {
       createNotice(getTooManyNodeMessage(graph.nodes.length));
     }
+
+    // seem like typescript cannot handle the type of this correctly when circular dependency generics
+    type Graph3dView = typeof this.forceGraph.view;
+
     if (!this.forceGraph)
-      this.forceGraph = new ForceGraph(this, tooLarge ? Graph.createEmpty() : graph);
+      this.forceGraph = new ForceGraph(this as Graph3dView, tooLarge ? Graph.createEmpty() : graph);
     else this.forceGraph.updateGraph(tooLarge ? Graph.createEmpty() : graph);
     // get current focus element
     const focusEl = document.activeElement as HTMLElement | null;

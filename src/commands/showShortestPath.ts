@@ -1,4 +1,4 @@
-import type { Graph3dView } from "@/views/graph/3dView/Graph3dView";
+import type { BaseGraph3dView } from "@/views/graph/3dView/Graph3dView";
 import type { Node } from "@/graph/Node";
 import { createNotice } from "@/util/createNotice";
 
@@ -28,7 +28,7 @@ const getShortestPath = (node1: Node, node2: Node) => {
   return null;
 };
 
-export const showShortestPath = (view: Graph3dView, nodes: Set<Node>) => {
+export const showShortestPath = (view: BaseGraph3dView, nodes: Set<Node>) => {
   const [node1, node2] = [...nodes].filter(Boolean);
 
   // figure the shortest path between the two nodes
