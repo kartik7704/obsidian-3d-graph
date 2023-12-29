@@ -101,10 +101,6 @@ export default class Graph3dPlugin extends Plugin {
       const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView;
       ctx.addChild(new Graph3DViewMarkdownRenderChild(el, this, source, ctx, markdownView));
     });
-
-    this.registerMarkdownCodeBlockProcessor("test", (source, el, ctx) => {
-      el.createDiv({ text: "test" });
-    });
   }
 
   onunload(): void {

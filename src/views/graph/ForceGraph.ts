@@ -18,6 +18,7 @@ import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import type { BaseGraph3dView, Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import type { ItemView, TFile } from "obsidian";
 import type { GraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import { syncOf } from "@/util/awaitof";
 
 export const getTooManyNodeMessage = (nodeNumber: number) =>
   `Graph is too large to be rendered. Have ${nodeNumber} nodes.`;
@@ -238,7 +239,10 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   }
 
   public updateConfig(config: DeepPartial<LocalGraphSettings | GlobalGraphSettings>) {
-    this.updateInstance(undefined, config);
+    const { error } = syncOf(() => this.updateInstance(undefined, config));
+    if (error) {
+      console.error(error);
+    }
   }
 
   /**
@@ -248,8 +252,12 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     // some optimization here
     // if the graph is the same, then we don't need to update the graph
     const same = Graph.compare(this.instance.graphData(), graph);
-    if (!same) this.updateInstance(graph, undefined);
-    else console.log("same graph, no need to update");
+    if (!same) {
+      const { error } = syncOf(() => this.updateInstance(graph, undefined));
+      if (error) {
+        console.error(error);
+      }
+    } else console.log("same graph, no need to update");
   }
 
   /**
