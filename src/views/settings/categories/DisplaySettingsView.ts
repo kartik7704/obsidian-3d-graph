@@ -15,14 +15,14 @@ import {
   nodeRepulsion,
   nodeSize,
 } from "@/SettingsSchemas";
-import type { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import type { GraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import type { State } from "@/util/State";
 import { createNotice } from "@/util/createNotice";
 
 export const DisplaySettingsView = (
   graphSetting: GlobalGraphSettings | LocalGraphSettings,
   containerEl: HTMLElement,
-  settingManager: GSettingManager
+  settingManager: GraphSettingManager
 ) => {
   const displaySettings = graphSetting.display;
   // add the node size setting

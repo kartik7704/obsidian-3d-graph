@@ -1,13 +1,11 @@
-export interface LifeCycle {
-  onReady(): void;
-}
-
-// a factory function
-export function createInstance<T extends LifeCycle, B extends unknown[]>(
-  temp: new (...args: B) => T,
-  ...args: B
-): T {
-  const instance = new temp(...args);
-  instance.onReady();
-  return instance;
+/**
+ * the reason why this is abstract class instead of interface is that we need the protected method.
+ *
+ * To use this class, you should create a fake static new constructor
+ */
+export abstract class LifeCycle {
+  /**
+   *  create a static
+   */
+  protected abstract onReady(): void;
 }

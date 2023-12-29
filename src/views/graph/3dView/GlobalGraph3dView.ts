@@ -5,7 +5,6 @@ import type { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import type { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { GlobalGraphSettingManager } from "@/views/settings/graphSettingManagers/GlobalGraphSettingManager";
-import { createInstance } from "@/util/LifeCycle";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 
 const getNewGlobalGraph = (
@@ -45,7 +44,7 @@ export class GlobalGraph3dView extends Graph3dView {
   private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
     super(contentEl, plugin, GraphType.global);
     this.itemView = itemView;
-    this.settingManager = new GlobalGraphSettingManager(this);
+    this.settingManager = GlobalGraphSettingManager.new(this);
   }
 
   public handleGroupColorSearchResultChange(): void {
@@ -72,11 +71,15 @@ export class GlobalGraph3dView extends Graph3dView {
   }
 
   static new(...args: ConstructorParameters) {
-    // @ts-ignore
-    return createInstance(GlobalGraph3dView, ...args);
+    const view = new GlobalGraph3dView(...args);
+    view.onReady();
+    return view;
   }
 
-  onReady(): void {
+  protected onReady(): void {
+    // first we need to create the force graph
     this.forceGraph = new ForceGraph(this, this.plugin.globalGraph);
+    // then we need to init the setting manager
+    this.settingManager.initNewView(true);
   }
 }

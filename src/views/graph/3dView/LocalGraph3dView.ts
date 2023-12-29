@@ -9,7 +9,6 @@ import type { TAbstractFile, TFile } from "obsidian";
 import { type LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import type { LocalGraphSettings } from "@/SettingsSchemas";
 import { GraphType } from "@/SettingsSchemas";
-import { createInstance } from "@/util/LifeCycle";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 
 /**
@@ -169,20 +168,23 @@ export class LocalGraph3dView extends Graph3dView {
   /**
    * when the app is just open, this can be null
    */
-  public currentFile: TAbstractFile | null;
+  currentFile: TAbstractFile | null;
 
   private constructor(...[plugin, contentEl, itemView]: ConstructorParameters) {
     super(contentEl, plugin, GraphType.local);
     this.currentFile = this.plugin.app.workspace.getActiveFile();
     this.itemView = itemView;
-    this.settingManager = new LocalGraphSettingManager(this);
-  }
+    this.settingManager = LocalGraphSettingManager.new(this);
 
-  onReady() {
-    this.forceGraph = new ForceGraph(this, getNewLocalGraph(this.plugin));
+    // register event on this item view
     this.itemView.registerEvent(
       this.plugin.app.workspace.on("file-open", this.handleFileChange.bind(this))
     );
+  }
+
+  protected onReady() {
+    this.forceGraph = new ForceGraph(this, getNewLocalGraph(this.plugin));
+    this.settingManager.initNewView(true);
   }
 
   public handleFileChange = (file: TFile) => {
@@ -227,7 +229,10 @@ export class LocalGraph3dView extends Graph3dView {
   }
 
   static new(...args: ConstructorParameters) {
-    // @ts-ignore
-    return createInstance(LocalGraph3dView, ...args);
+    const view = new LocalGraph3dView(...args);
+    view.onReady();
+    // put the setting view in the content el
+
+    return view;
   }
 }

@@ -6,13 +6,14 @@ import type {
 } from "@/SettingsSchemas";
 import { Graph } from "@/graph/Graph";
 import type Graph3dPlugin from "@/main";
-import type { LifeCycle } from "@/util/LifeCycle";
+import { LifeCycle } from "@/util/LifeCycle";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
 import { ForceGraph, getTooManyNodeMessage } from "@/views/graph/ForceGraph";
 import type { GraphItemView } from "@/views/graph/GraphItemView";
-import type { GSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
+import type { GraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import type { MarkdownView, TFile } from "obsidian";
+import { classes } from "polytype";
 
 type ItemView =
   | (MarkdownView & {
@@ -20,13 +21,13 @@ type ItemView =
     })
   | GraphItemView;
 
-export abstract class Graph3dView implements LifeCycle {
+export abstract class Graph3dView extends classes(LifeCycle) {
   readonly plugin: Graph3dPlugin;
   readonly graphType: GraphType;
   protected forceGraph: ForceGraph;
   public theme: ObsidianTheme;
 
-  public abstract readonly settingManager: GSettingManager;
+  public abstract readonly settingManager: GraphSettingManager;
   public readonly contentEl: HTMLDivElement;
   /**
    * this view can be either Graph Item view or markdown view if it is a post processor view
@@ -36,19 +37,21 @@ export abstract class Graph3dView implements LifeCycle {
   abstract itemView: ItemView;
 
   protected constructor(contentEl: HTMLDivElement, plugin: Graph3dPlugin, graphType: GraphType) {
+    super();
     this.contentEl = contentEl;
     this.contentEl.classList.add("graph-3d-view");
     this.plugin = plugin;
     this.graphType = graphType;
     this.theme = new ObsidianTheme(this.plugin.app.workspace.containerEl);
-    // in the graph 3d view constructor, we need to initialize it in the on Ready
+    // in the graph 3d view constructor, we need to initialize it in the in the onReady function
     this.forceGraph = undefined as unknown as ForceGraph;
   }
 
   /**
-   * need to initialize force graph here but this class doesn't know how to initialize it
+   * 1. need to initialize force graph here but this class doesn't know how to initialize it
+   * 2. graph setting manager need to init a view here
    */
-  abstract onReady(): void;
+  protected abstract onReady(): void;
 
   /**
    * get the current force graph object

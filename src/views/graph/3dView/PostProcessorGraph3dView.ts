@@ -6,7 +6,6 @@ import { getNewLocalGraph } from "@/views/graph/3dView/LocalGraph3dView";
 import { PostProcessorGraphSettingManager } from "@/views/settings/graphSettingManagers/PostProcessorGraphSettingManager";
 import type { MarkdownView, TFile } from "obsidian";
 import type { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
-import { createInstance } from "@/util/LifeCycle";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 
 type ConstructorParameters = [
@@ -56,15 +55,20 @@ export class PostProcessorGraph3dView extends Graph3dView {
     this.itemView = markdownView as MarkdownView & {
       file: TFile;
     };
-    this.settingManager = new PostProcessorGraphSettingManager(this);
+    this.settingManager = PostProcessorGraphSettingManager.new(this);
   }
 
   static new(...args: ConstructorParameters) {
-    // @ts-ignore
-    return createInstance(PostProcessorGraph3dView, ...args);
+    const view = new PostProcessorGraph3dView(...args);
+    view.onReady();
+    // put the setting view in the content el
+    return view;
   }
 
   onReady(): void {
+    // first we need to create the force graph
     this.forceGraph = new ForceGraph(this, getNewLocalGraph(this.plugin));
+    //  setting manager init view
+    this.settingManager.initNewView(true);
   }
 }

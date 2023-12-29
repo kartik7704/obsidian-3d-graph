@@ -56,7 +56,6 @@
     "obsidian-dataview": "^0.5.61",
     "polytype": "^0.17.0",
     "three": "^0.157.0",
-    "ts-mixer": "^6.0.3",
     "zod": "^3.22.4"
   }
 }

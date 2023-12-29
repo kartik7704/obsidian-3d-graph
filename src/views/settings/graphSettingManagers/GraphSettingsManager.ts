@@ -18,6 +18,8 @@ import type {
   SavedSetting,
 } from "@/SettingsSchemas";
 import { GraphType } from "@/SettingsSchemas";
+import { LifeCycle } from "@/util/LifeCycle";
+import { classes } from "polytype";
 
 export type SearchResult = {
   filter: {
@@ -28,7 +30,7 @@ export type SearchResult = {
   }[];
 };
 
-export abstract class GSettingManager {
+export abstract class GraphSettingManager extends classes(LifeCycle) {
   protected abstract graphView: Graph3dView;
   protected abstract currentSetting: State<GraphSetting>;
   protected abstract settingChanges: StateChange<unknown, GraphSetting>[];
@@ -48,6 +50,7 @@ export abstract class GSettingManager {
   protected searchResultChanges: StateChange<unknown, SearchResult>[] = [];
 
   protected constructor() {
+    super();
     // create a div for the setting
     this.containerEl = document.createElement("div");
     this.containerEl.classList.add("graph-settings-view");
@@ -57,11 +60,7 @@ export abstract class GSettingManager {
       .setIcon("settings")
       .setTooltip("Open graph settings")
       .onClick(this.onSettingsButtonClicked);
-    this.settingsButton.extraSettingsEl.addClasses([
-      "clickable-icon",
-      "graph-controls-button",
-      "mod-open",
-    ]);
+    this.settingsButton.extraSettingsEl.addClasses(["clickable-icon"]);
   }
 
   private onSettingsButtonClicked = () => {
@@ -81,10 +80,14 @@ export abstract class GSettingManager {
     }
   }
 
-  protected initNewView(collapsed = false) {
+  /**
+   * this function will initialize a new view for setting and then append it to the current graph view
+   */
+  initNewView(collapsed = false) {
     // check if the contentEl of the graph View already contains the containerEl of setting manager, if not add it
-    if (!this.graphView.contentEl.contains(this.containerEl))
+    if (!this.graphView.contentEl.contains(this.containerEl)) {
       this.graphView.contentEl.appendChild(this.containerEl);
+    }
 
     // this ensure that the graph controls element is empty
     this.graphControlsEl?.remove();
@@ -284,25 +287,7 @@ export abstract class GSettingManager {
     this.settingChanges = [];
   }
 
-  // static create(parentView: LocalGraph3dView): LocalGraphSettingManager;
-  // static create(parentView: GlobalGraph3dView): GlobalGraphSettingManager;
-  // static create(parentView: PostProcessorGraph3dView): PostProcessorGraphSettingManager;
-  // static create(parentView: Graph3dView): GSettingManager {
-  //   const manager: GSettingManager =
-  //     parentView instanceof LocalGraph3dView
-  //       ? new LocalGraphSettingManager(parentView)
-  //       : parentView instanceof GlobalGraph3dView
-  //       ? new GlobalGraphSettingManager(parentView)
-  //       : new PostProcessorGraphSettingManager(parentView as PostProcessorGraph3dView);
-  //   manager.afterCreate();
-  //   return manager;
-  // }
-
-  /**
-   * you should use this function to create setting manager
-   */
-  afterCreate() {
-    this.initNewView(true);
+  protected onReady() {
     this.currentSetting.onChange((change) => this.settingChanges.push(change));
     this.searchResult.onChange((change) => {
       this.searchResultChanges.push(change);
