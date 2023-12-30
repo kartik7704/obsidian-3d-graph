@@ -164,6 +164,10 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
           }`;
         };
 
+        node.labelEl = nodeEl;
+        // add an on hover event to the label element
+        // when hover, trigger hover link and show the preview
+
         return cssObject;
       })
       .nodeThreeObjectExtend(true);

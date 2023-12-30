@@ -1,4 +1,4 @@
-import type { App, PluginManifest } from "obsidian";
+import type { App, HoverParent, HoverPopover, PluginManifest } from "obsidian";
 import { MarkdownView, Plugin } from "obsidian";
 import { State } from "@/util/State";
 import { Graph } from "@/graph/Graph";
@@ -17,7 +17,7 @@ import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
 
-export default class Graph3dPlugin extends Plugin {
+export default class Graph3dPlugin extends Plugin implements HoverParent {
   _resolvedCache: ResolvedLinkCache;
   public readonly cacheIsReady: State<boolean> = new State(
     this.app.metadataCache.resolvedLinks !== undefined
@@ -32,6 +32,10 @@ export default class Graph3dPlugin extends Plugin {
   public settingManager: PluginSettingManager;
 
   public activeGraphViews: BaseGraph3dView[] = [];
+
+  public mousePosition = { x: 0, y: 0 };
+
+  public hoverPopover: HoverPopover | null = null;
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
@@ -83,6 +87,12 @@ export default class Graph3dPlugin extends Plugin {
       callback: this.openLocalGraph,
     });
 
+    this.registerDomEvent(window, "mousemove", (event) => {
+      // set the mouse position
+      this.mousePosition.x = event.clientX;
+      this.mousePosition.y = event.clientY;
+    });
+
     this.addSettingTab(new SettingTab(this.app, this));
 
     // register global view
@@ -100,6 +110,12 @@ export default class Graph3dPlugin extends Plugin {
       // get the markdown view of this file
       const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView) as MarkdownView;
       ctx.addChild(new Graph3DViewMarkdownRenderChild(el, this, source, ctx, markdownView));
+    });
+
+    // register hover link source
+    this.registerHoverLinkSource("3d-graph", {
+      defaultMod: true,
+      display: "3D Graph",
     });
   }
 

@@ -9,9 +9,6 @@ import { Events } from "obsidian";
  */
 export class AsyncEventBus extends Events {
   asyncQueue = new AsyncQueue();
-  constructor() {
-    super();
-  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trigger(name: string, ...data: any[]): void {

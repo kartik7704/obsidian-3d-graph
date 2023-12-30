@@ -5,7 +5,7 @@ import type Graph3dPlugin from "@/main";
 import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import type { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { LocalGraphSettingManager } from "@/views/settings/graphSettingManagers/LocalGraphSettingManager";
-import type { TAbstractFile, TFile } from "obsidian";
+import type { Component, TAbstractFile, TFile } from "obsidian";
 import { type LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import type { LocalGraphSettings } from "@/SettingsSchemas";
 import { GraphType } from "@/SettingsSchemas";
@@ -182,6 +182,10 @@ export class LocalGraph3dView extends Graph3dView<LocalGraphSettingManager, Loca
     this.itemView.registerEvent(
       this.plugin.app.workspace.on("file-open", this.handleFileChange.bind(this))
     );
+  }
+
+  getParent(): Component {
+    return this.itemView;
   }
 
   protected onReady() {

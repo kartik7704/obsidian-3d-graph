@@ -6,6 +6,7 @@ import type {
 } from "@/SettingsSchemas";
 import { Graph } from "@/graph/Graph";
 import type Graph3dPlugin from "@/main";
+import { AsyncEventBus } from "@/util/EventBus";
 import { LifeCycle } from "@/util/LifeCycle";
 import { ObsidianTheme } from "@/util/ObsidianTheme";
 import { createNotice } from "@/util/createNotice";
@@ -14,19 +15,24 @@ import type {
   BaseGraphSettingManager,
   GraphSettingManager,
 } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
-import type { ItemView } from "obsidian";
+import type { Component, HoverParent, HoverPopover, ItemView } from "obsidian";
 import { classes } from "polytype";
+import type { Node } from "@/graph/Node";
 
 export type BaseGraph3dView = Graph3dView<BaseGraphSettingManager, ItemView>;
 
 export abstract class Graph3dView<
-  M extends GraphSettingManager<GraphSetting, Graph3dView<M, V>>,
-  V extends ItemView
-> extends classes(LifeCycle) {
+    M extends GraphSettingManager<GraphSetting, Graph3dView<M, V>>,
+    V extends ItemView
+  >
+  extends classes(LifeCycle)
+  implements HoverParent
+{
   readonly plugin: Graph3dPlugin;
   readonly graphType: GraphType;
   protected forceGraph: ForceGraph<Graph3dView<M, ItemView>>;
   public theme: ObsidianTheme;
+  eventBus: AsyncEventBus = new AsyncEventBus();
 
   public abstract readonly settingManager: M;
   public readonly contentEl: HTMLDivElement;
@@ -36,6 +42,7 @@ export abstract class Graph3dView<
    * @remark this is the parent view
    */
   itemView: V;
+  hoverPopover: HoverPopover | null = null;
 
   protected constructor(
     contentEl: HTMLDivElement,
@@ -53,6 +60,26 @@ export abstract class Graph3dView<
     // since setting manager need to be initialized first before the force graph
     // in the graph 3d view constructor, we need to initialize it in the in the onReady function
     this.forceGraph = undefined as unknown as ForceGraph<Graph3dView<M, ItemView>>;
+
+    // register event on event bus
+    const parent = this.getParent();
+    parent.registerEvent(
+      this.eventBus.on("open-node-preview", (node: Node) => {
+        const event = new MouseEvent("mouseenter", {
+          clientX: this.plugin.mousePosition.x,
+          clientY: this.plugin.mousePosition.y,
+          ctrlKey: true,
+          metaKey: true,
+        });
+        this.forceGraph.view.plugin.app.workspace.trigger("hover-link", {
+          event: event,
+          source: "3d-graph",
+          hoverParent: this.forceGraph.view,
+          targetEl: this.forceGraph.view.contentEl,
+          linktext: node.path,
+        });
+      })
+    );
   }
 
   /**
@@ -67,6 +94,8 @@ export abstract class Graph3dView<
   public getForceGraph() {
     return this.forceGraph;
   }
+
+  abstract getParent(): Component;
 
   /**
    * destroy the old graph, remove the old graph completely from the DOM.

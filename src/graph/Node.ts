@@ -9,6 +9,7 @@ export class Node {
 
   public readonly neighbors: Node[];
   public readonly links: Link[];
+  public labelEl: HTMLDivElement | null = null;
 
   constructor(name: string, path: string, val = 10, neighbors: Node[] = [], links: Link[] = []) {
     this.id = path;

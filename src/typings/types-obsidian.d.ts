@@ -45,7 +45,7 @@ interface InternalPlugin {
 
   enabled: boolean;
   _loaded: boolean;
-  instance: { name: string; id: string };
+  instance: { name: string; id: string; [other: string]: any };
 }
 
 interface GraphPlugin extends InternalPlugin {

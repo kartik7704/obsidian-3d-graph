@@ -205,17 +205,31 @@ export class ForceGraphEngine {
 
     this.clearHighlights();
 
+    // add the new highlighted nodes and link
     if (node) {
       this.highlightedNodes.add(node.id);
       node.neighbors.forEach((neighbor) => this.highlightedNodes.add(neighbor.id));
       const nodeLinks = this.forceGraph.instance.graphData().getLinksWithNode(node.id);
-
       if (nodeLinks) nodeLinks.forEach((link) => this.highlightedLinks.add(link));
     }
+
+    const shouldUseCommand =
+      this.forceGraph.view.plugin.app.internalPlugins.getPluginById("page-preview").instance
+        .overrides["3d-graph"] !== false;
+    // show the hover preview
+    if (node && node.labelEl && ((shouldUseCommand && this.commandDown) || !shouldUseCommand)) {
+      this.forceGraph.view.hoverPopover?.hide();
+      this.forceGraph.view.eventBus.trigger("open-node-preview", node);
+      this.forceGraph.view.eventBus.trigger("open-node-preview", node);
+    }
+
     this.hoveredNode = node ?? null;
     this.updateColor();
   };
 
+  /**
+   * when hover on node or link, they are highlighted. This function will clear the highlight
+   */
   private clearHighlights = () => {
     this.highlightedNodes.clear();
     this.highlightedLinks.clear();

@@ -2756,6 +2756,26 @@ declare module "obsidian" {
   }
 
   interface Workspace {
+    trigger(
+      name: "hover-link",
+      data: {
+        event: MouseEvent;
+        /**
+         * you need to register the link source in the `registerHoverLinkSource` function
+         */
+        source: string;
+        targetEl: HTMLElement;
+        /**
+         *  it can be any object, but you need to implements this interface
+         */
+        hoverParent: HoverParent;
+        /**
+         * it is the path of the file
+         */
+        linktext: string;
+        state?: EphemeralState;
+      }
+    ): void;
     /**
      * Currently active tab group
      */
@@ -3038,10 +3058,6 @@ declare module "obsidian" {
      * Split provided leaf, or active leaf if none provided
      */
     splitLeafOrActive: (leaf?: WorkspaceLeaf, direction?: SplitDirection) => void;
-    /**
-     * @internal
-     */
-    trigger: (e: any) => void;
     /**
      * @internal Unregister a CodeMirror editor extension
      */

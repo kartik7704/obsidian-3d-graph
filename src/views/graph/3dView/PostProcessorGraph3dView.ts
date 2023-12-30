@@ -3,7 +3,7 @@ import type { Graph } from "@/graph/Graph";
 import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import { getNewLocalGraph } from "@/views/graph/3dView/LocalGraph3dView";
 import { PostProcessorGraphSettingManager } from "@/views/settings/graphSettingManagers/PostProcessorGraphSettingManager";
-import type { MarkdownView, TFile } from "obsidian";
+import type { Component, MarkdownView, TFile } from "obsidian";
 import type { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import type Graph3dPlugin from "@/main";
@@ -69,6 +69,10 @@ export class PostProcessorGraph3dView extends Graph3dView<
     return view;
   }
 
+  getParent(): Component {
+    return this.parent;
+  }
+
   onReady(): void {
     // first we need to create the force graph
     this.forceGraph = new ForceGraph(
@@ -77,5 +81,7 @@ export class PostProcessorGraph3dView extends Graph3dView<
     );
     //  setting manager init view
     this.settingManager.initNewView(true);
+    // init event handler on parent
+    this.parent.registerEvent(this.eventBus.on("open-node-preview", (node: Node) => {}));
   }
 }

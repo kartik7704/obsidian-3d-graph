@@ -6,6 +6,7 @@ import { Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import type { SearchResult } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { GlobalGraphSettingManager } from "@/views/settings/graphSettingManagers/GlobalGraphSettingManager";
 import { ForceGraph } from "@/views/graph/ForceGraph";
+import type { Component } from "obsidian";
 
 const getNewGlobalGraph = (
   plugin: Graph3dPlugin,
@@ -70,6 +71,10 @@ export class GlobalGraph3dView extends Graph3dView<GlobalGraphSettingManager, Gl
     const view = new GlobalGraph3dView(plugin, contentEl, itemView);
     view.onReady();
     return view;
+  }
+
+  getParent(): Component {
+    return this.itemView;
   }
 
   protected onReady(): void {
