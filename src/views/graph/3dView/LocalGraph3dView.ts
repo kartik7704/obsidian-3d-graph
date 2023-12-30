@@ -189,9 +189,12 @@ export class LocalGraph3dView extends Graph3dView<LocalGraphSettingManager, Loca
   }
 
   protected onReady() {
+    super.onReady();
     type LocalGraph3dView = typeof this.forceGraph.view;
     this.forceGraph = new ForceGraph(this as LocalGraph3dView, getNewLocalGraph(this.plugin));
-    this.settingManager.initNewView(true);
+    this.settingManager.initNewView({
+      collapsed: true,
+    });
   }
 
   public handleFileChange = (file: TFile) => {

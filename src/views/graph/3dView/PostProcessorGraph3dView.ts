@@ -74,14 +74,14 @@ export class PostProcessorGraph3dView extends Graph3dView<
   }
 
   onReady(): void {
+    super.onReady();
     // first we need to create the force graph
     this.forceGraph = new ForceGraph(
       this as typeof this.forceGraph.view,
       getNewLocalGraph(this.plugin)
     );
+    // post process graph will not have 3d graph
     //  setting manager init view
-    this.settingManager.initNewView(true);
-    // init event handler on parent
-    this.parent.registerEvent(this.eventBus.on("open-node-preview", (node: Node) => {}));
+    // this.settingManager.initNewView(true);
   }
 }

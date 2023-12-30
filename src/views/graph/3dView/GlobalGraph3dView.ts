@@ -78,9 +78,12 @@ export class GlobalGraph3dView extends Graph3dView<GlobalGraphSettingManager, Gl
   }
 
   protected onReady(): void {
+    super.onReady();
     // first we need to create the force graph
     this.forceGraph = new ForceGraph(this as typeof this.forceGraph.view, this.plugin.globalGraph);
     // then we need to init the setting manager
-    this.settingManager.initNewView(true);
+    this.settingManager.initNewView({
+      collapsed: true,
+    });
   }
 }

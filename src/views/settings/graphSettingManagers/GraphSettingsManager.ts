@@ -89,7 +89,12 @@ export abstract class GraphSettingManager<
   /**
    * this function will initialize a new view for setting and then append it to the current graph view
    */
-  initNewView(collapsed = false) {
+  initNewView(
+    config: {
+      collapsed?: boolean;
+    } = {}
+  ) {
+    const { collapsed = false } = config;
     // check if the contentEl of the graph View already contains the containerEl of setting manager, if not add it
     if (!this.graphView.contentEl.contains(this.containerEl)) {
       this.graphView.contentEl.appendChild(this.containerEl);
@@ -228,7 +233,7 @@ export abstract class GraphSettingManager<
         PluginSettingManager.getNewSetting(this.graphView.graphType);
     });
 
-    this.initNewView(false);
+    this.initNewView();
   }
 
   public applySettings(newSetting: SavedSetting["setting"]) {
@@ -243,7 +248,7 @@ export abstract class GraphSettingManager<
         //
         newSetting;
     });
-    this.initNewView(false);
+    this.initNewView();
   }
 
   /**

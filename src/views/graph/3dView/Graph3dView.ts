@@ -60,7 +60,13 @@ export abstract class Graph3dView<
     // since setting manager need to be initialized first before the force graph
     // in the graph 3d view constructor, we need to initialize it in the in the onReady function
     this.forceGraph = undefined as unknown as ForceGraph<Graph3dView<M, ItemView>>;
+  }
 
+  /**
+   * 1. need to initialize force graph here but this class doesn't know how to initialize it
+   * 2. graph setting manager need to init a view here
+   */
+  protected onReady(): void {
     // register event on event bus
     const parent = this.getParent();
     parent.registerEvent(
@@ -81,12 +87,6 @@ export abstract class Graph3dView<
       })
     );
   }
-
-  /**
-   * 1. need to initialize force graph here but this class doesn't know how to initialize it
-   * 2. graph setting manager need to init a view here
-   */
-  protected abstract onReady(): void;
 
   /**
    * get the current force graph object
