@@ -122,6 +122,11 @@ export class ForceGraphEngine {
         // @ts-ignore
         .forEach((node) => ["x", "y", "z"].forEach((coord) => (node[`f${coord}`] = undefined))); // unfix controlled nodes
     }
+
+    // save this node's position so it's restored on next graph open
+    const posManager = this.forceGraph.view.plugin.nodePositionManager;
+    posManager.setPosition(node.path, node.x, node.y, node.z);
+    posManager.saveDebounced();
   };
 
   onNodeRightClick = (node: Node & Coords, event: MouseEvent) => {

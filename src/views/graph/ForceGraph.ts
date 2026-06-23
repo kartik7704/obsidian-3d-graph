@@ -68,6 +68,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     determineTooManyNode();
 
     const graph = _graph;
+    this.applyNodePositions(graph);
 
     // create the div element for the node label
     const { divEl, nodeLabelEl } = this.createNodeLabel();
@@ -267,11 +268,50 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   /**
    * given the changed things, update the instance
    */
+  public applyLivePositions(positions: import("@/NodePositionManager").NodePositions): void {
+    this.instance.graphData().nodes.forEach((node: any) => {
+      const pos = positions[node.path];
+      if (pos) {
+        node.fx = pos.x;
+        node.fy = pos.y;
+        node.fz = pos.z;
+        node.x = pos.x;
+        node.y = pos.y;
+        node.z = pos.z;
+      } else {
+        node.fx = undefined;
+        node.fy = undefined;
+        node.fz = undefined;
+      }
+    });
+    this.instance.numDimensions(3);
+  }
+
+  private applyNodePositions(graph: Graph): void {
+    const saved = this.view.plugin.nodePositionManager.getAll();
+    graph.nodes.forEach((node) => {
+      const pos = saved[node.path];
+      if (pos) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const n = node as any;
+        n.fx = pos.x;
+        n.fy = pos.y;
+        n.fz = pos.z;
+        n.x = pos.x;
+        n.y = pos.y;
+        n.z = pos.z;
+      }
+    });
+  }
+
   private updateInstance = (
     graph?: Graph,
     config?: DeepPartial<LocalGraphSettings | GlobalGraphSettings>
   ) => {
-    if (graph !== undefined) this.instance.graphData(graph);
+    if (graph !== undefined) {
+      this.applyNodePositions(graph);
+      this.instance.graphData(graph);
+    }
     if (config?.display?.nodeSize !== undefined)
       this.instance.nodeRelSize(config.display?.nodeSize);
     if (config?.display?.linkDistance !== undefined) {

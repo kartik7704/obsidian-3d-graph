@@ -28,4 +28,18 @@ export const UtilitySettingsView = async (containerEl: HTMLElement, view: BaseGr
   new ButtonComponent(div).setButtonText("Remove selection").onClick(() => {
     view.getForceGraph()?.interactionManager.removeSelection();
   });
+
+  new ButtonComponent(div).setButtonText("Clear saved layout").onClick(async () => {
+    await plugin.nodePositionManager.clear();
+    const forceGraph = view.getForceGraph();
+    if (forceGraph) {
+      // unpin all nodes so physics takes over again
+      forceGraph.instance.graphData().nodes.forEach((node: any) => {
+        node.fx = undefined;
+        node.fy = undefined;
+        node.fz = undefined;
+      });
+      forceGraph.instance.numDimensions(3); // reheat simulation
+    }
+  });
 };

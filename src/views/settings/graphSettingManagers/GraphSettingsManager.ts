@@ -3,6 +3,7 @@ import type { ItemView, TAbstractFile } from "obsidian";
 import { ExtraButtonComponent } from "obsidian";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { SavedSettingsView } from "@/views/settings/categories/SavedSettingsView";
+import { SavedLayoutsView } from "@/views/settings/categories/SavedLayoutsView";
 import { FilterSettingsView } from "@/views/settings/categories/FilterSettingsView";
 import { PluginSettingManager } from "@/SettingManager";
 import type { StateChange } from "@/util/State";
@@ -156,6 +157,11 @@ export abstract class GraphSettingManager<
     // add the saved settings
     this.appendSettingGroup(this.graphControlsEl, undefined, "Saved settings", (_, containerEl) =>
       SavedSettingsView(containerEl, this.graphView)
+    );
+
+    // add the saved layouts
+    this.appendSettingGroup(this.graphControlsEl, undefined, "Saved layouts", (_, containerEl) =>
+      SavedLayoutsView(containerEl, this.graphView)
     );
 
     this.toggleCollapsed(collapsed);

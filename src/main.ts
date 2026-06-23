@@ -16,6 +16,7 @@ import type { BaseGraph3dView } from "@/views/graph/3dView/Graph3dView";
 import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
+import { NodePositionManager } from "@/NodePositionManager";
 
 export default class Graph3dPlugin extends Plugin implements HoverParent {
   _resolvedCache: ResolvedLinkCache;
@@ -30,6 +31,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
 
   public fileManager: MyFileManager;
   public settingManager: PluginSettingManager;
+  public nodePositionManager: NodePositionManager;
 
   public activeGraphViews: BaseGraph3dView[] = [];
 
@@ -48,6 +50,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
     this.onGraphCacheChanged();
 
     this.settingManager = new PluginSettingManager(this);
+    this.nodePositionManager = new NodePositionManager(this);
 
     // this will be initialized in the onload function because we need to wait for the setting manager to initialize
     this.fileManager = undefined as unknown as MyFileManager;
@@ -59,6 +62,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
   async onload() {
     // load the setting using setting manager
     await this.settingManager.loadSettings();
+    await this.nodePositionManager.load();
 
     // get the setting from setting manager
     // const setting = this.settingManager.getSetting("test");
