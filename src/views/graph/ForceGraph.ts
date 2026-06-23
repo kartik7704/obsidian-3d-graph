@@ -19,6 +19,7 @@ import type { BaseGraph3dView, Graph3dView } from "@/views/graph/3dView/Graph3dV
 import type { ItemView, TFile } from "obsidian";
 import type { GraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { syncOf } from "@/util/awaitof";
+import type { NodePositions } from "@/NodePositionManager";
 
 export const getTooManyNodeMessage = (nodeNumber: number) =>
   `Graph is too large to be rendered. Have ${nodeNumber} nodes.`;
@@ -268,7 +269,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   /**
    * given the changed things, update the instance
    */
-  public applyLivePositions(positions: import("@/NodePositionManager").NodePositions): void {
+  public applyLivePositions(positions: NodePositions): void {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     this.instance.graphData().nodes.forEach((node: any) => {
       const pos = positions[node.path];
       if (pos) {

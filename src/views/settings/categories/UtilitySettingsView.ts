@@ -34,6 +34,7 @@ export const UtilitySettingsView = async (containerEl: HTMLElement, view: BaseGr
     const forceGraph = view.getForceGraph();
     if (forceGraph) {
       // unpin all nodes so physics takes over again
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       forceGraph.instance.graphData().nodes.forEach((node: any) => {
         node.fx = undefined;
         node.fy = undefined;
