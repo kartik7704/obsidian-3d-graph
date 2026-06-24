@@ -29,8 +29,8 @@ export const nodeRepulsion = {
 };
 
 export const distanceFromFocal = {
-  min: 100,
-  max: 500,
+  min: 50,
+  max: 1000,
   step: 10,
   default: 300,
 };

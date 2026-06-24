@@ -329,12 +329,15 @@ export class ForceGraphEngine {
     const settings = this.forceGraph.view.settingManager.getCurrentSetting();
     const fullPath = node.path;
     const fileNameWithExtension = node.name;
+    const ext = fileNameWithExtension.substring(fileNameWithExtension.lastIndexOf("."));
     const fullPathWithoutExtension = fullPath.substring(0, fullPath.lastIndexOf("."));
     const fileNameWithoutExtension = fileNameWithExtension.substring(
       0,
       fileNameWithExtension.lastIndexOf(".")
     );
-    const text = !settings.display.showExtension
+    // match native Obsidian behavior: never show .md even when showExtension is on
+    const showExt = settings.display.showExtension && ext !== ".md";
+    const text = !showExt
       ? settings.display.showFullPath
         ? fullPathWithoutExtension
         : fileNameWithoutExtension
