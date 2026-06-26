@@ -25,7 +25,7 @@ export class RingManager {
       const fm = cache.frontmatter;
 
       const tags: string[] = Array.isArray(fm.tags)
-        ? fm.tags
+        ? (fm.tags as string[])
         : typeof fm.tags === "string"
         ? [fm.tags]
         : [];
@@ -36,7 +36,7 @@ export class RingManager {
         typeof fm["ring-filter"] === "string"
           ? fm["ring-filter"].replace(/^#/, "")
           : "";
-      const nArr: number[] = Array.isArray(fm["ring-normal"]) ? fm["ring-normal"] : [0, 1, 0];
+      const nArr: number[] = Array.isArray(fm["ring-normal"]) ? (fm["ring-normal"] as number[]) : [0, 1, 0];
       const normal = new THREE.Vector3(nArr[0] ?? 0, nArr[1] ?? 1, nArr[2] ?? 0).normalize();
 
       this.rings.set(file.path, { path: file.path, radius, filter, normal });
@@ -63,7 +63,7 @@ export class RingManager {
       const cache = this.plugin.app.metadataCache.getFileCache(file);
       if (!cache?.frontmatter) continue;
       const tags: string[] = Array.isArray(cache.frontmatter.tags)
-        ? cache.frontmatter.tags
+        ? (cache.frontmatter.tags as string[])
         : typeof cache.frontmatter.tags === "string"
         ? [cache.frontmatter.tags]
         : [];
