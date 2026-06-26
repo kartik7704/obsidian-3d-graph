@@ -152,8 +152,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       .nodeThreeObject((node: Node) => {
         const nodeEl = document.createElement("div");
 
-        if (this.view.plugin.ringManager.isRing(node.path) &&
-            !this.view.settingManager.getCurrentSetting().display.showRing) {
+        if (this.view.plugin.ringManager.isRing(node.path)) {
           nodeEl.style.display = "none";
           return new CSS2DObject(nodeEl);
         }
