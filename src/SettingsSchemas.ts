@@ -35,6 +35,13 @@ export const distanceFromFocal = {
   default: 300,
 };
 
+export const ringTubeRadius = {
+  min: 0.5,
+  max: 12,
+  step: 0.5,
+  default: 1.5,
+};
+
 export enum GraphType {
   /**
    * the global graph
@@ -88,6 +95,8 @@ const commonSetting = {
     showCenterCoordinates: true,
     showLinkArrow: true,
     dontMoveWhenDrag: false,
+    showRing: true,
+    ringTubeRadius: ringTubeRadius.default,
   },
 };
 
@@ -107,6 +116,8 @@ export const BaseDisplaySettingsSchema = z.object({
   showCenterCoordinates: z.boolean().default(commonSetting.display.showCenterCoordinates),
   showLinkArrow: z.boolean().default(commonSetting.display.showLinkArrow),
   dontMoveWhenDrag: z.boolean().default(commonSetting.display.dontMoveWhenDrag),
+  showRing: z.boolean().default(commonSetting.display.showRing),
+  ringTubeRadius: z.number().default(commonSetting.display.ringTubeRadius),
   dagOrientation: z.undefined().or(z.nativeEnum(DagOrientation)).default(DagOrientation.null),
 });
 

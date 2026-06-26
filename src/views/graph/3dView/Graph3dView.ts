@@ -221,6 +221,20 @@ export abstract class Graph3dView<
         },
       });
     }
+    if (path.includes("display.showRing")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          showRing: newSetting.display.showRing,
+        },
+      });
+    }
+    if (path.includes("display.ringTubeRadius")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          ringTubeRadius: newSetting.display.ringTubeRadius,
+        },
+      });
+    }
     if (path.includes("display.showExtension") || path.includes("display.showFullPath")) {
       this.forceGraph?.interactionManager.updateNodeLabelDiv();
     }

@@ -51,7 +51,12 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   private readonly ringMeshes: Map<string, THREE.Mesh> = new Map();
   private readonly ringHandles: Map<string, { green: THREE.Mesh; blue: THREE.Mesh }> = new Map();
   private readonly raycaster = new THREE.Raycaster();
-  private ringDragState: { ringPath: string; axis: "green" | "blue"; lastY: number; lastX: number } | null = null;
+  private ringDragState: {
+    ringPath: string;
+    axis: "green" | "blue";
+    lastY: number;
+    lastX: number;
+  } | null = null;
   public nodeLabelEl: HTMLDivElement;
 
   /**
@@ -215,7 +220,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
     for (const ring of rings) {
       // torus — depthWrite off so it never occludes nodes or links behind it
-      const geometry = new THREE.TorusGeometry(ring.radius, 1.5, 8, 64);
+      const tubeR = this.view.settingManager.getCurrentSetting().display.ringTubeRadius ?? 1.5;
+      const geometry = new THREE.TorusGeometry(ring.radius, tubeR, 8, 64);
       const material = new THREE.MeshBasicMaterial({
         color: 0x666666,
         transparent: true,
@@ -245,6 +251,11 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       const center = new THREE.Vector3(pos.x, pos.y, pos.z);
       greenHandle.position.copy(center.clone().addScaledVector(u, ring.radius));
       blueHandle.position.copy(center.clone().addScaledVector(v, ring.radius));
+
+      const showRing = this.view.settingManager.getCurrentSetting().display.showRing ?? true;
+      mesh.visible = showRing;
+      greenHandle.visible = showRing;
+      blueHandle.visible = showRing;
 
       scene.add(mesh);
       scene.add(greenHandle);
@@ -359,13 +370,21 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     const ringPos = positions[ring.path];
     if (!ringPos) return;
     const childPaths = this.view.plugin.ringManager.getChildPaths(ring);
-    const childPositions = this.view.plugin.ringManager.computeChildPositions(ring, ringPos, childPaths);
+    const childPositions = this.view.plugin.ringManager.computeChildPositions(
+      ring,
+      ringPos,
+      childPaths
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (this.instance.graphData().nodes as any[]).forEach((n: any) => {
       const pos = childPositions[n.path];
       if (pos) {
-        n.x = pos.x; n.y = pos.y; n.z = pos.z;
-        n.fx = pos.x; n.fy = pos.y; n.fz = pos.z;
+        n.x = pos.x;
+        n.y = pos.y;
+        n.z = pos.z;
+        n.fx = pos.x;
+        n.fy = pos.y;
+        n.fz = pos.z;
         this.view.plugin.nodePositionManager.setPosition(n.path, pos.x, pos.y, pos.z);
       }
     });
@@ -530,6 +549,23 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     }
     if (config?.display?.showCenterCoordinates !== undefined) {
       this.centerCoordinates.setVisibility(config.display.showCenterCoordinates);
+    }
+    if (config?.display?.showRing !== undefined) {
+      const visible = config.display.showRing;
+      for (const mesh of this.ringMeshes.values()) mesh.visible = visible;
+      for (const handles of this.ringHandles.values()) {
+        handles.green.visible = visible;
+        handles.blue.visible = visible;
+      }
+    }
+    if (config?.display?.ringTubeRadius !== undefined) {
+      const tubeR = config.display.ringTubeRadius;
+      for (const [path, mesh] of this.ringMeshes.entries()) {
+        const ring = this.view.plugin.ringManager.getRing(path);
+        if (!ring) continue;
+        mesh.geometry.dispose();
+        mesh.geometry = new THREE.TorusGeometry(ring.radius, tubeR, 8, 64);
+      }
     }
 
     if ((config as LocalGraphSettings)?.display?.dagOrientation !== undefined) {

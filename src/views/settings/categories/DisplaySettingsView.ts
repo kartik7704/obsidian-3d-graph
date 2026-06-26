@@ -14,6 +14,7 @@ import {
   linkThickness,
   nodeRepulsion,
   nodeSize,
+  ringTubeRadius,
 } from "@/SettingsSchemas";
 import type { BaseGraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import type { State } from "@/util/State";
@@ -94,6 +95,20 @@ export const DisplaySettingsView = (
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.display.distanceFromFocal = value;
+      });
+    }
+  );
+
+  addSimpleSliderSetting(
+    containerEl,
+    {
+      name: "Ring radius",
+      value: displaySettings.ringTubeRadius,
+      stepOptions: ringTubeRadius,
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.ringTubeRadius = value;
       });
     }
   );
@@ -202,6 +217,19 @@ export const DisplaySettingsView = (
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.display.dontMoveWhenDrag = value;
+      });
+    }
+  );
+
+  addToggle(
+    containerEl,
+    {
+      name: "Show ring",
+      value: displaySettings.showRing,
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.showRing = value;
       });
     }
   );
