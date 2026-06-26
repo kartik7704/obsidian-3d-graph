@@ -152,6 +152,11 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       .nodeThreeObject((node: Node) => {
         const nodeEl = document.createElement("div");
 
+        if (this.view.plugin.ringManager.isRing(node.path)) {
+          nodeEl.style.display = "none";
+          return new CSS2DObject(nodeEl);
+        }
+
         const text = this.interactionManager.getNodeLabelText(node);
         nodeEl.textContent = text;
         // @ts-ignore
