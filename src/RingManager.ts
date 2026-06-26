@@ -5,7 +5,7 @@ import type { NodePositions } from "@/NodePositionManager";
 export type RingData = {
   path: string;
   radius: number;
-  filter: string;       // tag to match children (without #), e.g. "log"
+  filter: string; // tag to match children (without #), e.g. "log"
   normal: THREE.Vector3;
 };
 
@@ -33,10 +33,10 @@ export class RingManager {
 
       const radius: number = typeof fm.radius === "number" ? fm.radius : 150;
       const filter: string =
-        typeof fm["ring-filter"] === "string"
-          ? fm["ring-filter"].replace(/^#/, "")
-          : "";
-      const nArr: number[] = Array.isArray(fm["ring-normal"]) ? (fm["ring-normal"] as number[]) : [0, 1, 0];
+        typeof fm["ring-filter"] === "string" ? fm["ring-filter"].replace(/^#/, "") : "";
+      const nArr: number[] = Array.isArray(fm["ring-normal"])
+        ? (fm["ring-normal"] as number[])
+        : [0, 1, 0];
       const normal = new THREE.Vector3(nArr[0] ?? 0, nArr[1] ?? 1, nArr[2] ?? 0).normalize();
 
       this.rings.set(file.path, { path: file.path, radius, filter, normal });
@@ -85,16 +85,15 @@ export class RingManager {
     const n = ring.normal.clone().normalize();
 
     // Build two orthogonal basis vectors spanning the ring plane
-    const arbitrary = Math.abs(n.y) < 0.9
-      ? new THREE.Vector3(0, 1, 0)
-      : new THREE.Vector3(1, 0, 0);
+    const arbitrary = Math.abs(n.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
     const u = new THREE.Vector3().crossVectors(arbitrary, n).normalize();
     const v = new THREE.Vector3().crossVectors(n, u).normalize();
 
     const result: NodePositions = {};
     childPaths.forEach((path, i) => {
       const angle = (2 * Math.PI * i) / childPaths.length;
-      const p = c.clone()
+      const p = c
+        .clone()
         .addScaledVector(u, ring.radius * Math.cos(angle))
         .addScaledVector(v, ring.radius * Math.sin(angle));
       result[path] = { x: p.x, y: p.y, z: p.z };

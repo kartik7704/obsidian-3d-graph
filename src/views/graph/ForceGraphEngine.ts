@@ -143,8 +143,12 @@ export class ForceGraphEngine {
       (this.forceGraph.instance.graphData().nodes as any[]).forEach((n: any) => {
         const pos = childPositions[n.path];
         if (pos) {
-          n.x = pos.x; n.y = pos.y; n.z = pos.z;
-          n.fx = pos.x; n.fy = pos.y; n.fz = pos.z;
+          n.x = pos.x;
+          n.y = pos.y;
+          n.z = pos.z;
+          n.fx = pos.x;
+          n.fy = pos.y;
+          n.fz = pos.z;
           posManager.setPosition(n.path, pos.x, pos.y, pos.z);
         }
       });
