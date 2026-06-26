@@ -1,6 +1,7 @@
 import { TreeItem } from "@/views/atomics/TreeItem";
 import type { ItemView, TAbstractFile } from "obsidian";
-import { ExtraButtonComponent } from "obsidian";
+import { ExtraButtonComponent, Menu } from "obsidian";
+import { createNotice } from "@/util/createNotice";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
 import { SavedSettingsView } from "@/views/settings/categories/SavedSettingsView";
 import { SavedLayoutsView } from "@/views/settings/categories/SavedLayoutsView";
@@ -191,6 +192,75 @@ export abstract class GraphSettingManager<
   }
 
   private appendGraphControlsItems(containerEl: HTMLElement) {
+    const posManager = this.graphView.plugin.nodePositionManager;
+
+    const getQuicksaveTooltip = () => {
+      const id = posManager.getQuicksaveLayoutId();
+      if (!id) return "Quicksave (right-click to select layout)";
+      const layout = posManager.getLayouts().find((l) => l.id === id);
+      return layout
+        ? `Quicksave → "${layout.title}" (right-click to change)`
+        : "Quicksave (right-click to select layout)";
+    };
+
+    const quicksaveBtn = new ExtraButtonComponent(containerEl)
+      .setTooltip(getQuicksaveTooltip())
+      .onClick(async () => {
+        const id = posManager.getQuicksaveLayoutId();
+        if (!id) {
+          createNotice("Right-click the quicksave button to select a layout first");
+          return;
+        }
+        const layout = posManager.getLayouts().find((l) => l.id === id);
+        if (!layout) {
+          createNotice("Quicksave target no longer exists — right-click to select a new one");
+          await posManager.setQuicksaveLayoutId(null);
+          quicksaveBtn.setIcon("bookmark");
+          quicksaveBtn.setTooltip(getQuicksaveTooltip());
+          return;
+        }
+        await posManager.updateLayout(id);
+        createNotice(`Quicksaved → "${layout.title}"`);
+      });
+
+    // right-click to pick target layout
+    quicksaveBtn.extraSettingsEl.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      const menu = new Menu();
+      const layouts = posManager.getLayouts();
+      if (layouts.length === 0) {
+        menu.addItem((item) => item.setTitle("No saved layouts").setDisabled(true));
+      } else {
+        layouts.forEach((layout) => {
+          menu.addItem((item) =>
+            item
+              .setTitle(layout.title)
+              .setChecked(posManager.getQuicksaveLayoutId() === layout.id)
+              .onClick(async () => {
+                await posManager.setQuicksaveLayoutId(layout.id);
+                quicksaveBtn.setIcon("bookmark-check");
+                quicksaveBtn.setTooltip(getQuicksaveTooltip());
+              })
+          );
+        });
+        menu.addSeparator();
+        menu.addItem((item) =>
+          item.setTitle("Clear quicksave target").onClick(async () => {
+            await posManager.setQuicksaveLayoutId(null);
+            quicksaveBtn.setIcon("bookmark");
+            quicksaveBtn.setTooltip(getQuicksaveTooltip());
+          })
+        );
+      }
+      menu.showAtMouseEvent(e);
+    });
+
+    // set initial icon
+    const currentId = posManager.getQuicksaveLayoutId();
+    const hasValidTarget =
+      currentId !== null && posManager.getLayouts().some((l) => l.id === currentId);
+    quicksaveBtn.setIcon(hasValidTarget ? "bookmark-check" : "bookmark");
+
     new ExtraButtonComponent(containerEl)
       .setIcon("refresh-cw")
       .setTooltip("Refresh")

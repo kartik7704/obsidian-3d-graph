@@ -263,6 +263,31 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       if (error) {
         console.error(error);
       }
+      // Pin new nodes after simulation settles so they don't drift when dontMoveWhenDrag is on
+      const setting = this.view.settingManager.getCurrentSetting();
+      if (setting.display.dontMoveWhenDrag) {
+        const posManager = this.view.plugin.nodePositionManager;
+        const saved = posManager.getAll();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newNodePaths = new Set(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          graph.nodes.filter((n) => !saved[(n as any).path]).map((n) => (n as any).path)
+        );
+        if (newNodePaths.size > 0) {
+          setTimeout(() => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (this.instance.graphData().nodes as any[]).forEach((node: any) => {
+              if (newNodePaths.has(node.path) && node.x !== undefined) {
+                node.fx = node.x;
+                node.fy = node.y;
+                node.fz = node.z;
+                posManager.setPosition(node.path, node.x, node.y, node.z);
+              }
+            });
+            posManager.saveDebounced();
+          }, 2000);
+        }
+      }
     } else console.log("same graph, no need to update");
   }
 

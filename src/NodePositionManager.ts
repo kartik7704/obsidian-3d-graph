@@ -14,6 +14,7 @@ export type SavedLayout = {
 type PositionsData = {
   current: NodePositions;
   layouts: SavedLayout[];
+  quicksaveLayoutId?: string | null;
 };
 
 export class NodePositionManager {
@@ -21,6 +22,7 @@ export class NodePositionManager {
   private filePath: string;
   private current: NodePositions = {};
   private layouts: SavedLayout[] = [];
+  private quicksaveLayoutId: string | null = null;
 
   public readonly saveDebounced: () => void;
 
@@ -38,6 +40,7 @@ export class NodePositionManager {
       if (data.current !== undefined) {
         this.current = data.current;
         this.layouts = data.layouts ?? [];
+        this.quicksaveLayoutId = data.quicksaveLayoutId ?? null;
       } else {
         // legacy: whole file was NodePositions
         this.current = data as NodePositions;
@@ -50,7 +53,11 @@ export class NodePositionManager {
   }
 
   async save(): Promise<void> {
-    const data: PositionsData = { current: this.current, layouts: this.layouts };
+    const data: PositionsData = {
+      current: this.current,
+      layouts: this.layouts,
+      quicksaveLayoutId: this.quicksaveLayoutId,
+    };
     await this.plugin.app.vault.adapter.write(this.filePath, JSON.stringify(data, null, 2));
   }
 
@@ -113,5 +120,16 @@ export class NodePositionManager {
     this.current = { ...layout.positions };
     this.saveDebounced();
     return this.current;
+  }
+
+  // --- quicksave target ---
+
+  getQuicksaveLayoutId(): string | null {
+    return this.quicksaveLayoutId;
+  }
+
+  async setQuicksaveLayoutId(id: string | null): Promise<void> {
+    this.quicksaveLayoutId = id;
+    await this.save();
   }
 }
