@@ -5,7 +5,7 @@ import { Graph } from "@/graph/Graph";
 import type { ResolvedLinkCache } from "@/graph/Link";
 import { deepCompare } from "@/util/deepCompare";
 import "@total-typescript/ts-reset";
-import "@total-typescript/ts-reset/dist/dom";
+import "@total-typescript/ts-reset/dom";
 import { eventBus } from "@/util/EventBus";
 import { SettingTab } from "@/views/SettingTab";
 import { config } from "@/config";
