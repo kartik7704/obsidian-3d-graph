@@ -17,6 +17,7 @@ import { GlobalGraphItemView } from "@/views/graph/GlobalGraphItemView";
 import { LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import { Graph3DViewMarkdownRenderChild } from "@/views/graph/Graph3DViewMarkdownRenderChild";
 import { NodePositionManager } from "@/NodePositionManager";
+import { RingManager } from "@/RingManager";
 
 export default class Graph3dPlugin extends Plugin implements HoverParent {
   _resolvedCache: ResolvedLinkCache;
@@ -32,6 +33,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
   public fileManager: MyFileManager;
   public settingManager: PluginSettingManager;
   public nodePositionManager: NodePositionManager;
+  public ringManager: RingManager;
 
   public activeGraphViews: BaseGraph3dView[] = [];
 
@@ -51,6 +53,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
 
     this.settingManager = new PluginSettingManager(this);
     this.nodePositionManager = new NodePositionManager(this);
+    this.ringManager = new RingManager(this);
 
     // this will be initialized in the onload function because we need to wait for the setting manager to initialize
     this.fileManager = undefined as unknown as MyFileManager;
@@ -63,6 +66,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
     // load the setting using setting manager
     await this.settingManager.loadSettings();
     await this.nodePositionManager.load();
+    await this.ringManager.load();
 
     // get the setting from setting manager
     // const setting = this.settingManager.getSetting("test");
@@ -89,6 +93,12 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       id: "open-3d-graph-local",
       name: "Open Local 3D Graph",
       callback: this.openLocalGraph,
+    });
+
+    this.addCommand({
+      id: "apply-ring-layouts",
+      name: "Apply ring layouts",
+      callback: this.applyRingLayouts,
     });
 
     this.registerDomEvent(window, "mousemove", (event) => {
@@ -214,6 +224,25 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
     if (globalGraphView) {
       this.app.workspace.setActiveLeaf(globalGraphView.leaf);
     } else this.openGraph(GraphType.global);
+  };
+
+  private applyRingLayouts = async () => {
+    await this.ringManager.load();
+    const positions = this.nodePositionManager.getAll();
+    for (const ring of this.ringManager.getRings()) {
+      const ringPos = positions[ring.path];
+      if (!ringPos) continue;
+      const childPaths = this.ringManager.getChildPaths(ring);
+      const childPositions = this.ringManager.computeChildPositions(ring, ringPos, childPaths);
+      for (const [path, pos] of Object.entries(childPositions)) {
+        this.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
+      }
+    }
+    this.nodePositionManager.saveDebounced();
+    const allPositions = this.nodePositionManager.getAll();
+    this.activeGraphViews.forEach((view) => {
+      view.getForceGraph().applyLivePositions(allPositions);
+    });
   };
 
   /**

@@ -48,6 +48,10 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   public readonly myCube: THREE.Mesh;
 
   public readonly interactionManager: ForceGraphEngine;
+  private readonly ringMeshes: Map<string, THREE.Mesh> = new Map();
+  private readonly ringHandles: Map<string, { green: THREE.Mesh; blue: THREE.Mesh }> = new Map();
+  private readonly raycaster = new THREE.Raycaster();
+  private ringDragState: { ringPath: string; axis: "green" | "blue"; lastY: number; lastX: number } | null = null;
   public nodeLabelEl: HTMLDivElement;
 
   /**
@@ -136,6 +140,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     this.myCube = this.createCube();
     scene.add(this.myCube);
 
+    this.initRingMeshes(scene);
+
     // add node label
     this.instance
       .nodeThreeObject((node: Node) => {
@@ -193,6 +199,176 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
           pluginSetting.rightClickToPan ? "Right click" : "Cmd + left click"
         }: pan`
       );
+  }
+
+  private getRingBasis(normal: THREE.Vector3): { u: THREE.Vector3; v: THREE.Vector3 } {
+    const n = normal.clone().normalize();
+    const arbitrary = Math.abs(n.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+    const u = new THREE.Vector3().crossVectors(arbitrary, n).normalize();
+    const v = new THREE.Vector3().crossVectors(n, u).normalize();
+    return { u, v };
+  }
+
+  private initRingMeshes(scene: THREE.Scene): void {
+    const rings = this.view.plugin.ringManager.getRings();
+    const positions = this.view.plugin.nodePositionManager.getAll();
+
+    for (const ring of rings) {
+      // torus — depthWrite off so it never occludes nodes or links behind it
+      const geometry = new THREE.TorusGeometry(ring.radius, 1.5, 8, 64);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0x666666,
+        transparent: true,
+        opacity: 0.35,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+
+      // green handle: drag to rotate around ring's v axis
+      const greenHandle = new THREE.Mesh(
+        new THREE.SphereGeometry(6, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x00cc44 })
+      );
+      // blue handle: drag to rotate around ring's u axis
+      const blueHandle = new THREE.Mesh(
+        new THREE.SphereGeometry(6, 8, 8),
+        new THREE.MeshBasicMaterial({ color: 0x4488ff })
+      );
+
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), ring.normal);
+      const pos = positions[ring.path] ?? { x: 0, y: 0, z: 0 };
+      mesh.position.set(pos.x, pos.y, pos.z);
+      mesh.setRotationFromQuaternion(q);
+
+      const { u, v } = this.getRingBasis(ring.normal);
+      const center = new THREE.Vector3(pos.x, pos.y, pos.z);
+      greenHandle.position.copy(center.clone().addScaledVector(u, ring.radius));
+      blueHandle.position.copy(center.clone().addScaledVector(v, ring.radius));
+
+      scene.add(mesh);
+      scene.add(greenHandle);
+      scene.add(blueHandle);
+      this.ringMeshes.set(ring.path, mesh);
+      this.ringHandles.set(ring.path, { green: greenHandle, blue: blueHandle });
+    }
+
+    const domEl = this.instance.renderer().domElement;
+    domEl.addEventListener("pointermove", this.onHandleMouseMove, { capture: true });
+    domEl.addEventListener("pointerdown", this.onHandleMouseDown, { capture: true });
+    domEl.addEventListener("pointerup", this.onHandleMouseUp, { capture: true });
+  }
+
+  public updateRingMeshPositions(): void {
+    const positions = this.view.plugin.nodePositionManager.getAll();
+    for (const ring of this.view.plugin.ringManager.getRings()) {
+      const mesh = this.ringMeshes.get(ring.path);
+      const handles = this.ringHandles.get(ring.path);
+      const pos = positions[ring.path];
+      if (!pos || !mesh) continue;
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), ring.normal);
+      mesh.position.set(pos.x, pos.y, pos.z);
+      mesh.setRotationFromQuaternion(q);
+      if (handles) {
+        const { u, v } = this.getRingBasis(ring.normal);
+        const center = new THREE.Vector3(pos.x, pos.y, pos.z);
+        handles.green.position.copy(center.clone().addScaledVector(u, ring.radius));
+        handles.blue.position.copy(center.clone().addScaledVector(v, ring.radius));
+      }
+    }
+  }
+
+  private getMouseNDC(event: MouseEvent): THREE.Vector2 {
+    const rect = this.instance.renderer().domElement.getBoundingClientRect();
+    return new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1
+    );
+  }
+
+  private onHandleMouseMove = (event: MouseEvent): void => {
+    if (!this.ringDragState) return;
+    this.handleRingRotationDrag(event);
+    event.stopPropagation();
+  };
+
+  private onHandleMouseDown = (event: MouseEvent): void => {
+    const ndc = this.getMouseNDC(event);
+    this.raycaster.setFromCamera(ndc, this.instance.camera());
+    for (const [ringPath, handles] of this.ringHandles.entries()) {
+      const greenHits = this.raycaster.intersectObject(handles.green);
+      const blueHits = this.raycaster.intersectObject(handles.blue);
+      if (greenHits.length > 0 || blueHits.length > 0) {
+        const axis = greenHits.length > 0 ? "green" : "blue";
+        this.ringDragState = { ringPath, axis, lastY: event.clientY, lastX: event.clientX };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (this.instance.controls() as any).enabled = false;
+        event.stopPropagation();
+        event.preventDefault();
+        return;
+      }
+    }
+  };
+
+  private onHandleMouseUp = (): void => {
+    if (this.ringDragState) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.instance.controls() as any).enabled = true;
+      this.view.plugin.nodePositionManager.saveDebounced();
+      this.ringDragState = null;
+    }
+  };
+
+  private handleRingRotationDrag(event: MouseEvent): void {
+    if (!this.ringDragState) return;
+    const dx = event.clientX - this.ringDragState.lastX;
+    const dy = event.clientY - this.ringDragState.lastY;
+    this.ringDragState.lastX = event.clientX;
+    this.ringDragState.lastY = event.clientY;
+
+    const dragMag = Math.sqrt(dx * dx + dy * dy);
+    if (dragMag < 0.5) return;
+
+    const ring = this.view.plugin.ringManager.getRing(this.ringDragState.ringPath);
+    if (!ring) return;
+
+    // Handle direction in world space (where the handle sits on the ring)
+    const { u, v } = this.getRingBasis(ring.normal);
+    const handleDir = this.ringDragState.axis === "green" ? u : v;
+
+    // Map screen drag to 3D world direction using camera axes
+    const camera = this.instance.camera();
+    const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
+    const camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
+    const desired3D = camRight.clone().multiplyScalar(dx).addScaledVector(camUp, -dy).normalize();
+
+    // Rotation axis: perpendicular to both the handle direction and the desired movement
+    // This makes the handle actually move toward where you dragged
+    const rotAxis = new THREE.Vector3().crossVectors(handleDir, desired3D);
+    if (rotAxis.lengthSq() < 0.0001) return;
+    rotAxis.normalize();
+
+    const q = new THREE.Quaternion().setFromAxisAngle(rotAxis, dragMag * 0.005);
+    const newNormal = ring.normal.clone().applyQuaternion(q).normalize();
+    this.view.plugin.ringManager.setNormal(ring.path, newNormal);
+
+    this.updateRingMeshPositions();
+
+    // re-snap children — update positions directly, ForceGraph3D renders each frame
+    const positions = this.view.plugin.nodePositionManager.getAll();
+    const ringPos = positions[ring.path];
+    if (!ringPos) return;
+    const childPaths = this.view.plugin.ringManager.getChildPaths(ring);
+    const childPositions = this.view.plugin.ringManager.computeChildPositions(ring, ringPos, childPaths);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (this.instance.graphData().nodes as any[]).forEach((n: any) => {
+      const pos = childPositions[n.path];
+      if (pos) {
+        n.x = pos.x; n.y = pos.y; n.z = pos.z;
+        n.fx = pos.x; n.fy = pos.y; n.fz = pos.z;
+        this.view.plugin.nodePositionManager.setPosition(n.path, pos.x, pos.y, pos.z);
+      }
+    });
   }
 
   private createNodeLabel() {
@@ -312,6 +488,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       }
     });
     this.instance.numDimensions(3);
+    this.updateRingMeshPositions();
   }
 
   private applyNodePositions(graph: Graph): void {
