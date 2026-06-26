@@ -289,6 +289,18 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     }
   }
 
+  public reloadRingMeshes(): void {
+    const scene = this.instance.scene();
+    for (const mesh of this.ringMeshes.values()) scene.remove(mesh);
+    for (const handles of this.ringHandles.values()) {
+      scene.remove(handles.green);
+      scene.remove(handles.blue);
+    }
+    this.ringMeshes.clear();
+    this.ringHandles.clear();
+    this.initRingMeshes(scene);
+  }
+
   private getMouseNDC(event: MouseEvent): THREE.Vector2 {
     const rect = this.instance.renderer().domElement.getBoundingClientRect();
     return new THREE.Vector2(

@@ -63,6 +63,15 @@ export abstract class GraphSettingManager<
     this.containerEl = document.createElement("div");
     this.containerEl.classList.add("graph-settings-view");
 
+    // reload rings button — re-reads frontmatter and rebuilds ring meshes without plugin reload
+    new ExtraButtonComponent(this.containerEl)
+      .setIcon("refresh-cw")
+      .setTooltip("Reload rings")
+      .onClick(async () => {
+        await graphView.plugin.ringManager.load();
+        graphView.getForceGraph()?.reloadRingMeshes();
+      });
+
     // add the setting button to this div
     this.settingsButton = new ExtraButtonComponent(this.containerEl)
       .setIcon("settings")
