@@ -1,5 +1,5 @@
 import { TreeItem } from "@/views/atomics/TreeItem";
-import type { ItemView, TAbstractFile } from "obsidian";
+import type { ItemView, TAbstractFile, TFile } from "obsidian";
 import { ExtraButtonComponent, Menu } from "obsidian";
 import { createNotice } from "@/util/createNotice";
 import { UtilitySettingsView } from "@/views/settings/categories/UtilitySettingsView";
@@ -267,6 +267,61 @@ export abstract class GraphSettingManager<
       .onClick(async () => {
         await this.graphView.plugin.ringManager.load();
         this.graphView.getForceGraph()?.reloadRingMeshes();
+      });
+    new ExtraButtonComponent(containerEl)
+      .setIcon("arrow-down-to-line")
+      .setTooltip("Get over here!")
+      .onClick(async () => {
+        const forceGraph = this.graphView.getForceGraph();
+        if (!forceGraph) return;
+        const posManager = this.graphView.plugin.nodePositionManager;
+        const app = this.graphView.plugin.app;
+        const allNodes = forceGraph.instance.graphData().nodes as any[];
+
+        const astrayNodes = allNodes.filter((node: any) => {
+          const file = app.vault.getAbstractFileByPath(node.path);
+          if (!file) return false;
+          const cache = app.metadataCache.getFileCache(file as TFile);
+          const tags: string[] = cache?.frontmatter?.tags ?? [];
+          return tags.includes("astray");
+        });
+
+        if (astrayNodes.length === 0) {
+          createNotice("No astray nodes — tag a file with 'astray' to pull it in");
+          return;
+        }
+
+        const saved = posManager.getAll();
+        const positionedEntries = Object.values(saved);
+        if (positionedEntries.length === 0) {
+          createNotice("No positioned nodes to anchor to");
+          return;
+        }
+
+        const cx = positionedEntries.reduce((s, p) => s + p.x, 0) / positionedEntries.length;
+        const cy = positionedEntries.reduce((s, p) => s + p.y, 0) / positionedEntries.length;
+        const cz = positionedEntries.reduce((s, p) => s + p.z, 0) / positionedEntries.length;
+
+        const SCATTER = 50;
+        for (const node of astrayNodes) {
+          const x = cx + (Math.random() - 0.5) * 2 * SCATTER;
+          const y = cy + (Math.random() - 0.5) * 2 * SCATTER;
+          const z = cz + (Math.random() - 0.5) * 2 * SCATTER;
+          node.fx = x; node.fy = y; node.fz = z;
+          node.x = x; node.y = y; node.z = z;
+          posManager.setPosition(node.path, x, y, z);
+
+          const file = app.vault.getAbstractFileByPath(node.path) as TFile;
+          await app.fileManager.processFrontMatter(file, (fm) => {
+            if (Array.isArray(fm.tags)) {
+              fm.tags = fm.tags.filter((t: string) => t !== "astray");
+            }
+          });
+        }
+
+        posManager.saveDebounced();
+        forceGraph.instance.numDimensions(3);
+        createNotice(`Get over here — pulled ${astrayNodes.length} node${astrayNodes.length > 1 ? "s" : ""} in`);
       });
     new ExtraButtonComponent(containerEl)
       .setIcon("eraser")
