@@ -555,7 +555,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       let pos: { x: number; y: number; z: number } | undefined;
 
       // frontmatter graph_pos supersedes positions.json
-      const file = app.vault.getFileByPath(node.path);
+      const file = app.vault.getAbstractFileByPath(node.path) as TFile | null;
       if (file) {
         const fm = app.metadataCache.getFileCache(file)?.frontmatter;
         if (fm?.graph_pos && typeof fm.graph_pos === "string") {

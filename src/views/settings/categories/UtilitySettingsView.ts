@@ -35,7 +35,7 @@ class CreateRingModal extends Modal {
         }
         const path = `${noteName}.md`;
         const content = `---\ntags:\n  - ring\nring-filter: ${filterTag}\nradius: 80\nring-normal:\n  - 0\n  - 1\n  - 0\n---\n`;
-        const existing = this.app.vault.getFileByPath(path);
+        const existing = this.app.vault.getAbstractFileByPath(path) as TFile | null;
         if (existing instanceof TFile) {
           await this.app.fileManager.processFrontMatter(existing, (fm) => {
             if (!fm.tags) fm.tags = [];
@@ -77,10 +77,11 @@ class EditRingModal extends Modal {
       return;
     }
 
-    let selectedPath = rings[0].path;
-    let nx = rings[0].normal.x;
-    let ny = rings[0].normal.y;
-    let nz = rings[0].normal.z;
+    const firstRing = rings[0]!;
+    let selectedPath = firstRing.path;
+    let nx = firstRing.normal.x;
+    let ny = firstRing.normal.y;
+    let nz = firstRing.normal.z;
 
     const updateInputs = (path: string) => {
       const ring = this.view.plugin.ringManager.getRing(path);

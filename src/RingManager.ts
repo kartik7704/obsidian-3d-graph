@@ -1,5 +1,6 @@
 import type Graph3dPlugin from "@/main";
 import * as THREE from "three";
+import { TFile } from "obsidian";
 import type { NodePositions } from "@/NodePositionManager";
 
 export type RingData = {
@@ -107,7 +108,7 @@ export class RingManager {
   }
 
   async persistNormal(path: string, normal: THREE.Vector3): Promise<void> {
-    const file = this.plugin.app.vault.getFileByPath(path);
+    const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
     if (!file || !path.endsWith(".md")) return;
     const n = normal.normalize();
     this.plugin.isSavingFrontmatter = true;

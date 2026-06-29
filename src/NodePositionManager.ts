@@ -1,5 +1,5 @@
 import type Graph3dPlugin from "@/main";
-import { normalizePath } from "obsidian";
+import { normalizePath, TFile } from "obsidian";
 import { debounce } from "@/util/debounce";
 import { generateUUID } from "@/util/generateUUID";
 
@@ -72,7 +72,7 @@ export class NodePositionManager {
   }
 
   async writeFrontmatter(path: string, x: number, y: number, z: number): Promise<void> {
-    const file = this.plugin.app.vault.getFileByPath(path);
+    const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
     if (!file || !path.endsWith(".md")) return;
     this.plugin.isSavingFrontmatter = true;
     try {
@@ -89,7 +89,7 @@ export class NodePositionManager {
     this.plugin.isSavingFrontmatter = true;
     try {
       for (const path of this.frontmatterTouched) {
-        const file = this.plugin.app.vault.getFileByPath(path);
+        const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
         if (!file) continue;
         await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
           delete fm.graph_pos;
