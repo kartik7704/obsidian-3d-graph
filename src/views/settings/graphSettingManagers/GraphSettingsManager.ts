@@ -336,6 +336,7 @@ export abstract class GraphSettingManager<
         // snap children to their ring positions using live node coordinates
         if (forceGraph) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const liveNodes = forceGraph.instance.graphData().nodes as any[];
           const livePos: Record<string, { x: number; y: number; z: number }> = {};
           liveNodes.forEach((n: any) => {
@@ -347,7 +348,11 @@ export abstract class GraphSettingManager<
             if (!ringPos) continue;
             plugin.nodePositionManager.setPosition(ring.path, ringPos.x, ringPos.y, ringPos.z);
             const childPaths = plugin.ringManager.getChildPaths(ring);
-            const childPositions = plugin.ringManager.computeChildPositions(ring, ringPos, childPaths);
+            const childPositions = plugin.ringManager.computeChildPositions(
+              ring,
+              ringPos,
+              childPaths
+            );
             for (const [path, pos] of Object.entries(childPositions)) {
               plugin.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
             }
@@ -356,7 +361,9 @@ export abstract class GraphSettingManager<
           forceGraph.applyLivePositions(plugin.nodePositionManager.getAll());
         }
 
-        createNotice("Rings group nodes into orbital clusters. Tag a note with ring1, ring2, etc. to pull it into a ring, then drag the ring to reposition the whole group.");
+        createNotice(
+          "Rings group nodes into orbital clusters. Tag a note with ring1, ring2, etc. to pull it into a ring, then drag the ring to reposition the whole group."
+        );
       });
     new ExtraButtonComponent(containerEl)
       .setIcon("eraser")

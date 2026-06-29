@@ -221,7 +221,7 @@ export const DisplaySettingsView = (
     }
   );
 
-  const frontmatterToggle = addToggle(
+  addToggle(
     containerEl,
     {
       name: "Save coordinates to frontmatter",
@@ -229,7 +229,9 @@ export const DisplaySettingsView = (
     },
     (value) => {
       if (value && !settingManager.getCurrentSetting().display.dontMoveWhenDrag) {
-        new Notice("Enable 'Don't move when drag' first — coordinates need to be stable before writing to frontmatter.");
+        new Notice(
+          "Enable 'Don't move when drag' first — coordinates need to be stable before writing to frontmatter."
+        );
         settingManager.updateCurrentSettings((setting) => {
           setting.value.display.saveCoordinatesToFrontmatter = false;
         });

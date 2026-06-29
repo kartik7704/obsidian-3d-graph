@@ -23,34 +23,42 @@ class CreateRingModal extends Modal {
       text.setPlaceholder("e.g. logs_ring1").onChange((v) => (noteName = v.trim()));
     });
 
-    new Setting(contentEl).setName("Filter tag").setDesc("Nodes tagged with this will orbit the ring.").addText((text) => {
-      text.setPlaceholder("e.g. ring1").onChange((v) => (filterTag = v.trim()));
-    });
+    new Setting(contentEl)
+      .setName("Filter tag")
+      .setDesc("Nodes tagged with this will orbit the ring.")
+      .addText((text) => {
+        text.setPlaceholder("e.g. ring1").onChange((v) => (filterTag = v.trim()));
+      });
 
     new Setting(contentEl).addButton((btn) => {
-      btn.setButtonText("Create").setCta().onClick(async () => {
-        if (!noteName || !filterTag) {
-          createNotice("Enter both a note name and a filter tag.");
-          return;
-        }
-        const path = `${noteName}.md`;
-        const content = `---\ntags:\n  - ring\nring-filter: ${filterTag}\nradius: 80\nring-normal:\n  - 0\n  - 1\n  - 0\n---\n`;
-        const existing = this.app.vault.getAbstractFileByPath(path) as TFile | null;
-        if (existing instanceof TFile) {
-          await this.app.fileManager.processFrontMatter(existing, (fm) => {
-            if (!fm.tags) fm.tags = [];
-            if (!fm.tags.includes("ring")) fm.tags.push("ring");
-            fm["ring-filter"] = filterTag;
-            if (!fm.radius) fm.radius = 80;
-            if (!fm["ring-normal"]) fm["ring-normal"] = [0, 1, 0];
-          });
-          createNotice(`${noteName} already existed — ring fields added. Reload rings to activate.`);
-        } else {
-          await this.app.vault.create(path, content);
-          createNotice(`Created ${path} — reload rings to activate.`);
-        }
-        this.close();
-      });
+      btn
+        .setButtonText("Create")
+        .setCta()
+        .onClick(async () => {
+          if (!noteName || !filterTag) {
+            createNotice("Enter both a note name and a filter tag.");
+            return;
+          }
+          const path = `${noteName}.md`;
+          const content = `---\ntags:\n  - ring\nring-filter: ${filterTag}\nradius: 80\nring-normal:\n  - 0\n  - 1\n  - 0\n---\n`;
+          const existing = this.app.vault.getAbstractFileByPath(path) as TFile | null;
+          if (existing instanceof TFile) {
+            await this.app.fileManager.processFrontMatter(existing, (fm) => {
+              if (!fm.tags) fm.tags = [];
+              if (!fm.tags.includes("ring")) fm.tags.push("ring");
+              fm["ring-filter"] = filterTag;
+              if (!fm.radius) fm.radius = 80;
+              if (!fm["ring-normal"]) fm["ring-normal"] = [0, 1, 0];
+            });
+            createNotice(
+              `${noteName} already existed — ring fields added. Reload rings to activate.`
+            );
+          } else {
+            await this.app.vault.create(path, content);
+            createNotice(`Created ${path} — reload rings to activate.`);
+          }
+          this.close();
+        });
     });
   }
 
@@ -103,6 +111,7 @@ class EditRingModal extends Modal {
       });
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let xInput: any, yInput: any, zInput: any;
 
     new Setting(contentEl).setName("Normal X").addText((t) => {
@@ -119,18 +128,21 @@ class EditRingModal extends Modal {
     });
 
     new Setting(contentEl).addButton((btn) => {
-      btn.setButtonText("Apply").setCta().onClick(async () => {
-        const normal = new THREE.Vector3(nx, ny, nz);
-        if (normal.lengthSq() < 0.0001) {
-          createNotice("Normal vector can't be zero.");
-          return;
-        }
-        this.view.plugin.ringManager.setNormal(selectedPath, normal);
-        await this.view.plugin.ringManager.persistNormal(selectedPath, normal);
-        this.view.getForceGraph()?.reloadRingMeshes();
-        createNotice("Ring normal updated.");
-        this.close();
-      });
+      btn
+        .setButtonText("Apply")
+        .setCta()
+        .onClick(async () => {
+          const normal = new THREE.Vector3(nx, ny, nz);
+          if (normal.lengthSq() < 0.0001) {
+            createNotice("Normal vector can't be zero.");
+            return;
+          }
+          this.view.plugin.ringManager.setNormal(selectedPath, normal);
+          await this.view.plugin.ringManager.persistNormal(selectedPath, normal);
+          this.view.getForceGraph()?.reloadRingMeshes();
+          createNotice("Ring normal updated.");
+          this.close();
+        });
     });
   }
 
