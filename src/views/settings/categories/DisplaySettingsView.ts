@@ -1,7 +1,7 @@
 import { addSimpleSliderSetting } from "@/views/atomics/addSimpleSliderSetting";
 import { addColorPickerSetting } from "@/views/atomics/addColorPickerSetting";
 import { addToggle } from "@/views/atomics/addToggle";
-import { DropdownComponent, Setting } from "obsidian";
+import { DropdownComponent, Notice, Setting } from "obsidian";
 import type {
   GlobalGraphSettings,
   LocalDisplaySettings,
@@ -221,10 +221,36 @@ export const DisplaySettingsView = (
     }
   );
 
+  const frontmatterToggle = addToggle(
+    containerEl,
+    {
+      name: "Save coordinates to frontmatter",
+      value: displaySettings.saveCoordinatesToFrontmatter,
+    },
+    (value) => {
+      if (value && !settingManager.getCurrentSetting().display.dontMoveWhenDrag) {
+        new Notice("Enable 'Don't move when drag' first — coordinates need to be stable before writing to frontmatter.");
+        settingManager.updateCurrentSettings((setting) => {
+          setting.value.display.saveCoordinatesToFrontmatter = false;
+        });
+        return;
+      }
+      if (value) {
+        new Notice("graph_pos will be written to each note's frontmatter on drag.");
+      } else {
+        settingManager.getGraphView().plugin.nodePositionManager.clearFrontmatterFromTouched();
+        new Notice("Cleared graph_pos from all touched notes.");
+      }
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.saveCoordinatesToFrontmatter = value;
+      });
+    }
+  );
+
   addToggle(
     containerEl,
     {
-      name: "Show ring",
+      name: "Show rings",
       value: displaySettings.showRing,
     },
     (value) => {

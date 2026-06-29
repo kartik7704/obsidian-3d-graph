@@ -328,8 +328,35 @@ export abstract class GraphSettingManager<
       .setIcon("refresh-cw")
       .setTooltip("Reload rings")
       .onClick(async () => {
-        await this.graphView.plugin.ringManager.load();
-        this.graphView.getForceGraph()?.reloadRingMeshes();
+        const plugin = this.graphView.plugin;
+        await plugin.ringManager.load();
+        const forceGraph = this.graphView.getForceGraph();
+        forceGraph?.reloadRingMeshes();
+
+        // snap children to their ring positions using live node coordinates
+        if (forceGraph) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const liveNodes = forceGraph.instance.graphData().nodes as any[];
+          const livePos: Record<string, { x: number; y: number; z: number }> = {};
+          liveNodes.forEach((n: any) => {
+            if (n.path) livePos[n.path] = { x: n.x ?? 0, y: n.y ?? 0, z: n.z ?? 0 };
+          });
+
+          for (const ring of plugin.ringManager.getRings()) {
+            const ringPos = livePos[ring.path];
+            if (!ringPos) continue;
+            plugin.nodePositionManager.setPosition(ring.path, ringPos.x, ringPos.y, ringPos.z);
+            const childPaths = plugin.ringManager.getChildPaths(ring);
+            const childPositions = plugin.ringManager.computeChildPositions(ring, ringPos, childPaths);
+            for (const [path, pos] of Object.entries(childPositions)) {
+              plugin.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
+            }
+          }
+          plugin.nodePositionManager.saveDebounced();
+          forceGraph.applyLivePositions(plugin.nodePositionManager.getAll());
+        }
+
+        createNotice("Rings group nodes into orbital clusters. Tag a note with ring1, ring2, etc. to pull it into a ring, then drag the ring to reposition the whole group.");
       });
     new ExtraButtonComponent(containerEl)
       .setIcon("eraser")

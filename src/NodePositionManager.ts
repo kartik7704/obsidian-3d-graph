@@ -15,6 +15,7 @@ type PositionsData = {
   current: NodePositions;
   layouts: SavedLayout[];
   quicksaveLayoutId?: string | null;
+  frontmatterTouched?: string[];
 };
 
 export class NodePositionManager {
@@ -23,6 +24,7 @@ export class NodePositionManager {
   private current: NodePositions = {};
   private layouts: SavedLayout[] = [];
   private quicksaveLayoutId: string | null = null;
+  private frontmatterTouched: Set<string> = new Set();
 
   public readonly saveDebounced: () => void;
 
@@ -41,6 +43,7 @@ export class NodePositionManager {
         this.current = data.current;
         this.layouts = data.layouts ?? [];
         this.quicksaveLayoutId = data.quicksaveLayoutId ?? null;
+        this.frontmatterTouched = new Set(data.frontmatterTouched ?? []);
       } else {
         // legacy: whole file was NodePositions
         this.current = data as NodePositions;
@@ -57,6 +60,7 @@ export class NodePositionManager {
       current: this.current,
       layouts: this.layouts,
       quicksaveLayoutId: this.quicksaveLayoutId,
+      frontmatterTouched: [...this.frontmatterTouched],
     };
     await this.plugin.app.vault.adapter.write(this.filePath, JSON.stringify(data, null, 2));
   }
@@ -65,6 +69,37 @@ export class NodePositionManager {
 
   setPosition(path: string, x: number, y: number, z: number): void {
     this.current[path] = { x, y, z };
+  }
+
+  async writeFrontmatter(path: string, x: number, y: number, z: number): Promise<void> {
+    const file = this.plugin.app.vault.getFileByPath(path);
+    if (!file || !path.endsWith(".md")) return;
+    this.plugin.isSavingFrontmatter = true;
+    try {
+      await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
+        fm.graph_pos = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+      });
+      this.frontmatterTouched.add(path);
+    } finally {
+      this.plugin.isSavingFrontmatter = false;
+    }
+  }
+
+  async clearFrontmatterFromTouched(): Promise<void> {
+    this.plugin.isSavingFrontmatter = true;
+    try {
+      for (const path of this.frontmatterTouched) {
+        const file = this.plugin.app.vault.getFileByPath(path);
+        if (!file) continue;
+        await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
+          delete fm.graph_pos;
+        });
+      }
+      this.frontmatterTouched.clear();
+      await this.save();
+    } finally {
+      this.plugin.isSavingFrontmatter = false;
+    }
   }
 
   getAll(): NodePositions {

@@ -127,6 +127,9 @@ export class ForceGraphEngine {
     const posManager = this.forceGraph.view.plugin.nodePositionManager;
     posManager.setPosition(node.path, node.x, node.y, node.z);
     posManager.saveDebounced();
+    if (setting.display.saveCoordinatesToFrontmatter && setting.display.dontMoveWhenDrag) {
+      posManager.writeFrontmatter(node.path, node.x, node.y, node.z);
+    }
 
     // if this is a ring node, move the torus and re-snap children
     const ringManager = this.forceGraph.view.plugin.ringManager;

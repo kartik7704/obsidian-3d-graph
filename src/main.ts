@@ -41,6 +41,8 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
 
   public hoverPopover: HoverPopover | null = null;
 
+  public isSavingFrontmatter = false;
+
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
 
@@ -184,7 +186,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       this._resolvedCache = structuredClone(this.app.metadataCache.resolvedLinks);
       this.globalGraph = Graph.createFromApp(this.app);
 
-      if (this.isCacheReadyOnce) {
+      if (this.isCacheReadyOnce && !this.isSavingFrontmatter) {
         // update graph view
         this.activeGraphViews.forEach((view) => {
           view.handleMetadataCacheChange();
@@ -199,10 +201,12 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       //   deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
       // );
 
-      // update graph views
-      this.activeGraphViews.forEach((view) => {
-        view.handleMetadataCacheChange();
-      });
+      if (!this.isSavingFrontmatter) {
+        // update graph views
+        this.activeGraphViews.forEach((view) => {
+          view.handleMetadataCacheChange();
+        });
+      }
     }
   };
 

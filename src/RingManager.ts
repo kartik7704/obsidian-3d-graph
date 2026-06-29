@@ -105,4 +105,18 @@ export class RingManager {
     const ring = this.rings.get(path);
     if (ring) ring.normal = normal.clone().normalize();
   }
+
+  async persistNormal(path: string, normal: THREE.Vector3): Promise<void> {
+    const file = this.plugin.app.vault.getFileByPath(path);
+    if (!file || !path.endsWith(".md")) return;
+    const n = normal.normalize();
+    this.plugin.isSavingFrontmatter = true;
+    try {
+      await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
+        fm["ring-normal"] = [parseFloat(n.x.toFixed(4)), parseFloat(n.y.toFixed(4)), parseFloat(n.z.toFixed(4))];
+      });
+    } finally {
+      this.plugin.isSavingFrontmatter = false;
+    }
+  }
 }

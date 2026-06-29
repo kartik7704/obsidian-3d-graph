@@ -99,15 +99,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       // @ts-ignore
       .nodeLabel((node) => null)
       // node size is proportional to the number of links
-      .nodeVal((node: Node) => {
-        return (
-          (node.links.length + 1) *
-          // if the view has a currentFile, then it can be either local graph view or post processor view
-          ("currentFile" in this.view && (this.view.currentFile as TFile)?.path === node.path
-            ? 3
-            : 1)
-        );
-      })
+      .nodeVal(this.getNodeVal)
+      .nodeVisibility(this.getNodeVisibility)
       .onBackgroundRightClick(() => {
         this.interactionManager.removeSelection();
       })
@@ -119,6 +112,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       .onNodeRightClick(this.interactionManager.onNodeRightClick)
       .onNodeClick(this.interactionManager.onNodeClick)
       // .onLinkHover(this.interactionManager.onLinkHover)
+      .linkVisibility(this.getLinkVisibility)
       .linkColor(this.interactionManager.getLinkColor)
       .linkWidth(this.interactionManager.getLinkWidth)
       .linkDirectionalParticles(this.interactionManager.getLinkDirectionalParticles)
@@ -343,6 +337,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.instance.controls() as any).enabled = true;
       this.view.plugin.nodePositionManager.saveDebounced();
+      const ring = this.view.plugin.ringManager.getRing(this.ringDragState.ringPath);
+      if (ring) this.view.plugin.ringManager.persistNormal(ring.path, ring.normal);
       this.ringDragState = null;
     }
   };
@@ -417,6 +413,31 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     nodeLabelEl.style.opacity = "0";
     return { divEl, nodeLabelEl };
   }
+
+  private getNodeVal = (node: Node): number => {
+    return (
+      (node.links.length + 1) *
+      ("currentFile" in this.view && (this.view.currentFile as TFile)?.path === node.path ? 3 : 1)
+    );
+  };
+
+  private getNodeVisibility = (node: Node): boolean => {
+    const showRing = this.view.settingManager.getCurrentSetting().display.showRing ?? true;
+    if (!showRing && this.view.plugin.ringManager.isRing(node.path)) return false;
+    return true;
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private getLinkVisibility = (link: any): boolean => {
+    const showRing = this.view.settingManager.getCurrentSetting().display.showRing ?? true;
+    if (!showRing) {
+      const srcPath = link.source?.path ?? link.source;
+      const tgtPath = link.target?.path ?? link.target;
+      if (this.view.plugin.ringManager.isRing(srcPath) || this.view.plugin.ringManager.isRing(tgtPath))
+        return false;
+    }
+    return true;
+  };
 
   private createCube() {
     // add cube
@@ -529,8 +550,24 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
   private applyNodePositions(graph: Graph): void {
     const saved = this.view.plugin.nodePositionManager.getAll();
+    const app = this.view.plugin.app;
     graph.nodes.forEach((node) => {
-      const pos = saved[node.path];
+      let pos: { x: number; y: number; z: number } | undefined;
+
+      // frontmatter graph_pos supersedes positions.json
+      const file = app.vault.getFileByPath(node.path);
+      if (file) {
+        const fm = app.metadataCache.getFileCache(file)?.frontmatter;
+        if (fm?.graph_pos && typeof fm.graph_pos === "string") {
+          const parts = fm.graph_pos.split(",").map(Number);
+          if (parts.length === 3 && parts.every((n) => !isNaN(n))) {
+            pos = { x: parts[0]!, y: parts[1]!, z: parts[2]! };
+          }
+        }
+      }
+
+      if (!pos) pos = saved[node.path];
+
       if (pos) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const n = node as any;
@@ -574,6 +611,22 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
         handles.green.visible = visible;
         handles.blue.visible = visible;
       }
+      // directly set visibility on ring node spheres and their links — avoids force-graph re-render side effects
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.instance.graphData().nodes as any[]).forEach((node: any) => {
+        if (this.view.plugin.ringManager.isRing(node.path) && node.__threeObj) {
+          node.__threeObj.visible = visible;
+        }
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.instance.graphData().links as any[]).forEach((link: any) => {
+        const srcPath = link.source?.path ?? link.source;
+        const tgtPath = link.target?.path ?? link.target;
+        if (this.view.plugin.ringManager.isRing(srcPath) || this.view.plugin.ringManager.isRing(tgtPath)) {
+          if (link.__lineObj) link.__lineObj.visible = visible;
+          if (link.__arrowObj) link.__arrowObj.visible = visible;
+        }
+      });
     }
     if (config?.display?.ringTubeRadius !== undefined) {
       const tubeR = config.display.ringTubeRadius;
