@@ -1,6 +1,6 @@
 import type Graph3dPlugin from "@/main";
 import * as THREE from "three";
-import { TFile } from "obsidian";
+import type { TFile } from "obsidian";
 import type { NodePositions } from "@/NodePositionManager";
 
 export type RingData = {
@@ -114,7 +114,11 @@ export class RingManager {
     this.plugin.isSavingFrontmatter = true;
     try {
       await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
-        fm["ring-normal"] = [parseFloat(n.x.toFixed(4)), parseFloat(n.y.toFixed(4)), parseFloat(n.z.toFixed(4))];
+        fm["ring-normal"] = [
+          parseFloat(n.x.toFixed(4)),
+          parseFloat(n.y.toFixed(4)),
+          parseFloat(n.z.toFixed(4)),
+        ];
       });
     } finally {
       this.plugin.isSavingFrontmatter = false;

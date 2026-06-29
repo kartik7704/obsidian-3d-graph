@@ -339,6 +339,7 @@ export abstract class GraphSettingManager<
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const liveNodes = forceGraph.instance.graphData().nodes as any[];
           const livePos: Record<string, { x: number; y: number; z: number }> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           liveNodes.forEach((n: any) => {
             if (n.path) livePos[n.path] = { x: n.x ?? 0, y: n.y ?? 0, z: n.z ?? 0 };
           });

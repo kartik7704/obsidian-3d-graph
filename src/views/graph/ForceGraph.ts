@@ -433,7 +433,10 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     if (!showRing) {
       const srcPath = link.source?.path ?? link.source;
       const tgtPath = link.target?.path ?? link.target;
-      if (this.view.plugin.ringManager.isRing(srcPath) || this.view.plugin.ringManager.isRing(tgtPath))
+      if (
+        this.view.plugin.ringManager.isRing(srcPath) ||
+        this.view.plugin.ringManager.isRing(tgtPath)
+      )
         return false;
     }
     return true;
@@ -622,7 +625,10 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       (this.instance.graphData().links as any[]).forEach((link: any) => {
         const srcPath = link.source?.path ?? link.source;
         const tgtPath = link.target?.path ?? link.target;
-        if (this.view.plugin.ringManager.isRing(srcPath) || this.view.plugin.ringManager.isRing(tgtPath)) {
+        if (
+          this.view.plugin.ringManager.isRing(srcPath) ||
+          this.view.plugin.ringManager.isRing(tgtPath)
+        ) {
           if (link.__lineObj) link.__lineObj.visible = visible;
           if (link.__arrowObj) link.__arrowObj.visible = visible;
         }

@@ -1,5 +1,6 @@
 import type Graph3dPlugin from "@/main";
-import { normalizePath, TFile } from "obsidian";
+import type { TFile } from "obsidian";
+import { normalizePath } from "obsidian";
 import { debounce } from "@/util/debounce";
 import { generateUUID } from "@/util/generateUUID";
 

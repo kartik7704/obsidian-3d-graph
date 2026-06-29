@@ -117,7 +117,9 @@ export const BaseDisplaySettingsSchema = z.object({
   showCenterCoordinates: z.boolean().default(commonSetting.display.showCenterCoordinates),
   showLinkArrow: z.boolean().default(commonSetting.display.showLinkArrow),
   dontMoveWhenDrag: z.boolean().default(commonSetting.display.dontMoveWhenDrag),
-  saveCoordinatesToFrontmatter: z.boolean().default(commonSetting.display.saveCoordinatesToFrontmatter),
+  saveCoordinatesToFrontmatter: z
+    .boolean()
+    .default(commonSetting.display.saveCoordinatesToFrontmatter),
   showRing: z.boolean().default(commonSetting.display.showRing),
   ringTubeRadius: z.number().default(commonSetting.display.ringTubeRadius),
   dagOrientation: z.undefined().or(z.nativeEnum(DagOrientation)).default(DagOrientation.null),
