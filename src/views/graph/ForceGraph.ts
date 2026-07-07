@@ -253,8 +253,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
       const showRing = this.view.settingManager.getCurrentSetting().display.showRing ?? true;
       mesh.visible = showRing;
-      greenHandle.visible = showRing;
-      blueHandle.visible = showRing;
+      // handles stay technically visible; per-frame scaling in createCube()'s onBeforeRender
+      // shrinks them to near-nothing when showRing is off, instead of hiding them outright
 
       scene.add(mesh);
       scene.add(greenHandle);
@@ -463,6 +463,17 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       cwd.add(camera.position);
       myCube.position.set(cwd.x, cwd.y, cwd.z);
       myCube.setRotationFromQuaternion(camera.quaternion);
+
+      // ring rotation handles stay their normal fixed world-space size when shown —
+      // when showRing is off, shrink them to near-nothing instead of hiding them outright,
+      // so there's no accidental drag risk without fighting reach/grabbability up close.
+      const showRing = this.view.settingManager.getCurrentSetting().display.showRing ?? true;
+      const HIDDEN_HANDLE_SCALE = 0.01;
+      for (const handles of this.ringHandles.values()) {
+        const scale = showRing ? 1 : HIDDEN_HANDLE_SCALE;
+        handles.green.scale.setScalar(scale);
+        handles.blue.scale.setScalar(scale);
+      }
     };
     myCube.visible = false;
     return myCube;
@@ -610,10 +621,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     if (config?.display?.showRing !== undefined) {
       const visible = config.display.showRing;
       for (const mesh of this.ringMeshes.values()) mesh.visible = visible;
-      for (const handles of this.ringHandles.values()) {
-        handles.green.visible = visible;
-        handles.blue.visible = visible;
-      }
+      // handle scale (not visibility) is driven per-frame off this same setting — see createCube()
       // directly set visibility on ring node spheres and their links — avoids force-graph re-render side effects
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.instance.graphData().nodes as any[]).forEach((node: any) => {

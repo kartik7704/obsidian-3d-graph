@@ -109,6 +109,31 @@ export class ForceGraphEngine {
           )
         ); // translate other nodes by same amount
     }
+
+    // if this is a ring node, keep orbiting children snapped to it in real time (not just on drag end)
+    const ringManager = this.forceGraph.view.plugin.ringManager;
+    if (ringManager.isRing(node.path)) {
+      this.forceGraph.updateRingMeshPositions();
+      const ring = ringManager.getRing(node.path)!;
+      const childPaths = ringManager.getChildPaths(ring);
+      const childPositions = ringManager.computeChildPositions(
+        ring,
+        { x: node.x, y: node.y, z: node.z },
+        childPaths
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this.forceGraph.instance.graphData().nodes as any[]).forEach((n: any) => {
+        const pos = childPositions[n.path];
+        if (pos) {
+          n.x = pos.x;
+          n.y = pos.y;
+          n.z = pos.z;
+          n.fx = pos.x;
+          n.fy = pos.y;
+          n.fz = pos.z;
+        }
+      });
+    }
   };
 
   onNodeDragEnd = (node: Node & Coords) => {
@@ -153,6 +178,9 @@ export class ForceGraphEngine {
           n.fy = pos.y;
           n.fz = pos.z;
           posManager.setPosition(n.path, pos.x, pos.y, pos.z);
+          if (setting.display.saveCoordinatesToFrontmatter && setting.display.dontMoveWhenDrag) {
+            posManager.writeFrontmatter(n.path, pos.x, pos.y, pos.z);
+          }
         }
       });
       this.forceGraph.instance.numDimensions(3);

@@ -344,10 +344,16 @@ export abstract class GraphSettingManager<
             if (n.path) livePos[n.path] = { x: n.x ?? 0, y: n.y ?? 0, z: n.z ?? 0 };
           });
 
+          const display = this.getCurrentSetting().display;
+          const shouldWriteFrontmatter = display.saveCoordinatesToFrontmatter && display.dontMoveWhenDrag;
+
           for (const ring of plugin.ringManager.getRings()) {
             const ringPos = livePos[ring.path];
             if (!ringPos) continue;
             plugin.nodePositionManager.setPosition(ring.path, ringPos.x, ringPos.y, ringPos.z);
+            if (shouldWriteFrontmatter) {
+              plugin.nodePositionManager.writeFrontmatter(ring.path, ringPos.x, ringPos.y, ringPos.z);
+            }
             const childPaths = plugin.ringManager.getChildPaths(ring);
             const childPositions = plugin.ringManager.computeChildPositions(
               ring,
@@ -356,6 +362,9 @@ export abstract class GraphSettingManager<
             );
             for (const [path, pos] of Object.entries(childPositions)) {
               plugin.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
+              if (shouldWriteFrontmatter) {
+                plugin.nodePositionManager.writeFrontmatter(path, pos.x, pos.y, pos.z);
+              }
             }
           }
           plugin.nodePositionManager.saveDebounced();
