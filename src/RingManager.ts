@@ -13,6 +13,12 @@ export type RingData = {
 export class RingManager {
   private plugin: Graph3dPlugin;
   private rings: Map<string, RingData> = new Map();
+  // ring path -> sorted child paths, rebuilt each load(). Same refresh
+  // lifecycle as `rings` itself (only rescanned on an explicit load() call,
+  // e.g. plugin start or "Reload rings") — previously getChildPaths rescanned
+  // every markdown file in the vault on every call, including every single
+  // frame of a ring drag.
+  private childPathsCache: Map<string, string[]> = new Map();
 
   constructor(plugin: Graph3dPlugin) {
     this.plugin = plugin;
@@ -20,6 +26,12 @@ export class RingManager {
 
   async load(): Promise<void> {
     this.rings.clear();
+    this.childPathsCache.clear();
+
+    // Single pass: collect ring definitions and bucket every file by its tags
+    // at the same time, instead of a second full-vault scan per ring later.
+    const filesByTag: Map<string, string[]> = new Map();
+
     for (const file of this.plugin.app.vault.getMarkdownFiles()) {
       const cache = this.plugin.app.metadataCache.getFileCache(file);
       if (!cache?.frontmatter) continue;
@@ -30,6 +42,12 @@ export class RingManager {
         : typeof fm.tags === "string"
         ? [fm.tags]
         : [];
+
+      for (const tag of tags) {
+        if (!filesByTag.has(tag)) filesByTag.set(tag, []);
+        filesByTag.get(tag)!.push(file.path);
+      }
+
       if (!tags.includes("ring")) continue;
 
       const radius: number = typeof fm.radius === "number" ? fm.radius : 150;
@@ -41,6 +59,16 @@ export class RingManager {
       const normal = new THREE.Vector3(nArr[0] ?? 0, nArr[1] ?? 1, nArr[2] ?? 0).normalize();
 
       this.rings.set(file.path, { path: file.path, radius, filter, normal });
+    }
+
+    for (const ring of this.rings.values()) {
+      if (!ring.filter) {
+        this.childPathsCache.set(ring.path, []);
+        continue;
+      }
+      const children = (filesByTag.get(ring.filter) ?? []).filter((p) => p !== ring.path);
+      children.sort();
+      this.childPathsCache.set(ring.path, children);
     }
   }
 
@@ -57,20 +85,7 @@ export class RingManager {
   }
 
   getChildPaths(ring: RingData): string[] {
-    if (!ring.filter) return [];
-    const children: string[] = [];
-    for (const file of this.plugin.app.vault.getMarkdownFiles()) {
-      if (file.path === ring.path) continue;
-      const cache = this.plugin.app.metadataCache.getFileCache(file);
-      if (!cache?.frontmatter) continue;
-      const tags: string[] = Array.isArray(cache.frontmatter.tags)
-        ? (cache.frontmatter.tags as string[])
-        : typeof cache.frontmatter.tags === "string"
-        ? [cache.frontmatter.tags]
-        : [];
-      if (tags.includes(ring.filter)) children.push(file.path);
-    }
-    return children;
+    return this.childPathsCache.get(ring.path) ?? [];
   }
 
   // Place N children equally spaced on the circumference of the ring plane.
