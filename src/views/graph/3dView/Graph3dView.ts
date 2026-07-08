@@ -221,6 +221,13 @@ export abstract class Graph3dView<
         },
       });
     }
+    if (path.includes("display.centerCoordinatesLength")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          centerCoordinatesLength: newSetting.display.centerCoordinatesLength,
+        },
+      });
+    }
     if (path.includes("display.showRing")) {
       this.forceGraph?.updateConfig({
         display: {

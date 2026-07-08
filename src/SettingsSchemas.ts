@@ -42,6 +42,13 @@ export const ringTubeRadius = {
   default: 1.5,
 };
 
+export const centerCoordinatesLength = {
+  min: 10,
+  max: 500,
+  step: 10,
+  default: 100,
+};
+
 export enum GraphType {
   /**
    * the global graph
@@ -93,6 +100,7 @@ const commonSetting = {
     showExtension: false,
     showFullPath: false,
     showCenterCoordinates: true,
+    centerCoordinatesLength: centerCoordinatesLength.default,
     showLinkArrow: true,
     dontMoveWhenDrag: false,
     saveCoordinatesToFrontmatter: false,
@@ -115,6 +123,7 @@ export const BaseDisplaySettingsSchema = z.object({
   showExtension: z.boolean().default(commonSetting.display.showExtension),
   showFullPath: z.boolean().default(commonSetting.display.showFullPath),
   showCenterCoordinates: z.boolean().default(commonSetting.display.showCenterCoordinates),
+  centerCoordinatesLength: z.number().default(commonSetting.display.centerCoordinatesLength),
   showLinkArrow: z.boolean().default(commonSetting.display.showLinkArrow),
   dontMoveWhenDrag: z.boolean().default(commonSetting.display.dontMoveWhenDrag),
   saveCoordinatesToFrontmatter: z

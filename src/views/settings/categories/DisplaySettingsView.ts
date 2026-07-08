@@ -8,6 +8,7 @@ import type {
   LocalGraphSettings,
 } from "@/SettingsSchemas";
 import {
+  centerCoordinatesLength,
   DagOrientation,
   distanceFromFocal,
   linkDistance,
@@ -182,6 +183,11 @@ export const DisplaySettingsView = (
     }
   );
 
+  // ref object so the toggle's onChange closure (below) can reach the slider
+  // (declared after, so it exists in DOM order after the toggle) without
+  // needing a reassignable `let` binding
+  const centerCoordinatesLengthSettingRef: { current?: Setting } = {};
+
   addToggle(
     containerEl,
     {
@@ -192,8 +198,28 @@ export const DisplaySettingsView = (
       settingManager.updateCurrentSettings((setting) => {
         setting.value.display.showCenterCoordinates = value;
       });
+      if (value) centerCoordinatesLengthSettingRef.current?.settingEl.show();
+      else centerCoordinatesLengthSettingRef.current?.settingEl.hide();
     }
   );
+
+  centerCoordinatesLengthSettingRef.current = addSimpleSliderSetting(
+    containerEl,
+    {
+      name: "Center coordinates scale",
+      value: displaySettings.centerCoordinatesLength,
+      stepOptions: centerCoordinatesLength,
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.centerCoordinatesLength = value;
+      });
+    }
+  );
+  // only meaningful while the axes are actually visible — keeps this from
+  // just being one more slider cluttering the section regardless of context
+  if (!displaySettings.showCenterCoordinates)
+    centerCoordinatesLengthSettingRef.current.settingEl.hide();
 
   addToggle(
     containerEl,
