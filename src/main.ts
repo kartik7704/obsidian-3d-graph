@@ -242,9 +242,24 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       }
     }
     this.nodePositionManager.saveDebounced();
-    const allPositions = this.nodePositionManager.getAll();
+
+    // Same reasoning as the Reload-rings button: passing positions.json's
+    // `current` map directly would unpin any node positioned purely via
+    // frontmatter (never dragged), since applyLivePositions treats "absent
+    // from the map" as "let the simulation take it back." Build each view's
+    // map from its own live nodes' effective positions instead.
     this.activeGraphViews.forEach((view) => {
-      view.getForceGraph().applyLivePositions(allPositions);
+      const forceGraph = view.getForceGraph();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const liveNodes = forceGraph.instance.graphData().nodes as any[];
+      const effectivePositions: Record<string, { x: number; y: number; z: number }> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      liveNodes.forEach((n: any) => {
+        if (!n.path) return;
+        const pos = this.nodePositionManager.getEffectivePosition(n.path);
+        if (pos) effectivePositions[n.path] = pos;
+      });
+      forceGraph.applyLivePositions(effectivePositions);
     });
   };
 

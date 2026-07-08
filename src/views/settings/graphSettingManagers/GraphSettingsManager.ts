@@ -345,14 +345,20 @@ export abstract class GraphSettingManager<
           });
 
           const display = this.getCurrentSetting().display;
-          const shouldWriteFrontmatter = display.saveCoordinatesToFrontmatter && display.dontMoveWhenDrag;
+          const shouldWriteFrontmatter =
+            display.saveCoordinatesToFrontmatter && display.dontMoveWhenDrag;
 
           for (const ring of plugin.ringManager.getRings()) {
             const ringPos = livePos[ring.path];
             if (!ringPos) continue;
             plugin.nodePositionManager.setPosition(ring.path, ringPos.x, ringPos.y, ringPos.z);
             if (shouldWriteFrontmatter) {
-              plugin.nodePositionManager.writeFrontmatter(ring.path, ringPos.x, ringPos.y, ringPos.z);
+              plugin.nodePositionManager.writeFrontmatter(
+                ring.path,
+                ringPos.x,
+                ringPos.y,
+                ringPos.z
+              );
             }
             const childPaths = plugin.ringManager.getChildPaths(ring);
             const childPositions = plugin.ringManager.computeChildPositions(
@@ -368,7 +374,22 @@ export abstract class GraphSettingManager<
             }
           }
           plugin.nodePositionManager.saveDebounced();
-          forceGraph.applyLivePositions(plugin.nodePositionManager.getAll());
+
+          // applyLivePositions unpins any node absent from the map it's given —
+          // correct behavior for a saved-layout snapshot, wrong here: a node
+          // positioned purely via frontmatter (never dragged, so never in
+          // positions.json's `current`) would otherwise get handed back to the
+          // force simulation on every Reload-rings click. Passing each live
+          // node's effective position (frontmatter first) keeps it out of the
+          // "absent" case unless it truly has no position anywhere.
+          const effectivePositions: Record<string, { x: number; y: number; z: number }> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          liveNodes.forEach((n: any) => {
+            if (!n.path) return;
+            const pos = plugin.nodePositionManager.getEffectivePosition(n.path);
+            if (pos) effectivePositions[n.path] = pos;
+          });
+          forceGraph.applyLivePositions(effectivePositions);
         }
 
         createNotice(
