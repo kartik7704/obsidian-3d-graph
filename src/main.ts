@@ -41,7 +41,52 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
 
   public hoverPopover: HoverPopover | null = null;
 
-  public isSavingFrontmatter = false;
+  // A single boolean here used to get reset by whichever concurrent
+  // frontmatter write finished first, while a ring drag's other children
+  // were still mid-write — so onGraphCacheChanged would see the write as
+  // "external" and rebuild every open view partway through a single drag.
+  // A counter only goes back to zero once every in-flight write is done.
+  private frontmatterWritesInFlight = 0;
+  // Even a single write has a gap: processFrontMatter resolves before the
+  // metadata cache's own "resolved" event fires (debounced), so the counter
+  // can already be back at 0 by the time that event lands. This timestamps
+  // paths we just wrote so onGraphCacheChanged can still recognize them as
+  // our own change for a short window afterward.
+  private recentlySavedPaths: Map<string, number> = new Map();
+  private static readonly RECENT_SAVE_WINDOW_MS = 2000;
+
+  public get isSavingFrontmatter(): boolean {
+    return this.frontmatterWritesInFlight > 0;
+  }
+
+  public beginFrontmatterWrite(): void {
+    this.frontmatterWritesInFlight++;
+  }
+
+  public endFrontmatterWrite(): void {
+    this.frontmatterWritesInFlight = Math.max(0, this.frontmatterWritesInFlight - 1);
+  }
+
+  public markRecentlySaved(path: string): void {
+    this.recentlySavedPaths.set(path, Date.now());
+  }
+
+  private wasRecentlySavedByUs(path: string): boolean {
+    const t = this.recentlySavedPaths.get(path);
+    return t !== undefined && Date.now() - t < Graph3dPlugin.RECENT_SAVE_WINDOW_MS;
+  }
+
+  private getChangedResolvedLinkPaths(
+    oldLinks: ResolvedLinkCache,
+    newLinks: ResolvedLinkCache
+  ): string[] {
+    const changed: string[] = [];
+    const keys = new Set([...Object.keys(oldLinks ?? {}), ...Object.keys(newLinks ?? {})]);
+    for (const key of keys) {
+      if (!deepCompare(oldLinks?.[key], newLinks?.[key])) changed.push(key);
+    }
+    return changed;
+  }
 
   constructor(app: App, manifest: PluginManifest) {
     super(app, manifest);
@@ -183,10 +228,22 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       this.cacheIsReady.value &&
       !deepCompare(this._resolvedCache, this.app.metadataCache.resolvedLinks)
     ) {
+      const changedPaths = this.getChangedResolvedLinkPaths(
+        this._resolvedCache,
+        this.app.metadataCache.resolvedLinks
+      );
       this._resolvedCache = structuredClone(this.app.metadataCache.resolvedLinks);
       this.globalGraph = Graph.createFromApp(this.app);
 
-      if (this.isCacheReadyOnce && !this.isSavingFrontmatter) {
+      // Skip the rebuild if every changed path is either mid-write right now
+      // (isSavingFrontmatter) or was written by us within the last couple
+      // seconds (wasRecentlySavedByUs) — covers both the concurrent-writes
+      // race and the single-write timing gap described above.
+      const allChangesAreOurOwnWrites =
+        changedPaths.length > 0 &&
+        changedPaths.every((p) => this.isSavingFrontmatter || this.wasRecentlySavedByUs(p));
+
+      if (this.isCacheReadyOnce && !allChangesAreOurOwnWrites) {
         // update graph view
         this.activeGraphViews.forEach((view) => {
           view.handleMetadataCacheChange();

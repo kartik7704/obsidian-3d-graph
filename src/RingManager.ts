@@ -111,7 +111,7 @@ export class RingManager {
     const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
     if (!file || !path.endsWith(".md")) return;
     const n = normal.normalize();
-    this.plugin.isSavingFrontmatter = true;
+    this.plugin.beginFrontmatterWrite();
     try {
       await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
         fm["ring-normal"] = [
@@ -120,8 +120,9 @@ export class RingManager {
           parseFloat(n.z.toFixed(4)),
         ];
       });
+      this.plugin.markRecentlySaved(path);
     } finally {
-      this.plugin.isSavingFrontmatter = false;
+      this.plugin.endFrontmatterWrite();
     }
   }
 }

@@ -75,19 +75,20 @@ export class NodePositionManager {
   async writeFrontmatter(path: string, x: number, y: number, z: number): Promise<void> {
     const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
     if (!file || !path.endsWith(".md")) return;
-    this.plugin.isSavingFrontmatter = true;
+    this.plugin.beginFrontmatterWrite();
     try {
       await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
         fm.graph_pos = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
       });
       this.frontmatterTouched.add(path);
+      this.plugin.markRecentlySaved(path);
     } finally {
-      this.plugin.isSavingFrontmatter = false;
+      this.plugin.endFrontmatterWrite();
     }
   }
 
   async clearFrontmatterFromTouched(): Promise<void> {
-    this.plugin.isSavingFrontmatter = true;
+    this.plugin.beginFrontmatterWrite();
     try {
       for (const path of this.frontmatterTouched) {
         const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
@@ -95,11 +96,12 @@ export class NodePositionManager {
         await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
           delete fm.graph_pos;
         });
+        this.plugin.markRecentlySaved(path);
       }
       this.frontmatterTouched.clear();
       await this.save();
     } finally {
-      this.plugin.isSavingFrontmatter = false;
+      this.plugin.endFrontmatterWrite();
     }
   }
 
