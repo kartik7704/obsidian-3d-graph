@@ -37,6 +37,13 @@ export type BaseForceGraph = ForceGraph<BaseGraph3dView>;
  * this class control the config and graph of the force graph. The interaction is not control here.
  */
 export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, V>, ItemView>> {
+  // Ring rotation handles shrink to near-nothing (instead of visible=false)
+  // when rings are toggled off, so there's no accidental-drag risk without
+  // fighting reach/grabbability up close. Shared so a freshly-created handle
+  // (on reload) can start at the correct scale immediately instead of
+  // defaulting to full size for one frame until onBeforeRender catches up.
+  private static readonly HIDDEN_HANDLE_SCALE = 0.01;
+
   /**
    * this can be a local graph or a global graph
    */
@@ -263,7 +270,13 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       const showRing = this.view.settingManager.getCurrentSetting().display.showRing ?? true;
       mesh.visible = showRing;
       // handles stay technically visible; per-frame scaling in createCube()'s onBeforeRender
-      // shrinks them to near-nothing when showRing is off, instead of hiding them outright
+      // shrinks them to near-nothing when showRing is off, instead of hiding them outright.
+      // Set the correct scale immediately too — otherwise a freshly-created handle
+      // (e.g. on "Reload rings") renders at its default full scale for one frame
+      // before onBeforeRender's next tick catches it, which flashes visibly.
+      const initialScale = showRing ? 1 : ForceGraph.HIDDEN_HANDLE_SCALE;
+      greenHandle.scale.setScalar(initialScale);
+      blueHandle.scale.setScalar(initialScale);
 
       scene.add(mesh);
       scene.add(greenHandle);
@@ -472,9 +485,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       // when showRing is off, shrink them to near-nothing instead of hiding them outright,
       // so there's no accidental drag risk without fighting reach/grabbability up close.
       const showRing = this.view.settingManager.getCurrentSetting().display.showRing ?? true;
-      const HIDDEN_HANDLE_SCALE = 0.01;
       for (const handles of this.ringHandles.values()) {
-        const scale = showRing ? 1 : HIDDEN_HANDLE_SCALE;
+        const scale = showRing ? 1 : ForceGraph.HIDDEN_HANDLE_SCALE;
         handles.green.scale.setScalar(scale);
         handles.blue.scale.setScalar(scale);
       }
