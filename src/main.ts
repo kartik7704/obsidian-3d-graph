@@ -232,9 +232,8 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
 
   private applyRingLayouts = async () => {
     await this.ringManager.load();
-    const positions = this.nodePositionManager.getAll();
     for (const ring of this.ringManager.getRings()) {
-      const ringPos = positions[ring.path];
+      const ringPos = this.nodePositionManager.getEffectivePosition(ring.path);
       if (!ringPos) continue;
       const childPaths = this.ringManager.getChildPaths(ring);
       const childPositions = this.ringManager.computeChildPositions(ring, ringPos, childPaths);

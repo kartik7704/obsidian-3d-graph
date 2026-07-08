@@ -215,7 +215,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
   private initRingMeshes(scene: THREE.Scene): void {
     const rings = this.view.plugin.ringManager.getRings();
-    const positions = this.view.plugin.nodePositionManager.getAll();
+    const posManager = this.view.plugin.nodePositionManager;
 
     for (const ring of rings) {
       // torus — depthWrite off so it never occludes nodes or links behind it
@@ -242,7 +242,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       );
 
       const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), ring.normal);
-      const pos = positions[ring.path] ?? { x: 0, y: 0, z: 0 };
+      const pos = posManager.getEffectivePosition(ring.path) ?? { x: 0, y: 0, z: 0 };
       mesh.position.set(pos.x, pos.y, pos.z);
       mesh.setRotationFromQuaternion(q);
 
@@ -270,11 +270,11 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   }
 
   public updateRingMeshPositions(): void {
-    const positions = this.view.plugin.nodePositionManager.getAll();
+    const posManager = this.view.plugin.nodePositionManager;
     for (const ring of this.view.plugin.ringManager.getRings()) {
       const mesh = this.ringMeshes.get(ring.path);
       const handles = this.ringHandles.get(ring.path);
-      const pos = positions[ring.path];
+      const pos = posManager.getEffectivePosition(ring.path);
       if (!pos || !mesh) continue;
       const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), ring.normal);
       mesh.position.set(pos.x, pos.y, pos.z);
@@ -563,24 +563,9 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   }
 
   private applyNodePositions(graph: Graph): void {
-    const saved = this.view.plugin.nodePositionManager.getAll();
-    const app = this.view.plugin.app;
+    const posManager = this.view.plugin.nodePositionManager;
     graph.nodes.forEach((node) => {
-      let pos: { x: number; y: number; z: number } | undefined;
-
-      // frontmatter graph_pos supersedes positions.json
-      const file = app.vault.getAbstractFileByPath(node.path) as TFile | null;
-      if (file) {
-        const fm = app.metadataCache.getFileCache(file)?.frontmatter;
-        if (fm?.graph_pos && typeof fm.graph_pos === "string") {
-          const parts = fm.graph_pos.split(",").map(Number);
-          if (parts.length === 3 && parts.every((n) => !isNaN(n))) {
-            pos = { x: parts[0]!, y: parts[1]!, z: parts[2]! };
-          }
-        }
-      }
-
-      if (!pos) pos = saved[node.path];
+      const pos = posManager.getEffectivePosition(node.path);
 
       if (pos) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

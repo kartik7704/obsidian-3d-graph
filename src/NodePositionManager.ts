@@ -107,6 +107,26 @@ export class NodePositionManager {
     return this.current;
   }
 
+  // Frontmatter graph_pos is the source of truth (set on drag-end / explicit
+  // saves); positions.json (`current`) is the fallback for anything not yet
+  // written to frontmatter. Ring meshes and apply-ring-layouts previously read
+  // `current` directly and defaulted to (0,0,0) or skipped entirely when a
+  // ring had frontmatter but no positions.json entry — this is the one place
+  // that decision gets made now.
+  getEffectivePosition(path: string): { x: number; y: number; z: number } | undefined {
+    const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
+    if (file) {
+      const fm = this.plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+      if (fm?.graph_pos && typeof fm.graph_pos === "string") {
+        const parts = fm.graph_pos.split(",").map(Number);
+        if (parts.length === 3 && parts.every((n) => !isNaN(n))) {
+          return { x: parts[0]!, y: parts[1]!, z: parts[2]! };
+        }
+      }
+    }
+    return this.current[path];
+  }
+
   async clear(): Promise<void> {
     this.current = {};
     await this.save();
