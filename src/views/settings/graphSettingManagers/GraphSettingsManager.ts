@@ -348,10 +348,22 @@ export abstract class GraphSettingManager<
           const shouldWriteFrontmatter =
             display.saveCoordinatesToFrontmatter && display.dontMoveWhenDrag;
 
+          // Track exactly what we just computed this tick, separately from
+          // positions.json/frontmatter — writeFrontmatter below isn't awaited,
+          // and even once it resolves, Obsidian's metadata cache catches up to
+          // the new frontmatter value asynchronously. getEffectivePosition()
+          // reads frontmatter first, so calling it immediately after a write
+          // can still see the stale pre-write value for exactly one cycle —
+          // one visible "reset lags a click behind" bug. For paths we just
+          // repositioned ourselves, use that value directly instead of
+          // re-deriving it through a cache that hasn't caught up yet.
+          const justComputedPositions: Record<string, { x: number; y: number; z: number }> = {};
+
           for (const ring of plugin.ringManager.getRings()) {
             const ringPos = livePos[ring.path];
             if (!ringPos) continue;
             plugin.nodePositionManager.setPosition(ring.path, ringPos.x, ringPos.y, ringPos.z);
+            justComputedPositions[ring.path] = ringPos;
             if (shouldWriteFrontmatter) {
               plugin.nodePositionManager.writeFrontmatter(
                 ring.path,
@@ -368,6 +380,7 @@ export abstract class GraphSettingManager<
             );
             for (const [path, pos] of Object.entries(childPositions)) {
               plugin.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
+              justComputedPositions[path] = pos;
               if (shouldWriteFrontmatter) {
                 plugin.nodePositionManager.writeFrontmatter(path, pos.x, pos.y, pos.z);
               }
@@ -386,7 +399,9 @@ export abstract class GraphSettingManager<
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           liveNodes.forEach((n: any) => {
             if (!n.path) return;
-            const pos = plugin.nodePositionManager.getEffectivePosition(n.path);
+            const pos =
+              justComputedPositions[n.path] ??
+              plugin.nodePositionManager.getEffectivePosition(n.path);
             if (pos) effectivePositions[n.path] = pos;
           });
           forceGraph.applyLivePositions(effectivePositions);

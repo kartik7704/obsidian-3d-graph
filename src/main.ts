@@ -289,6 +289,14 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
 
   private applyRingLayouts = async () => {
     await this.ringManager.load();
+    // getEffectivePosition() always prefers frontmatter over positions.json —
+    // correct in general, wrong for paths this loop is about to reposition:
+    // this command only writes positions.json (never frontmatter), so an
+    // existing frontmatter graph_pos from an earlier drag would silently
+    // shadow the fresh value we just computed. Track what we just set here
+    // and prefer it directly instead of re-deriving it through a source we
+    // know is now stale for these specific paths.
+    const justComputedPositions: Record<string, { x: number; y: number; z: number }> = {};
     for (const ring of this.ringManager.getRings()) {
       const ringPos = this.nodePositionManager.getEffectivePosition(ring.path);
       if (!ringPos) continue;
@@ -296,6 +304,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       const childPositions = this.ringManager.computeChildPositions(ring, ringPos, childPaths);
       for (const [path, pos] of Object.entries(childPositions)) {
         this.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
+        justComputedPositions[path] = pos;
       }
     }
     this.nodePositionManager.saveDebounced();
@@ -313,7 +322,8 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       liveNodes.forEach((n: any) => {
         if (!n.path) return;
-        const pos = this.nodePositionManager.getEffectivePosition(n.path);
+        const pos =
+          justComputedPositions[n.path] ?? this.nodePositionManager.getEffectivePosition(n.path);
         if (pos) effectivePositions[n.path] = pos;
       });
       forceGraph.applyLivePositions(effectivePositions);
