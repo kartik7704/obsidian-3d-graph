@@ -140,6 +140,15 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     scene.add(this.myCube);
 
     this.initRingMeshes(scene);
+    // registered once here, not inside initRingMeshes — that gets called again
+    // on every "Reload rings" click (reloadRingMeshes), which used to stack a
+    // fresh set of these listeners each time since they were never removed.
+    // These handlers read this.ringHandles/this.ringDragState live off the
+    // instance, so they don't need re-registering when the meshes reload.
+    const ringDomEl = this.instance.renderer().domElement;
+    ringDomEl.addEventListener("pointermove", this.onHandleMouseMove, { capture: true });
+    ringDomEl.addEventListener("pointerdown", this.onHandleMouseDown, { capture: true });
+    ringDomEl.addEventListener("pointerup", this.onHandleMouseUp, { capture: true });
 
     // add node label
     this.instance
@@ -262,11 +271,6 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       this.ringMeshes.set(ring.path, mesh);
       this.ringHandles.set(ring.path, { green: greenHandle, blue: blueHandle });
     }
-
-    const domEl = this.instance.renderer().domElement;
-    domEl.addEventListener("pointermove", this.onHandleMouseMove, { capture: true });
-    domEl.addEventListener("pointerdown", this.onHandleMouseDown, { capture: true });
-    domEl.addEventListener("pointerup", this.onHandleMouseUp, { capture: true });
   }
 
   public updateRingMeshPositions(): void {
