@@ -58,11 +58,24 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   private readonly ringMeshes: Map<string, THREE.Mesh> = new Map();
   private readonly ringHandles: Map<string, { green: THREE.Mesh; blue: THREE.Mesh }> = new Map();
   private readonly raycaster = new THREE.Raycaster();
+  // Absolute angle-tracking, same technique every 3D tool with a rotation
+  // gizmo uses (Roblox, Unity, Blender, Unreal): each frame, raycast from the
+  // camera through the mouse, intersect a plane perpendicular to a FIXED
+  // rotation axis (chosen once at drag-start, never re-derived mid-drag),
+  // and read off the absolute angle around that plane. Rotating by the delta
+  // between this frame's angle and the last is inherently camera-angle-
+  // independent and immune to the mid-drag basis discontinuity the previous
+  // incremental-delta approach had — the only real limitation is the
+  // inherent singularity every such gizmo shares: looking exactly down the
+  // rotation axis leaves no angle to read.
   private ringDragState: {
     ringPath: string;
     axis: "green" | "blue";
-    lastY: number;
-    lastX: number;
+    rotationAxis: THREE.Vector3;
+    center: THREE.Vector3;
+    planeA: THREE.Vector3;
+    planeB: THREE.Vector3;
+    lastAngle: number;
   } | null = null;
   public nodeLabelEl: HTMLDivElement;
 
@@ -139,7 +152,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     // add others things
     // add center coordinates
     this.centerCoordinates = new CenterCoordinates(
-      this.view.settingManager.getCurrentSetting().display.showCenterCoordinates
+      this.view.settingManager.getCurrentSetting().display.showCenterCoordinates,
+      this.view.settingManager.getCurrentSetting().display.centerCoordinatesLength
     );
     scene.add(this.centerCoordinates.arrowsGroup);
 
@@ -339,7 +353,30 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       const blueHits = this.raycaster.intersectObject(handles.blue);
       if (greenHits.length > 0 || blueHits.length > 0) {
         const axis = greenHits.length > 0 ? "green" : "blue";
-        this.ringDragState = { ringPath, axis, lastY: event.clientY, lastX: event.clientX };
+        const ring = this.view.plugin.ringManager.getRing(ringPath);
+        const normal = ring?.normal ?? new THREE.Vector3(0, 1, 0);
+        const { u, v } = this.getRingBasis(normal);
+        // green rotates around v, blue rotates around u — fixed for the
+        // whole drag, never re-derived from the (changing) normal mid-drag
+        const rotationAxis = axis === "green" ? v : u;
+        const center =
+          this.ringMeshes.get(ringPath)?.position.clone() ?? new THREE.Vector3(0, 0, 0);
+        // planeA/planeB are just a 2D basis for measuring angle in the plane
+        // perpendicular to rotationAxis — computed once here, so getRingBasis'
+        // discontinuous branch (see its own comment) never matters: there's
+        // no "mid-drag" for this call, it happens exactly once per drag.
+        const { u: planeA, v: planeB } = this.getRingBasis(rotationAxis);
+        const initialAngle =
+          this.getRotationAngleAtMouse(event, rotationAxis, center, planeA, planeB) ?? 0;
+        this.ringDragState = {
+          ringPath,
+          axis,
+          rotationAxis,
+          center,
+          planeA,
+          planeB,
+          lastAngle: initialAngle,
+        };
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (this.instance.controls() as any).enabled = false;
         event.stopPropagation();
@@ -355,45 +392,108 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       (this.instance.controls() as any).enabled = true;
       this.view.plugin.nodePositionManager.saveDebounced();
       const ring = this.view.plugin.ringManager.getRing(this.ringDragState.ringPath);
-      if (ring) this.view.plugin.ringManager.persistNormal(ring.path, ring.normal);
+      if (ring) {
+        this.view.plugin.ringManager.persistNormal(ring.path, ring.normal);
+
+        // handleRingRotationDrag updates each child's live position and
+        // positions.json on every mousemove during the drag, but never
+        // writes their frontmatter graph_pos — only the ring's own
+        // ring-normal gets persisted above. Since frontmatter is the
+        // source of truth on reload (getEffectivePosition), a rotated
+        // ring's children would silently snap back to their pre-rotation
+        // position after restarting Obsidian. Mirror onNodeDragEnd's
+        // behavior here, gated by the same settings.
+        const setting = this.view.settingManager.getCurrentSetting();
+        if (setting.display.saveCoordinatesToFrontmatter && setting.display.dontMoveWhenDrag) {
+          const posManager = this.view.plugin.nodePositionManager;
+          const childPaths = this.view.plugin.ringManager.getChildPaths(ring);
+          const positions = posManager.getAll();
+          for (const path of childPaths) {
+            const pos = positions[path];
+            if (pos) posManager.writeFrontmatter(path, pos.x, pos.y, pos.z);
+          }
+        }
+      }
       this.ringDragState = null;
+
+      // handleRingRotationDrag mutates children's node.x/y/z directly every
+      // frame during the drag, but never forces the renderer to re-sync
+      // their three.js meshes — same gap applyLivePositions had earlier
+      // tonight. Once the simulation has settled, a data-only mutation
+      // doesn't visibly move a node until something else (Reset rings,
+      // hovering a node) forces a fresh render. .refresh() forces that sync
+      // immediately on release instead of waiting for an unrelated action to
+      // trigger it.
+      this.instance.refresh();
     }
   };
 
+  // Ray from the camera through the mouse, intersected with a plane
+  // perpendicular to the drag's fixed rotation axis — returns the absolute
+  // angle of that hit point around the plane (using planeA/planeB as the
+  // plane's own 2D basis), or null if the ray is parallel to the plane (the
+  // genuine edge-on singularity every rotation gizmo shares: no angle can be
+  // read when looking exactly down the rotation axis).
+  private getRotationAngleAtMouse(
+    event: MouseEvent,
+    rotationAxis: THREE.Vector3,
+    center: THREE.Vector3,
+    planeA: THREE.Vector3,
+    planeB: THREE.Vector3
+  ): number | null {
+    const ndc = this.getMouseNDC(event);
+    this.raycaster.setFromCamera(ndc, this.instance.camera());
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(rotationAxis, center);
+    const hit = new THREE.Vector3();
+    if (!this.raycaster.ray.intersectPlane(plane, hit)) return null;
+    const rel = hit.sub(center);
+    return Math.atan2(rel.dot(planeB), rel.dot(planeA));
+  }
+
   private handleRingRotationDrag(event: MouseEvent): void {
     if (!this.ringDragState) return;
-    const dx = event.clientX - this.ringDragState.lastX;
-    const dy = event.clientY - this.ringDragState.lastY;
-    this.ringDragState.lastX = event.clientX;
-    this.ringDragState.lastY = event.clientY;
+    const { rotationAxis, center, planeA, planeB } = this.ringDragState;
 
-    const dragMag = Math.sqrt(dx * dx + dy * dy);
-    if (dragMag < 0.5) return;
+    const angle = this.getRotationAngleAtMouse(event, rotationAxis, center, planeA, planeB);
+    if (angle === null) return; // edge-on this frame — skip rather than guess
+
+    let deltaAngle = angle - this.ringDragState.lastAngle;
+    // normalize to [-π, π] so crossing the atan2 wraparound point doesn't
+    // register as a near-360° jump
+    if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
+    if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
+    this.ringDragState.lastAngle = angle;
+    if (Math.abs(deltaAngle) < 1e-5) return;
 
     const ring = this.view.plugin.ringManager.getRing(this.ringDragState.ringPath);
     if (!ring) return;
 
-    // Handle direction in world space (where the handle sits on the ring)
-    const { u, v } = this.getRingBasis(ring.normal);
-    const handleDir = this.ringDragState.axis === "green" ? u : v;
-
-    // Map screen drag to 3D world direction using camera axes
-    const camera = this.instance.camera();
-    const camRight = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).normalize();
-    const camUp = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).normalize();
-    const desired3D = camRight.clone().multiplyScalar(dx).addScaledVector(camUp, -dy).normalize();
-
-    // Rotation axis: perpendicular to both the handle direction and the desired movement
-    // This makes the handle actually move toward where you dragged
-    const rotAxis = new THREE.Vector3().crossVectors(handleDir, desired3D);
-    if (rotAxis.lengthSq() < 0.0001) return;
-    rotAxis.normalize();
-
-    const q = new THREE.Quaternion().setFromAxisAngle(rotAxis, dragMag * 0.005);
+    const q = new THREE.Quaternion().setFromAxisAngle(rotationAxis, deltaAngle);
     const newNormal = ring.normal.clone().applyQuaternion(q).normalize();
     this.view.plugin.ringManager.setNormal(ring.path, newNormal);
 
+    // Capture the handles' actual rendered positions BEFORE
+    // updateRingMeshPositions runs — that call re-derives handle positions
+    // via getRingBasis(), which can still jump discontinuously (hard
+    // threshold on its reference vector). Rotating from a position that's
+    // already been corrupted by that jump just carries the jump forward;
+    // rotating from the clean pre-update position is what actually stays
+    // continuous.
+    const handles = this.ringHandles.get(ring.path);
+    const preGreenPos = handles?.green.position.clone();
+    const preBluePos = handles?.blue.position.clone();
+
     this.updateRingMeshPositions();
+
+    if (handles && preGreenPos && preBluePos) {
+      const rotateAboutCenter = (mesh: THREE.Mesh, prevPos: THREE.Vector3) => {
+        const offset = prevPos.clone().sub(center);
+        offset.applyQuaternion(q);
+        mesh.position.copy(center.clone().add(offset));
+      };
+      rotateAboutCenter(handles.green, preGreenPos);
+      rotateAboutCenter(handles.blue, preBluePos);
+    }
 
     // re-snap children — update positions directly, ForceGraph3D renders each frame
     const positions = this.view.plugin.nodePositionManager.getAll();
@@ -575,6 +675,14 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       }
     });
     this.instance.numDimensions(3);
+    // Mutating node.x/y/z directly doesn't force the renderer to re-sync a
+    // node's three.js mesh if the simulation has already settled — it just
+    // sits at the stale visual position until something else (reopening the
+    // view, dragging something) forces a fresh redraw. .refresh() forces
+    // that sync immediately. updateInstance's reheat path already pairs
+    // numDimensions(3) with .refresh() for the same reason; this call was
+    // just missing it.
+    this.instance.refresh();
     this.updateRingMeshPositions();
   }
 
@@ -618,6 +726,9 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     }
     if (config?.display?.showCenterCoordinates !== undefined) {
       this.centerCoordinates.setVisibility(config.display.showCenterCoordinates);
+    }
+    if (config?.display?.centerCoordinatesLength !== undefined) {
+      this.centerCoordinates.setLength(config.display.centerCoordinatesLength);
     }
     if (config?.display?.showRing !== undefined) {
       const visible = config.display.showRing;

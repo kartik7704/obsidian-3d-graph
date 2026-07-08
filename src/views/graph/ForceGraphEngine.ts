@@ -10,7 +10,6 @@ import { createNotice } from "@/util/createNotice";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import type { TFile } from "obsidian";
 
-const origin = new THREE.Vector3(0, 0, 0);
 const cameraLookAtCenterTransitionDuration = 1000;
 const LINK_PARTICLE_MULTIPLIER = 2;
 export const FOCAL_FROM_CAMERA = 400;
@@ -65,9 +64,7 @@ export class ForceGraphEngine {
       }, 100);
     }
 
-    const distanceToCenter = camera.position.distanceTo(origin);
     camera.updateProjectionMatrix();
-    this.forceGraph.centerCoordinates.setLength(distanceToCenter / 10);
 
     if (this.isZooming) {
       clearTimeout(this.endZoomTimeout);
@@ -184,6 +181,16 @@ export class ForceGraphEngine {
         }
       });
       this.forceGraph.instance.numDimensions(3);
+      // Same gap as applyLivePositions/onHandleMouseUp: once the simulation
+      // has settled (dontMoveWhenDrag pins nodes via fx/fy/fz, so there's
+      // nothing left for the physics engine to animate), the renderer stops
+      // redrawing on its own. Direct mutations after that point — the ring
+      // torus's mesh.position.set() in updateRingMeshPositions, or the
+      // children's node.x/y/z above — don't appear until something else
+      // forces a render. That's why "show rings" looked stuck at the
+      // pre-drag position until an unrelated click or hover kicked a redraw.
+      // .refresh() forces that render immediately instead of waiting.
+      this.forceGraph.instance.refresh();
       posManager.saveDebounced();
     }
   };
