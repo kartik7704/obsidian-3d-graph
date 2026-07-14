@@ -68,6 +68,11 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   public readonly myCube: THREE.Mesh;
 
   public readonly interactionManager: ForceGraphEngine;
+  // Tracks the last dagOrientation actually applied to instance.dagMode(),
+  // so updateInstance can skip calling it again on the no-op "still off"
+  // case — see the comment at its call site for why that call must be
+  // avoided whenever possible.
+  private lastAppliedDagOrientation: DagOrientation | undefined = undefined;
   private readonly ringMeshes: Map<string, THREE.Mesh> = new Map();
   private readonly ringHandles: Map<string, { green: THREE.Mesh; blue: THREE.Mesh }> = new Map();
   private readonly raycaster = new THREE.Raycaster();
@@ -812,8 +817,32 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       }
 
       const noDag = dagOrientation === DagOrientation.null;
-      // @ts-ignore
-      this.instance.dagMode(noDag ? null : config?.display.dagOrientation).dagLevelDistance(75);
+      const wasNoDag =
+        this.lastAppliedDagOrientation === undefined ||
+        this.lastAppliedDagOrientation === DagOrientation.null;
+
+      // three-forcegraph's dagMode setter has a real bug: calling it at all
+      // — even with null — triggers its internal "reheat" step, and that
+      // step's own DAG check reads state.dagMode *before* the new value has
+      // actually landed internally. On a freshly-constructed instance
+      // that stale read is truthy, so the reheat unconditionally clears
+      // fx/fy/fz on every single node — confirmed by direct instrumentation:
+      // every pinned node lost its fx/fy/fz mid-call, and only afterward did
+      // dagMode() read back the correct new value. Since "no DAG" is the
+      // default and this config gets re-applied via updateConfig on every
+      // single ForceGraph construction, that's every node's pin getting
+      // silently wiped on every reload, regardless of orphans — orphans just
+      // made the resulting mess big enough and permanent enough (no further
+      // correcting rebuild once the metadata cache had already settled) to
+      // actually notice. Skipping the call entirely when nothing is really
+      // changing (still off, or switching between two non-null modes is the
+      // only remaining case that still needs it) sidesteps the bug instead
+      // of trying to out-race it.
+      if (!noDag || !wasNoDag) {
+        // @ts-ignore
+        this.instance.dagMode(noDag ? null : config?.display.dagOrientation).dagLevelDistance(75);
+      }
+      this.lastAppliedDagOrientation = dagOrientation;
     }
 
     /**
