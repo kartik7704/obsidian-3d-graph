@@ -34,7 +34,21 @@ export abstract class GraphItemView extends ItemView {
 
   onunload(): void {
     super.onunload();
-    this.graph3dView.getForceGraph().instance._destructor();
+    const forceGraph = this.graph3dView.getForceGraph();
+    const instance = forceGraph.instance;
+    // instance._destructor() (upstream 3d-force-graph) only pauses the
+    // animation loop and clears graphData({nodes:[],links:[]}) — it never
+    // touches the underlying WebGLRenderer/context (it's even marked "to be
+    // deprecated" in the library's own source). Left alone, every tab
+    // close/reopen leaks one WebGL context permanently; browsers cap how many
+    // can exist at once, so repeated open/close cycles eventually exhaust
+    // that cap and force-evict an old context, freezing whatever view's
+    // render loop gets hit mid-frame. Grab the renderer before destructing
+    // and explicitly release its GPU resources ourselves.
+    const renderer = instance.renderer();
+    instance._destructor();
+    renderer.dispose();
+    renderer.forceContextLoss();
     this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter(
       (view) => view !== this.graph3dView
     );
