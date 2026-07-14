@@ -105,6 +105,69 @@ export class NodePositionManager {
     }
   }
 
+  // Bulk-write for the "Save coordinates to frontmatter" toggle - fires once per
+  // off-to-on flip, over whatever the caller says is currently visible (respects
+  // live filters at the moment of the call, not a fixed historical set). One
+  // begin/end wrapping the whole batch, same pattern as clearFrontmatterFromTouched,
+  // and fired concurrently (Promise.all) since each write touches a different file -
+  // the counter-based write guard already supports overlap.
+  async writeFrontmatterForNodes(
+    nodes: { path: string; x: number; y: number; z: number }[]
+  ): Promise<number> {
+    this.plugin.beginFrontmatterWrite();
+    let saved = 0;
+    try {
+      await Promise.all(
+        nodes.map(async ({ path, x, y, z }) => {
+          const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
+          if (!file || !path.endsWith(".md")) return;
+          await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
+            fm.graph_pos = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+          });
+          this.frontmatterTouched.add(path);
+          this.plugin.markRecentlySaved(path);
+          saved++;
+        })
+      );
+      await this.save();
+    } finally {
+      this.plugin.endFrontmatterWrite();
+    }
+    return saved;
+  }
+
+  // "Clear coordinates from frontmatter" (Utils button) - scoped to whatever the
+  // caller says is currently visible, checked live against each note's actual
+  // current frontmatter rather than the frontmatterTouched history. Deliberately
+  // NOT the same as clearFrontmatterFromTouched: that one wipes everything ever
+  // touched regardless of current filters, this one only removes graph_pos from
+  // nodes that are both currently visible AND actually have it right now - so
+  // switching filters between a save and a clear can't nuke something out of view.
+  async clearFrontmatterForNodes(paths: string[]): Promise<number> {
+    this.plugin.beginFrontmatterWrite();
+    let cleared = 0;
+    try {
+      await Promise.all(
+        paths.map(async (path) => {
+          const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
+          if (!file || !path.endsWith(".md")) return;
+          const fm = this.plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+          if (!fm?.graph_pos) return;
+          await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
+            delete fm.graph_pos;
+          });
+          this.frontmatterTouched.delete(path);
+          this.plugin.markRecentlySaved(path);
+          cleared++;
+        })
+      );
+      await this.save();
+    } finally {
+      this.plugin.endFrontmatterWrite();
+    }
+    return cleared;
+  }
+
   getAll(): NodePositions {
     return this.current;
   }

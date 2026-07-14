@@ -193,6 +193,25 @@ export const UtilitySettingsView = async (containerEl: HTMLElement, view: BaseGr
     }
   });
 
+  // Scoped to currently-visible nodes only (respects live filters), checked live
+  // against each note's actual frontmatter - not the frontmatterTouched history,
+  // so switching filters between a save and a clear can't wipe something out of
+  // view. See NodePositionManager.clearFrontmatterForNodes for the reasoning.
+  new ButtonComponent(div).setButtonText("Clear coordinates from frontmatter").onClick(async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const nodes = (view.getForceGraph()?.instance.graphData().nodes ?? []) as any[];
+    const cleared = await plugin.nodePositionManager.clearFrontmatterForNodes(
+      nodes.map((n) => n.path)
+    );
+    if (cleared === 0) {
+      createNotice(
+        `No saved coordinates found. Turn on "Save coordinates to frontmatter" to stop nodes from drifting away.`
+      );
+    } else {
+      createNotice(`Cleared coordinates from ${cleared} node${cleared === 1 ? "" : "s"}.`);
+    }
+  });
+
   new ButtonComponent(div).setButtonText("Create ring").onClick(() => {
     new CreateRingModal(view).open();
   });
