@@ -270,15 +270,16 @@ export const DisplaySettingsView = (
         // toggling off then back on after changing filters re-scans and writes
         // whatever's visible at that moment. Ongoing per-drag writes (onNodeDragEnd)
         // are unaffected by this and keep working exactly as before.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const nodes = (settingManager.getGraphView().getForceGraph()?.instance.graphData().nodes ??
-          []) as any[];
+          []) as unknown as { path: string; x: number; y: number; z: number }[];
         const posManager = settingManager.getGraphView().plugin.nodePositionManager;
         const saved = await posManager.writeFrontmatterForNodes(
           nodes.map((n) => ({ path: n.path, x: n.x, y: n.y, z: n.z }))
         );
         new Notice(
-          `Saved coordinates for ${saved} visible node${saved === 1 ? "" : "s"} to frontmatter. New drags will keep saving automatically.`
+          `Saved coordinates for ${saved} visible node${
+            saved === 1 ? "" : "s"
+          } to frontmatter. New drags will keep saving automatically.`
         );
       }
       settingManager.updateCurrentSettings((setting) => {
