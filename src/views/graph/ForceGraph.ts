@@ -24,6 +24,19 @@ import type { NodePositions } from "@/NodePositionManager";
 export const getTooManyNodeMessage = (nodeNumber: number) =>
   `Graph is too large to be rendered. Have ${nodeNumber} nodes.`;
 
+// Deterministic string -> [0, 1) hash (FNV-1a), used to seed a stable,
+// spread-out starting position for nodes with no saved position — same
+// path always lands in the same spot, so it doesn't visually "shuffle"
+// unpositioned nodes across reloads the way `Math.random()` would.
+function hashPathToUnit(path: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < path.length; i++) {
+    h ^= path.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0) / 0xffffffff;
+}
+
 type MyForceGraph3DInstance = Omit<ForceGraph3DInstance, "graphData"> & {
   graphData: {
     (): Graph; // When no argument is passed, it returns a Graph
@@ -700,6 +713,29 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
         n.x = pos.x;
         n.y = pos.y;
         n.z = pos.z;
+      } else {
+        // No saved position (a never-dragged node — orphans are the common
+        // case, since they're hidden until the "show orphans" toggle and so
+        // never get a chance to be dragged/pinned). Leaving x/y/z unset here
+        // means every such node starts stacked at the simulation's default
+        // origin. On a fresh view-open the simulation starts hot (full
+        // cooldown/alpha), so a pile of unfixed nodes sitting right next to
+        // an already-pinned, dense cluster gets flung outward by full-
+        // strength charge repulsion before it cools — the "orphans scatter
+        // on reload" bug. A live toggle doesn't show this because the
+        // simulation is already cool by then. Seeding a deterministic,
+        // spread-out (not clustered, not random-every-load) starting point
+        // avoids the pile-up without pinning the node — it's still free to
+        // settle wherever the force layout wants.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const n = node as any;
+        const seed = hashPathToUnit(node.path);
+        const radius = 300;
+        const theta = seed * Math.PI * 2;
+        const phi = Math.acos(2 * ((seed * 7919) % 1) - 1);
+        n.x = radius * Math.sin(phi) * Math.cos(theta);
+        n.y = radius * Math.sin(phi) * Math.sin(theta);
+        n.z = radius * Math.cos(phi);
       }
     });
   }
