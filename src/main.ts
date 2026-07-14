@@ -217,6 +217,41 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
     this.onGraphCacheChanged();
   };
 
+  private notifyViewsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+  // A cold start (or showing orphans, which pulls in dozens of never-before-
+  // resolved files at once) fires onGraphCacheChanged many times in a tight
+  // burst. Notifying views immediately on every call meant dozens of
+  // overlapping rebuilds during a burst, each one correctly positioning
+  // nodes for an instant before the next rebuild interrupted it mid-settle —
+  // confirmed live via debug instrumentation: with orphans on, the view got
+  // reconstructed several times within ~1s, each one immediately drifting
+  // before the next reconstruction hit; with orphans off, the burst was
+  // short enough the last rebuild had time to fully settle. Debouncing just
+  // the "reload ring cache + tell views to rebuild" step means one clean
+  // rebuild after the burst ends, instead of many half-finished ones
+  // stomping each other. Deliberately NOT debouncing globalGraph/
+  // _resolvedCache/isCacheReadyOnce below — those are cheap bookkeeping, and
+  // delaying them (an earlier version of this fix did, by mistake) leaves
+  // `globalGraph` at its constructor-time `undefined` placeholder for the
+  // debounce window, which crashed Obsidian's own boot-time tab restore
+  // (`workspace.json` remembers this view was open) when it read
+  // `globalGraph.nodes` before the delayed assignment had ever run.
+  private debouncedRefreshAndNotifyViews(): void {
+    if (this.notifyViewsDebounceTimer !== null) {
+      clearTimeout(this.notifyViewsDebounceTimer);
+    }
+    this.notifyViewsDebounceTimer = setTimeout(() => {
+      this.notifyViewsDebounceTimer = null;
+      void (async () => {
+        if (this.ringManager) await this.ringManager.load();
+        this.activeGraphViews.forEach((view) => {
+          view.handleMetadataCacheChange();
+        });
+      })();
+    }, 300);
+  }
+
   /**
    * check if the cache is ready and if it is, update the global graph
    */
@@ -244,10 +279,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
         changedPaths.every((p) => this.isSavingFrontmatter || this.wasRecentlySavedByUs(p));
 
       if (this.isCacheReadyOnce && !allChangesAreOurOwnWrites) {
-        // update graph view
-        this.activeGraphViews.forEach((view) => {
-          view.handleMetadataCacheChange();
-        });
+        this.debouncedRefreshAndNotifyViews();
       }
     } else {
       this.isCacheReadyOnce = true;
@@ -259,10 +291,7 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
       // );
 
       if (!this.isSavingFrontmatter) {
-        // update graph views
-        this.activeGraphViews.forEach((view) => {
-          view.handleMetadataCacheChange();
-        });
+        this.debouncedRefreshAndNotifyViews();
       }
     }
   };
