@@ -112,11 +112,10 @@ export class ForceGraphEngine {
     if (ringManager.isRing(node.path)) {
       this.forceGraph.updateRingMeshPositions();
       const ring = ringManager.getRing(node.path)!;
-      const childPaths = ringManager.getChildPaths(ring);
-      const childPositions = ringManager.computeChildPositions(
+      const childPositions = ringManager.snapRing(
         ring,
         { x: node.x, y: node.y, z: node.z },
-        childPaths
+        { persist: "none" }
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.forceGraph.instance.graphData().nodes as any[]).forEach((n: any) => {
@@ -158,11 +157,12 @@ export class ForceGraphEngine {
     if (ringManager.isRing(node.path)) {
       this.forceGraph.updateRingMeshPositions();
       const ring = ringManager.getRing(node.path)!;
-      const childPaths = ringManager.getChildPaths(ring);
-      const childPositions = ringManager.computeChildPositions(
+      const shouldWriteFrontmatter =
+        setting.display.saveCoordinatesToFrontmatter && setting.display.dontMoveWhenDrag;
+      const childPositions = ringManager.snapRing(
         ring,
         { x: node.x, y: node.y, z: node.z },
-        childPaths
+        { persist: shouldWriteFrontmatter ? "frontmatter" : "positions" }
       );
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (this.forceGraph.instance.graphData().nodes as any[]).forEach((n: any) => {
@@ -174,10 +174,6 @@ export class ForceGraphEngine {
           n.fx = pos.x;
           n.fy = pos.y;
           n.fz = pos.z;
-          posManager.setPosition(n.path, pos.x, pos.y, pos.z);
-          if (setting.display.saveCoordinatesToFrontmatter && setting.display.dontMoveWhenDrag) {
-            posManager.writeFrontmatter(n.path, pos.x, pos.y, pos.z);
-          }
         }
       });
       this.forceGraph.instance.numDimensions(3);
@@ -191,7 +187,6 @@ export class ForceGraphEngine {
       // pre-drag position until an unrelated click or hover kicked a redraw.
       // .refresh() forces that render immediately instead of waiting.
       this.forceGraph.instance.refresh();
-      posManager.saveDebounced();
     }
   };
 

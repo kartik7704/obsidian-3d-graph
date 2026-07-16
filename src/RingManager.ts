@@ -117,6 +117,34 @@ export class RingManager {
     return result;
   }
 
+  // Shared child-snap step: compute this ring's child positions and, unless
+  // persist is "none", write them through to positions.json (and frontmatter,
+  // if requested) via NodePositionManager. Replaces four near-identical copies
+  // of "compute, assign, maybe persist" that used to live one per call site
+  // (drag, drag-end, Reload rings, apply-ring-layouts) — the split was exactly
+  // how the July 2 bug happened (drag-end persisted frontmatter, Reload rings
+  // didn't). Callers still own mutating their own live three.js node objects
+  // and any rendering/refresh side effects; this only computes + persists.
+  snapRing(
+    ring: RingData,
+    center: { x: number; y: number; z: number },
+    opts: { persist: "none" | "positions" | "frontmatter" } = { persist: "none" }
+  ): NodePositions {
+    const childPaths = this.getChildPaths(ring);
+    const positions = this.computeChildPositions(ring, center, childPaths);
+    if (opts.persist === "none") return positions;
+
+    const posManager = this.plugin.nodePositionManager;
+    for (const [path, pos] of Object.entries(positions)) {
+      posManager.setPosition(path, pos.x, pos.y, pos.z);
+      if (opts.persist === "frontmatter") {
+        posManager.writeFrontmatter(path, pos.x, pos.y, pos.z);
+      }
+    }
+    posManager.saveDebounced();
+    return positions;
+  }
+
   setNormal(path: string, normal: THREE.Vector3): void {
     const ring = this.rings.get(path);
     if (ring) ring.normal = normal.clone().normalize();

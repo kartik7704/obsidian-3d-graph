@@ -329,14 +329,11 @@ export default class Graph3dPlugin extends Plugin implements HoverParent {
     for (const ring of this.ringManager.getRings()) {
       const ringPos = this.nodePositionManager.getEffectivePosition(ring.path);
       if (!ringPos) continue;
-      const childPaths = this.ringManager.getChildPaths(ring);
-      const childPositions = this.ringManager.computeChildPositions(ring, ringPos, childPaths);
+      const childPositions = this.ringManager.snapRing(ring, ringPos, { persist: "positions" });
       for (const [path, pos] of Object.entries(childPositions)) {
-        this.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
         justComputedPositions[path] = pos;
       }
     }
-    this.nodePositionManager.saveDebounced();
 
     // Same reasoning as the Reload-rings button: passing positions.json's
     // `current` map directly would unpin any node positioned purely via

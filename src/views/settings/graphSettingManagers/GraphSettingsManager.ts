@@ -372,18 +372,11 @@ export abstract class GraphSettingManager<
                 ringPos.z
               );
             }
-            const childPaths = plugin.ringManager.getChildPaths(ring);
-            const childPositions = plugin.ringManager.computeChildPositions(
-              ring,
-              ringPos,
-              childPaths
-            );
+            const childPositions = plugin.ringManager.snapRing(ring, ringPos, {
+              persist: shouldWriteFrontmatter ? "frontmatter" : "positions",
+            });
             for (const [path, pos] of Object.entries(childPositions)) {
-              plugin.nodePositionManager.setPosition(path, pos.x, pos.y, pos.z);
               justComputedPositions[path] = pos;
-              if (shouldWriteFrontmatter) {
-                plugin.nodePositionManager.writeFrontmatter(path, pos.x, pos.y, pos.z);
-              }
             }
           }
           plugin.nodePositionManager.saveDebounced();
