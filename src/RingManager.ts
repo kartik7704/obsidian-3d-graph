@@ -3,11 +3,14 @@ import * as THREE from "three";
 import type { TFile } from "obsidian";
 import type { NodePositions } from "@/NodePositionManager";
 
+export type RingSort = "name" | "created" | "modified" | "updated";
+
 export type RingData = {
   path: string;
   radius: number;
   filter: string; // tag to match children (without #), e.g. "log"
   normal: THREE.Vector3;
+  sort: RingSort;
 };
 
 export class RingManager {
@@ -28,14 +31,23 @@ export class RingManager {
     this.rings.clear();
     this.childPathsCache.clear();
 
-    // Single pass: collect ring definitions and bucket every file by its tags
-    // at the same time, instead of a second full-vault scan per ring later.
+    // Single pass: collect ring definitions, bucket every file by its tags,
+    // and record each file's created/modified metadata — all at the same
+    // time, instead of a second full-vault scan per ring later.
     const filesByTag: Map<string, string[]> = new Map();
+    const fileMeta: Map<string, { created?: string; updated?: string; mtime: number }> = new Map();
 
     for (const file of this.plugin.app.vault.getMarkdownFiles()) {
       const cache = this.plugin.app.metadataCache.getFileCache(file);
-      if (!cache?.frontmatter) continue;
-      const fm = cache.frontmatter;
+      const fm = cache?.frontmatter;
+
+      fileMeta.set(file.path, {
+        created: typeof fm?.created === "string" ? fm.created : undefined,
+        updated: typeof fm?.updated === "string" ? fm.updated : undefined,
+        mtime: file.stat.mtime,
+      });
+
+      if (!fm) continue;
 
       const tags: string[] = Array.isArray(fm.tags)
         ? (fm.tags as string[])
@@ -57,8 +69,12 @@ export class RingManager {
         ? (fm["ring-normal"] as number[])
         : [0, 1, 0];
       const normal = new THREE.Vector3(nArr[0] ?? 0, nArr[1] ?? 1, nArr[2] ?? 0).normalize();
+      const sortRaw =
+        typeof fm["ring-sort"] === "string" ? fm["ring-sort"].toLowerCase().trim() : "";
+      const sort: RingSort =
+        sortRaw === "created" || sortRaw === "modified" || sortRaw === "updated" ? sortRaw : "name";
 
-      this.rings.set(file.path, { path: file.path, radius, filter, normal });
+      this.rings.set(file.path, { path: file.path, radius, filter, normal, sort });
     }
 
     for (const ring of this.rings.values()) {
@@ -67,9 +83,36 @@ export class RingManager {
         continue;
       }
       const children = (filesByTag.get(ring.filter) ?? []).filter((p) => p !== ring.path);
-      children.sort();
+      this.sortChildren(children, ring.sort, fileMeta);
       this.childPathsCache.set(ring.path, children);
     }
+  }
+
+  // Mutates `children` in place. "created"/"updated"/"modified" fall back to
+  // path-name ordering when a file is missing the relevant metadata (no
+  // `created`/`updated` frontmatter, e.g.), so a ring never silently
+  // reorders around one gap.
+  private sortChildren(
+    children: string[],
+    sort: RingSort,
+    fileMeta: Map<string, { created?: string; updated?: string; mtime: number }>
+  ): void {
+    if (sort === "name") {
+      children.sort();
+      return;
+    }
+    children.sort((a, b) => {
+      const ma = fileMeta.get(a);
+      const mb = fileMeta.get(b);
+      const va =
+        sort === "created" ? ma?.created : sort === "updated" ? ma?.updated : ma?.mtime.toString();
+      const vb =
+        sort === "created" ? mb?.created : sort === "updated" ? mb?.updated : mb?.mtime.toString();
+      if (va === undefined && vb === undefined) return a.localeCompare(b);
+      if (va === undefined) return 1;
+      if (vb === undefined) return -1;
+      return va < vb ? -1 : va > vb ? 1 : a.localeCompare(b);
+    });
   }
 
   getRings(): RingData[] {
