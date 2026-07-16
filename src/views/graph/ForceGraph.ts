@@ -179,6 +179,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     scene.add(this.myCube);
 
     this.initRingMeshes(scene);
+    this.snapRingChildren();
     // registered once here, not inside initRingMeshes — that gets called again
     // on every "Reload rings" click (reloadRingMeshes), which used to stack a
     // fresh set of these listeners each time since they were never removed.
@@ -316,6 +317,42 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       this.ringMeshes.set(ring.path, mesh);
       this.ringHandles.set(ring.path, { green: greenHandle, blue: blueHandle });
     }
+  }
+
+  // Ring meshes (initRingMeshes, just above) place the ring's own torus at
+  // its correct center on every open, but child nodes never got the same
+  // treatment — they just sat wherever applyNodePositions last put them
+  // (frontmatter/positions.json), which drifts from the ring's actual
+  // current center/radius/rotation whenever a child was dragged off and
+  // nothing has re-snapped it since. Called from both the constructor
+  // (first-ever ForceGraph construction) and updateGraph (the path actually
+  // taken when Graph3dView reuses an existing ForceGraph instance instead of
+  // constructing a new one, e.g. closing/reopening the same graph leaf) —
+  // the constructor alone doesn't cover the reuse case. persist: "positions"
+  // (not "frontmatter") matches apply-ring-layouts' default — opening a
+  // graph view shouldn't silently rewrite every log note's frontmatter.
+  private snapRingChildren(): void {
+    const posManager = this.view.plugin.nodePositionManager;
+    const ringManager = this.view.plugin.ringManager;
+    const snapped: NodePositions = {};
+    for (const ring of ringManager.getRings()) {
+      const ringPos = posManager.getEffectivePosition(ring.path);
+      if (!ringPos) continue;
+      Object.assign(snapped, ringManager.snapRing(ring, ringPos, { persist: "positions" }));
+    }
+    if (Object.keys(snapped).length === 0) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.instance.graphData().nodes.forEach((node: any) => {
+      const pos = snapped[node.path];
+      if (!pos) return;
+      node.fx = pos.x;
+      node.fy = pos.y;
+      node.fz = pos.z;
+      node.x = pos.x;
+      node.y = pos.y;
+      node.z = pos.z;
+    });
   }
 
   public updateRingMeshPositions(): void {
@@ -644,6 +681,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       if (error) {
         console.error(error);
       }
+      this.snapRingChildren();
       // Pin new nodes after simulation settles so they don't drift when dontMoveWhenDrag is on
       const setting = this.view.settingManager.getCurrentSetting();
       if (setting.display.dontMoveWhenDrag) {
