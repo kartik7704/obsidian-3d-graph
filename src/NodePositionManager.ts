@@ -197,6 +197,22 @@ export class NodePositionManager {
     await this.save();
   }
 
+  // A saved layout is a snapshot of every known node's *effective* position,
+  // not raw positions.json - `current` alone goes stale for any node whose
+  // frontmatter graph_pos was set/edited without a matching drag (e.g. moved
+  // between rings, hand-edited, or left over from before a file was renamed),
+  // and saving/applying that stale value silently regresses a node that
+  // reset-rings/reload would otherwise place correctly from frontmatter.
+  private snapshotEffectivePositions(): NodePositions {
+    const paths = new Set([...Object.keys(this.current), ...this.frontmatterTouched]);
+    const snapshot: NodePositions = {};
+    for (const path of paths) {
+      const pos = this.getEffectivePosition(path);
+      if (pos) snapshot[path] = pos;
+    }
+    return snapshot;
+  }
+
   // --- named layouts ---
 
   getLayouts(): SavedLayout[] {
@@ -207,7 +223,7 @@ export class NodePositionManager {
     const layout: SavedLayout = {
       id: generateUUID(),
       title,
-      positions: { ...this.current },
+      positions: this.snapshotEffectivePositions(),
     };
     this.layouts.push(layout);
     await this.save();
@@ -217,7 +233,7 @@ export class NodePositionManager {
   async updateLayout(id: string): Promise<void> {
     const layout = this.layouts.find((l) => l.id === id);
     if (layout) {
-      layout.positions = { ...this.current };
+      layout.positions = this.snapshotEffectivePositions();
       await this.save();
     }
   }
