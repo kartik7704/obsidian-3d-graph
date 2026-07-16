@@ -360,7 +360,14 @@ export abstract class GraphSettingManager<
           const justComputedPositions: Record<string, { x: number; y: number; z: number }> = {};
 
           for (const ring of plugin.ringManager.getRings()) {
-            const ringPos = livePos[ring.path];
+            // A ring note's own graph node (invisible, but still part of the
+            // force simulation and draggable) can drift from its graph_pos
+            // frontmatter independent of its visible torus mesh - reading
+            // livePos here instead of getEffectivePosition anchored children
+            // on wherever that drifted node happened to sit, then wrote that
+            // wrong value back into positions.json every click, making the
+            // drift permanent. Same bug class as the saveLayout fix above.
+            const ringPos = plugin.nodePositionManager.getEffectivePosition(ring.path);
             if (!ringPos) continue;
             plugin.nodePositionManager.setPosition(ring.path, ringPos.x, ringPos.y, ringPos.z);
             justComputedPositions[ring.path] = ringPos;
