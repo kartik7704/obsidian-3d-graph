@@ -48,20 +48,30 @@ export class RingManager {
         mtime: file.stat.mtime,
       });
 
-      if (!fm) continue;
-
-      const tags: string[] = Array.isArray(fm.tags)
-        ? (fm.tags as string[])
-        : typeof fm.tags === "string"
-        ? [fm.tags]
+      // Frontmatter tags: array, single bare string, or Obsidian's alternate
+      // comma-separated single-string form (`tags: log, session`) — the
+      // latter used to become one literal tag "log, session" instead of two.
+      // Merged with inline #hashtags from the note body (cache.tags), which
+      // frontmatter-only parsing missed entirely — a file tagged into a ring
+      // only via an inline #tag in its body, not frontmatter, was invisible
+      // to every ring's membership.
+      const frontmatterTags: string[] = Array.isArray(fm?.tags)
+        ? (fm!.tags as string[])
+        : typeof fm?.tags === "string"
+        ? fm.tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
         : [];
+      const inlineTags: string[] = (cache?.tags ?? []).map((t) => t.tag.replace(/^#/, ""));
+      const tags = Array.from(new Set([...frontmatterTags, ...inlineTags]));
 
       for (const tag of tags) {
         if (!filesByTag.has(tag)) filesByTag.set(tag, []);
         filesByTag.get(tag)!.push(file.path);
       }
 
-      if (!tags.includes("ring")) continue;
+      if (!fm || !tags.includes("ring")) continue;
 
       const radius: number = typeof fm.radius === "number" ? fm.radius : 150;
       const filter: string =

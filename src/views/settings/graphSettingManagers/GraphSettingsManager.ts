@@ -408,7 +408,7 @@ export abstract class GraphSettingManager<
         }
 
         createNotice(
-          "Rings group nodes into orbital clusters. Tag a note with ring1, ring2, etc. to pull it into a ring, then drag the ring to reposition the whole group."
+          "Rings group nodes into orbital clusters. Tag a note `ring` and set its ring-filter property to the tag that should be pulled into it, then drag the ring to reposition the whole group."
         );
       });
     new ExtraButtonComponent(containerEl)

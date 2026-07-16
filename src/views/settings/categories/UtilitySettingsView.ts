@@ -20,14 +20,14 @@ class CreateRingModal extends Modal {
     let filterTag = "";
 
     new Setting(contentEl).setName("Note name").addText((text) => {
-      text.setPlaceholder("e.g. logs_ring1").onChange((v) => (noteName = v.trim()));
+      text.setPlaceholder("e.g. logs_ring").onChange((v) => (noteName = v.trim()));
     });
 
     new Setting(contentEl)
       .setName("Filter tag")
       .setDesc("Nodes tagged with this will orbit the ring.")
       .addText((text) => {
-        text.setPlaceholder("e.g. ring1").onChange((v) => (filterTag = v.trim()));
+        text.setPlaceholder("e.g. logs_ring or log").onChange((v) => (filterTag = v.trim()));
       });
 
     new Setting(contentEl).addButton((btn) => {

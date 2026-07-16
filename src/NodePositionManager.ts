@@ -3,6 +3,7 @@ import type { TFile } from "obsidian";
 import { normalizePath } from "obsidian";
 import { debounce } from "@/util/debounce";
 import { generateUUID } from "@/util/generateUUID";
+import { createNotice } from "@/util/createNotice";
 
 export type NodePositions = Record<string, { x: number; y: number; z: number }>;
 
@@ -36,8 +37,17 @@ export class NodePositionManager {
   }
 
   async load(): Promise<void> {
+    let raw: string;
     try {
-      const raw = await this.plugin.app.vault.adapter.read(this.filePath);
+      raw = await this.plugin.app.vault.adapter.read(this.filePath);
+    } catch {
+      // File doesn't exist yet (first run) - nothing to back up, empty state is correct.
+      this.current = {};
+      this.layouts = [];
+      return;
+    }
+
+    try {
       const data = JSON.parse(raw) as Partial<PositionsData>;
       // handle old format (flat NodePositions) or new format
       if (data.current !== undefined) {
@@ -51,6 +61,17 @@ export class NodePositionManager {
         this.layouts = [];
       }
     } catch {
+      // Corrupt/truncated positions.json - back up the unreadable file before
+      // resetting, so the next save() doesn't silently overwrite whatever was
+      // in it with a fresh empty state and destroy the only copy.
+      try {
+        await this.plugin.app.vault.adapter.write(`${this.filePath}.corrupt.bak`, raw);
+        createNotice(
+          "positions.json was corrupted and has been reset. A backup was saved as positions.json.corrupt.bak."
+        );
+      } catch {
+        // best-effort backup; don't let a failed backup block recovery
+      }
       this.current = {};
       this.layouts = [];
     }
@@ -75,10 +96,15 @@ export class NodePositionManager {
   async writeFrontmatter(path: string, x: number, y: number, z: number): Promise<void> {
     const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
     if (!file || !path.endsWith(".md")) return;
+    const target = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+    // A real file write (mtime bump + metadata-cache "resolve" event, which
+    // ripples into onGraphCacheChanged's debounced rebuild) even when the
+    // value hasn't actually changed - skip it when it hasn't.
+    if (this.plugin.app.metadataCache.getFileCache(file)?.frontmatter?.graph_pos === target) return;
     this.plugin.beginFrontmatterWrite();
     try {
       await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
-        fm.graph_pos = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+        fm.graph_pos = target;
       });
       this.frontmatterTouched.add(path);
       this.plugin.markRecentlySaved(path);
@@ -121,8 +147,11 @@ export class NodePositionManager {
         nodes.map(async ({ path, x, y, z }) => {
           const file = this.plugin.app.vault.getAbstractFileByPath(path) as TFile | null;
           if (!file || !path.endsWith(".md")) return;
+          const target = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+          if (this.plugin.app.metadataCache.getFileCache(file)?.frontmatter?.graph_pos === target)
+            return;
           await this.plugin.app.fileManager.processFrontMatter(file, (fm) => {
-            fm.graph_pos = `${Math.round(x)},${Math.round(y)},${Math.round(z)}`;
+            fm.graph_pos = target;
           });
           this.frontmatterTouched.add(path);
           this.plugin.markRecentlySaved(path);

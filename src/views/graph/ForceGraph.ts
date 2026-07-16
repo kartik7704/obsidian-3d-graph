@@ -24,6 +24,11 @@ import type { NodePositions } from "@/NodePositionManager";
 export const getTooManyNodeMessage = (nodeNumber: number) =>
   `Graph is too large to be rendered. Have ${nodeNumber} nodes.`;
 
+// How long a new node is left to the simulation before updateGraph pins it
+// (dontMoveWhenDrag) so it doesn't keep drifting once fixed - long enough for
+// the initial hot-alpha layout burst to settle.
+const NEW_NODE_SETTLE_MS = 2000;
+
 // Deterministic string -> [0, 1) hash (FNV-1a), used to seed a stable,
 // spread-out starting position for nodes with no saved position — same
 // path always lands in the same spot, so it doesn't visually "shuffle"
@@ -704,7 +709,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
               }
             });
             posManager.saveDebounced();
-          }, 2000);
+          }, NEW_NODE_SETTLE_MS);
         }
       }
     } else console.log("same graph, no need to update");

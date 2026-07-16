@@ -286,7 +286,6 @@ export class ForceGraphEngine {
     if (node && node.labelEl && ((shouldUseCommand && this.commandDown) || !shouldUseCommand)) {
       this.forceGraph.view.hoverPopover?.hide();
       this.forceGraph.view.eventBus.trigger("open-node-preview", node);
-      this.forceGraph.view.eventBus.trigger("open-node-preview", node);
     }
 
     this.hoveredNode = node ?? null;
@@ -351,7 +350,12 @@ export class ForceGraphEngine {
   };
 
   findFileByNode = (node: Node): TFile | undefined => {
-    return this.forceGraph.view.plugin.app.vault.getFiles().find((f) => f.path === node.path);
+    // O(1) map lookup, not a full-vault scan on every click/right-click —
+    // same pattern already used throughout NodePositionManager.
+    return (
+      (this.forceGraph.view.plugin.app.vault.getAbstractFileByPath(node.path) as TFile | null) ??
+      undefined
+    );
   };
 
   public getNodeOpacityEasedValue = (node: Node) => {
@@ -408,22 +412,37 @@ export class ForceGraphEngine {
     return text;
   };
 
-  initListeners() {
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") {
-        this.spaceDown = true;
-        // this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
-      }
-      if (e.metaKey) this.commandDown = true;
-    });
+  // Bound instance methods, not anonymous closures, so destroy() below can
+  // actually unregister them — an anonymous listener passed straight to
+  // addEventListener has no reference to remove later.
+  private onKeyDown = (e: KeyboardEvent) => {
+    if (e.code === "Space") {
+      this.spaceDown = true;
+      // this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
+    }
+    if (e.metaKey) this.commandDown = true;
+  };
 
-    document.addEventListener("keyup", (e) => {
-      if (e.code === "Space") {
-        this.spaceDown = false;
-        // this.controls.mouseButtons.LEFT = THREE.MOUSE.LEFT;
-      }
-      if (!e.metaKey) this.commandDown = false;
-    });
+  private onKeyUp = (e: KeyboardEvent) => {
+    if (e.code === "Space") {
+      this.spaceDown = false;
+      // this.controls.mouseButtons.LEFT = THREE.MOUSE.LEFT;
+    }
+    if (!e.metaKey) this.commandDown = false;
+  };
+
+  initListeners() {
+    document.addEventListener("keydown", this.onKeyDown);
+    document.addEventListener("keyup", this.onKeyUp);
+  }
+
+  // Every ForceGraphEngine construction (each new ForceGraph, e.g.
+  // refreshGraph's rebuild) registered another pair of document-level
+  // listeners with nothing ever removing the old pair — called from
+  // refreshGraph alongside the three-forcegraph instance's own _destructor().
+  public destroy(): void {
+    document.removeEventListener("keydown", this.onKeyDown);
+    document.removeEventListener("keyup", this.onKeyUp);
   }
 
   /**
