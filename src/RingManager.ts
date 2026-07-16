@@ -11,6 +11,7 @@ export type RingData = {
   filter: string; // tag to match children (without #), e.g. "log"
   normal: THREE.Vector3;
   sort: RingSort;
+  filterDays?: number; // only include children dated within the last N days
 };
 
 export class RingManager {
@@ -73,8 +74,20 @@ export class RingManager {
         typeof fm["ring-sort"] === "string" ? fm["ring-sort"].toLowerCase().trim() : "";
       const sort: RingSort =
         sortRaw === "created" || sortRaw === "modified" || sortRaw === "updated" ? sortRaw : "name";
+      // Obsidian's Properties panel writes a "Text"-typed field as a quoted
+      // string ("7") rather than a bare number, depending on how the
+      // property's type got inferred on first entry — accept both instead
+      // of silently no-op'ing on whichever one the user didn't type raw YAML for.
+      const filterDaysRaw = fm["ring-filter-days"];
+      const filterDaysNum =
+        typeof filterDaysRaw === "number"
+          ? filterDaysRaw
+          : typeof filterDaysRaw === "string"
+          ? Number(filterDaysRaw)
+          : NaN;
+      const filterDays = isFinite(filterDaysNum) && filterDaysNum > 0 ? filterDaysNum : undefined;
 
-      this.rings.set(file.path, { path: file.path, radius, filter, normal, sort });
+      this.rings.set(file.path, { path: file.path, radius, filter, normal, sort, filterDays });
     }
 
     for (const ring of this.rings.values()) {
@@ -82,10 +95,48 @@ export class RingManager {
         this.childPathsCache.set(ring.path, []);
         continue;
       }
-      const children = (filesByTag.get(ring.filter) ?? []).filter((p) => p !== ring.path);
+      let children = (filesByTag.get(ring.filter) ?? []).filter((p) => p !== ring.path);
+      if (ring.filterDays !== undefined) {
+        children = this.filterByDays(children, ring.filterDays, fileMeta);
+      }
       this.sortChildren(children, ring.sort, fileMeta);
       this.childPathsCache.set(ring.path, children);
     }
+  }
+
+  // Membership filter, applied before sortChildren: keeps only children dated
+  // within the last `days` days, using the same created -> updated -> mtime
+  // fallback chain sortChildren uses for ordering. Unlike the sort fallback
+  // (which just tie-breaks on name), this needs a real in/out decision, so a
+  // file with no created/updated frontmatter falls back to mtime rather than
+  // being dropped outright — mtime is a real, if noisier (OneDrive sync can
+  // touch it independent of content), last resort.
+  // Calendar-day cutoff, not a rolling `days * 24h` window — `created`/
+  // `updated` frontmatter is a date-only string (parses as UTC midnight), so
+  // comparing it against a raw Date.now()-based cutoff made the boundary
+  // shift with whatever time of day you happened to check: the same log
+  // could fall in or out of a "7 day" window depending on whether it was
+  // 1am or 11pm. Truncating both "today" and each file's date to UTC
+  // midnight before comparing makes `days` mean N distinct calendar dates
+  // (today + the N-1 preceding), deterministic regardless of time of day.
+  private filterByDays(
+    children: string[],
+    days: number,
+    fileMeta: Map<string, { created?: string; updated?: string; mtime: number }>
+  ): string[] {
+    const now = new Date();
+    const todayUTCMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const cutoff = todayUTCMidnight - (days - 1) * 24 * 60 * 60 * 1000;
+    return children.filter((path) => {
+      const meta = fileMeta.get(path);
+      if (!meta) return false;
+      const dateStr = meta.created ?? meta.updated;
+      const parsed = dateStr ? Date.parse(dateStr) : NaN;
+      const time = !isNaN(parsed) ? parsed : meta.mtime;
+      const day = new Date(time);
+      const dayUTCMidnight = Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate());
+      return dayUTCMidnight >= cutoff;
+    });
   }
 
   // Mutates `children` in place. "created"/"updated"/"modified" fall back to
