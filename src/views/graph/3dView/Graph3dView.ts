@@ -110,8 +110,7 @@ export abstract class Graph3dView<
     forceGraphEl?.remove();
 
     // destroy the old graph, remove the old graph completely from the DOM
-    this.forceGraph.instance._destructor();
-    this.forceGraph.interactionManager.destroy();
+    this.forceGraph.destroy();
 
     // @ts-ignore
     this.forceGraph = null;

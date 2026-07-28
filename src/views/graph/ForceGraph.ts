@@ -6,6 +6,7 @@ import * as THREE from "three";
 import * as d3 from "d3-force-3d";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import { CSS2DObject, CSS2DRenderer } from "three/examples/jsm/renderers/CSS2DRenderer.js";
+import { CSS3DRenderer } from "three/examples/jsm/renderers/CSS3DRenderer.js";
 import { FOCAL_FROM_CAMERA, ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
 import type { DeepPartial } from "ts-essentials";
 import type { Node } from "@/graph/Node";
@@ -20,6 +21,7 @@ import type { ItemView, TFile } from "obsidian";
 import type { GraphSettingManager } from "@/views/settings/graphSettingManagers/GraphSettingsManager";
 import { syncOf } from "@/util/awaitof";
 import type { NodePositions } from "@/NodePositionManager";
+import { SpatialNoteManager } from "@/views/graph/SpatialNoteManager";
 
 export const getTooManyNodeMessage = (nodeNumber: number) =>
   `Graph is too large to be rendered. Have ${nodeNumber} nodes.`;
@@ -73,6 +75,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   public readonly myCube: THREE.Mesh;
 
   public readonly interactionManager: ForceGraphEngine;
+  public readonly spatialNotes: SpatialNoteManager;
   // Tracks the last dagOrientation actually applied to instance.dagMode(),
   // so updateInstance can skip calling it again on the no-op "still off"
   // case — see the comment at its call site for why that call must be
@@ -101,6 +104,11 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     lastAngle: number;
   } | null = null;
   public nodeLabelEl: HTMLDivElement;
+  private destroyed = false;
+
+  private readonly onRendererWheel = (event: WheelEvent): void => {
+    this.interactionManager.onZoom(event);
+  };
 
   /**
    *
@@ -126,6 +134,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     // create the div element for the node label
     const { divEl, nodeLabelEl } = this.createNodeLabel();
     this.nodeLabelEl = nodeLabelEl;
+    const css3dRenderer = new CSS3DRenderer();
+    css3dRenderer.domElement.className = "spatial-note-css3d-renderer";
     // create the instance
     // these config will not changed by user
     this.instance = ForceGraph3D({
@@ -135,6 +145,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
         new CSS2DRenderer({
           element: divEl,
         }),
+        css3dRenderer,
       ],
     })(this.view.contentEl)
       .graphData(graph)
@@ -171,7 +182,25 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
     const scene = this.instance.scene();
     const renderer = this.instance.renderer();
-    renderer.domElement.addEventListener("wheel", (e) => this.interactionManager.onZoom(e));
+    renderer.setClearColor(new THREE.Color(0x000000), 0);
+    renderer.domElement.style.position = "relative";
+    renderer.domElement.style.zIndex = "1";
+    css3dRenderer.domElement.style.zIndex = "0";
+    const rendererParent = renderer.domElement.parentElement;
+    if (rendererParent && css3dRenderer.domElement.parentElement === rendererParent) {
+      rendererParent.insertBefore(css3dRenderer.domElement, renderer.domElement);
+    }
+    this.spatialNotes = new SpatialNoteManager({
+      app: this.view.plugin.app,
+      containerEl: this.view.contentEl,
+      scene,
+      camera: () => this.instance.camera() as THREE.PerspectiveCamera,
+      rendererCanvas: renderer.domElement,
+      nodes: () => this.instance.graphData().nodes as Node[],
+      onNodeHover: this.interactionManager.onSpatialNoteHover,
+    });
+    this.interactionManager.bindRenderer(renderer.domElement);
+    renderer.domElement.addEventListener("wheel", this.onRendererWheel);
     // add others things
     // add center coordinates
     this.centerCoordinates = new CenterCoordinates(
@@ -219,6 +248,9 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
         const cssObject = new CSS2DObject(nodeEl);
         cssObject.onAfterRender = (renderer, scene, camera) => {
+          nodeEl.style.visibility = this.spatialNotes.isNodeLabelOccluded(node)
+            ? "hidden"
+            : "visible";
           const value = 1 - this.interactionManager.getNodeOpacityEasedValue(node);
           nodeEl.style.opacity = `${
             this.interactionManager.getIsAnyHighlighted() &&
@@ -237,6 +269,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
         return cssObject;
       })
       .nodeThreeObjectExtend(true);
+    this.spatialNotes.syncNodes();
 
     // init other setting
     this.updateConfig(this.view.settingManager.getCurrentSetting());
@@ -255,8 +288,23 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       ?.setText(
         `Left-click: rotate, Mouse-wheel/middle-click: zoom, ${
           pluginSetting.rightClickToPan ? "Right click" : "Cmd + left click"
-        }: pan`
+        }: pan, F: freecam, Q/E: roll, R: level, P: trail, Shift: faster`
       );
+  }
+
+  public destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+
+    const rendererDomEl = this.instance.renderer().domElement;
+    rendererDomEl.removeEventListener("wheel", this.onRendererWheel);
+    rendererDomEl.removeEventListener("pointermove", this.onHandleMouseMove, { capture: true });
+    rendererDomEl.removeEventListener("pointerdown", this.onHandleMouseDown, { capture: true });
+    rendererDomEl.removeEventListener("pointerup", this.onHandleMouseUp, { capture: true });
+
+    this.interactionManager.destroy();
+    this.spatialNotes.destroy();
+    this.instance._destructor();
   }
 
   private getRingBasis(normal: THREE.Vector3): { u: THREE.Vector3; v: THREE.Vector3 } {
@@ -582,7 +630,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
   private createNodeLabel() {
     const divEl = document.createElement("div");
-    divEl.style.zIndex = "0";
+    divEl.style.zIndex = "2";
     const nodeLabelEl = divEl.createDiv({
       cls: "node-label",
       text: "",
@@ -633,6 +681,9 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     this.instance.scene().onBeforeRender = (renderer, scene, camera, geometry, material, group) => {
       // first run the old onBeforeRender
       oldOnBeforeRender(renderer, scene, camera, geometry, material, group);
+
+      this.interactionManager.updateFreecam();
+      this.spatialNotes.update(camera as THREE.PerspectiveCamera);
 
       const cwd = new THREE.Vector3();
       camera.getWorldDirection(cwd);
@@ -713,6 +764,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
         }
       }
     } else console.log("same graph, no need to update");
+    this.spatialNotes.syncNodes();
   }
 
   /**

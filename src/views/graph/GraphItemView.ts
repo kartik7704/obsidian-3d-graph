@@ -46,7 +46,7 @@ export abstract class GraphItemView extends ItemView {
     // render loop gets hit mid-frame. Grab the renderer before destructing
     // and explicitly release its GPU resources ourselves.
     const renderer = instance.renderer();
-    instance._destructor();
+    forceGraph.destroy();
     renderer.dispose();
     renderer.forceContextLoss();
     this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter(
