@@ -80,6 +80,7 @@ type SpatialNoteManagerOptions = {
   rendererCanvas: HTMLCanvasElement;
   nodes: () => RenderedNode[];
   onNodeHover: (node: RenderedNode | null) => void;
+  panelRespawnDistance: () => number;
 };
 
 /**
@@ -95,6 +96,7 @@ export class SpatialNoteManager {
   private readonly rendererCanvas: HTMLCanvasElement;
   private readonly getNodes: () => RenderedNode[];
   private readonly onNodeHover: (node: RenderedNode | null) => void;
+  private readonly getPanelRespawnDistance: () => number;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointerClient = new THREE.Vector2();
   private readonly pointerNdc = new THREE.Vector2();
@@ -133,6 +135,7 @@ export class SpatialNoteManager {
     this.originalCanvasPointerEvents = options.rendererCanvas.style.pointerEvents;
     this.getNodes = options.nodes;
     this.onNodeHover = options.onNodeHover;
+    this.getPanelRespawnDistance = options.panelRespawnDistance;
 
     this.overlayRootEl = document.createElement("div");
     this.overlayRootEl.className = "spatial-note-overlay";
@@ -278,6 +281,12 @@ export class SpatialNoteManager {
     const frontSide = this.createPanelSide(file, path, "front");
     const backSide = this.createPanelSide(file, path, "back");
     backSide.object.rotation.y = Math.PI;
+
+    frontSide.headerElement.addEventListener("dblclick", (event) => {
+      event.stopPropagation();
+      const note = this.expandedNotes.get(path);
+      if (note) this.respawnPanelInFrontOfCamera(note);
+    });
 
     const object = new THREE.Group();
     object.add(frontSide.object, backSide.object);
@@ -744,6 +753,17 @@ export class SpatialNoteManager {
   private updateNodeOffset(note: ExpandedNote): void {
     const nodePosition = this.getNodePosition(note.node, new THREE.Vector3());
     note.nodeOffset.copy(note.object.position).sub(nodePosition);
+  }
+
+  private respawnPanelInFrontOfCamera(note: ExpandedNote): void {
+    const camera = this.getCamera();
+    const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    note.object.position
+      .copy(camera.position)
+      .addScaledVector(cameraForward, this.getPanelRespawnDistance());
+    note.object.quaternion.copy(camera.quaternion);
+    this.updateNodeOffset(note);
+    this.syncDepthMask(note);
   }
 
   private intersectPointerPlane(

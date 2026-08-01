@@ -1,8 +1,79 @@
 import type { App } from "obsidian";
-import { PluginSettingTab, Setting } from "obsidian";
+import { Modal, PluginSettingTab, Setting } from "obsidian";
 import type Graph3dPlugin from "@/main";
-import { CommandClickNodeAction, SearchEngineType } from "@/SettingsSchemas";
+import {
+  CommandClickNodeAction,
+  FreecamCursorReleaseInput,
+  SearchEngineType,
+  spatialNoteRespawnDistance,
+} from "@/SettingsSchemas";
 import { DEFAULT_SETTING } from "@/SettingManager";
+
+class GraphHelpModal extends Modal {
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.addClass("graph-3d-help-modal");
+    contentEl.createEl("h2", { text: "Navigating the 3D graph" });
+
+    const section = (title: string, items: [string, string][]) => {
+      contentEl.createEl("h3", { text: title });
+      const list = contentEl.createEl("ul");
+      for (const [term, desc] of items) {
+        const item = list.createEl("li");
+        item.createEl("strong", { text: `${term}: ` });
+        item.appendText(desc);
+      }
+    };
+
+    section("Basic controls", [
+      ["Left-click drag", "rotate the camera"],
+      ["Mouse wheel / middle-click drag", "zoom"],
+      ["Right-click drag (or Cmd + left-click drag)", "pan"],
+      ["Click a node", "open it (behavior configurable below)"],
+    ]);
+
+    section("Rings (orbital grouping)", [
+      [
+        "Making a ring",
+        'drag a node to designate it a "ring", then set its ring-file property to the tag that should orbit it',
+      ],
+      ["Moving a ring", "drag the ring node itself to reposition the whole orbiting group"],
+    ]);
+
+    section("Freecam mode", [
+      ["F", "toggle freecam on/off"],
+      ["WASD", "move"],
+      ["Mouse", "look (after the scene captures your pointer — click once to lock it)"],
+      ["Q / E", "roll"],
+      ["R", "level the camera"],
+      ["P", "toggle the movement trail"],
+      ["Shift", "move faster"],
+      [
+        "Releasing the cursor",
+        'Escape always works; right-click is also configurable below ("Release freecam cursor")',
+      ],
+      [
+        "Click a node in freecam",
+        "opens it as a floating panel anchored in 3D space next to the node",
+      ],
+      [
+        "Double-click a panel's header",
+        "respawn it in front of the camera (distance configurable below)",
+      ],
+    ]);
+
+    section("Manual positioning", [
+      [
+        "graph_pos frontmatter",
+        "set a node's exact position by hand via its frontmatter, instead of letting physics place it",
+      ],
+    ]);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
 
 const DEFAULT_NUMBER = DEFAULT_SETTING.pluginSetting.maxNodeNumber;
 export class SettingTab extends PluginSettingTab {
@@ -19,6 +90,15 @@ export class SettingTab extends PluginSettingTab {
 
     containerEl.empty();
     containerEl.addClasses(["graph-3d-setting-tab"]);
+
+    new Setting(containerEl)
+      .setName("Help")
+      .setDesc("Controls, freecam, rings, and manual positioning, all in one place.")
+      .addButton((button) => {
+        button.setButtonText("Open guide").onClick(() => {
+          new GraphHelpModal(this.app).open();
+        });
+      });
 
     new Setting(containerEl)
       .setName("Maximum node number in graph")
@@ -96,6 +176,57 @@ export class SettingTab extends PluginSettingTab {
           // force all the graph view to reset their settings
           this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
         });
+      });
+
+    new Setting(containerEl)
+      .setName("Release freecam cursor")
+      .setDesc(
+        "Choose the freecam input that releases pointer lock. Escape remains Electron's built-in safety release even when right-click is selected."
+      )
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOptions({
+            [FreecamCursorReleaseInput.escape]: "Escape",
+            [FreecamCursorReleaseInput.rightClick]: "Right-click",
+          })
+          .setValue(pluginSetting.freecamCursorReleaseInput)
+          .onChange(async (value: FreecamCursorReleaseInput) => {
+            this.plugin.settingManager.updateSettings((setting) => {
+              setting.value.pluginSetting.freecamCursorReleaseInput = value;
+            });
+            this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Panel respawn distance")
+      .setDesc("Distance in graph units used when double-clicking a panel header.")
+      .addText((text) => {
+        const currentValue = pluginSetting.spatialNoteRespawnDistance;
+        text
+          .setPlaceholder(`${spatialNoteRespawnDistance.default}`)
+          .setValue(
+            currentValue === spatialNoteRespawnDistance.default ? "" : String(currentValue)
+          )
+          .onChange((value) => {
+            const trimmedValue = value.trim();
+            const nextValue =
+              trimmedValue === "" ? spatialNoteRespawnDistance.default : Number(trimmedValue);
+            if (!Number.isFinite(nextValue) || nextValue < spatialNoteRespawnDistance.min) {
+              text.inputEl.setCustomValidity(
+                `Enter a distance of at least ${spatialNoteRespawnDistance.min}`
+              );
+              text.inputEl.reportValidity();
+              return;
+            }
+            text.inputEl.setCustomValidity("");
+            this.plugin.settingManager.updateSettings((setting) => {
+              setting.value.pluginSetting.spatialNoteRespawnDistance = nextValue;
+            });
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = `${spatialNoteRespawnDistance.min}`;
+        text.inputEl.step = "1";
       });
 
     new Setting(containerEl)

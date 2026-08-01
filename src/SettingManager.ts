@@ -12,6 +12,8 @@ import {
   GraphType,
   SearchEngineType,
   CommandClickNodeAction,
+  FreecamCursorReleaseInput,
+  spatialNoteRespawnDistance,
   defaultLocalGraphSetting,
   defaultGlobalGraphSetting,
   defaultMarkdownPostProcessorGraphSetting,
@@ -142,5 +144,7 @@ export const DEFAULT_SETTING: Setting = {
     rightClickToPan: false,
     commandLeftClickNode: CommandClickNodeAction.openNodeInNewTab,
     commandRightClickNode: CommandClickNodeAction.focusNode,
+    freecamCursorReleaseInput: FreecamCursorReleaseInput.escape,
+    spatialNoteRespawnDistance: spatialNoteRespawnDistance.default,
   },
 };

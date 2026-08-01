@@ -5,7 +5,7 @@ import type { Node } from "@/graph/Node";
 import type { BaseForceGraph } from "@/views/graph/ForceGraph";
 import type { Link } from "@/graph/Link";
 import { CommandModal } from "@/commands/CommandModal";
-import { CommandClickNodeAction, GraphType } from "@/SettingsSchemas";
+import { CommandClickNodeAction, FreecamCursorReleaseInput, GraphType } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import type { TFile } from "obsidian";
@@ -332,8 +332,8 @@ export class ForceGraphEngine {
     }
 
     const shouldUseCommand =
-      this.forceGraph.view.plugin.app.internalPlugins.getPluginById("page-preview").instance
-        .overrides["3d-graph"] !== false;
+      this.forceGraph.view.plugin.app.internalPlugins.getPluginById("page-preview")?.instance
+        ?.overrides?.["3d-graph"] !== false;
     // show the hover preview
     if (
       allowPagePreview &&
@@ -560,6 +560,7 @@ export class ForceGraphEngine {
     this.rendererDomEl = rendererDomEl;
     rendererDomEl.tabIndex = 0;
     rendererDomEl.addEventListener("pointerdown", this.onFreecamPointerDown);
+    rendererDomEl.addEventListener("contextmenu", this.onFreecamContextMenu);
 
     // TrackballControls reserves A/S/D as drag-mode modifiers at the window
     // level. That binding is the source of the normal-camera WASD fling when
@@ -688,6 +689,7 @@ export class ForceGraphEngine {
     document.removeEventListener("pointerlockerror", this.onPointerLockError);
     window.removeEventListener("blur", this.onWindowBlur);
     this.rendererDomEl?.removeEventListener("pointerdown", this.onFreecamPointerDown);
+    this.rendererDomEl?.removeEventListener("contextmenu", this.onFreecamContextMenu);
     this.rendererDomEl = null;
     this.detachFreecamKeyListeners();
     this.clearPointerLockVerification();
@@ -943,10 +945,36 @@ export class ForceGraphEngine {
     this.forceGraph.spatialNotes.setPointerLockFailed(true);
   }
 
+  private getFreecamCursorReleaseInput(): FreecamCursorReleaseInput {
+    return this.forceGraph.view.plugin.settingManager.getSettings().pluginSetting
+      .freecamCursorReleaseInput;
+  }
+
   private onFreecamPointerDown = (event: PointerEvent): void => {
     this.rendererDomEl?.focus();
+    if (
+      this.freecamActive &&
+      event.button === 2 &&
+      document.pointerLockElement === this.rendererDomEl &&
+      this.getFreecamCursorReleaseInput() === FreecamCursorReleaseInput.rightClick
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      document.exitPointerLock();
+      return;
+    }
     if (this.freecamActive && event.button === 0 && !this.forceGraph.spatialNotes.isInteracting) {
       this.requestPointerLock();
+    }
+  };
+
+  private onFreecamContextMenu = (event: MouseEvent): void => {
+    if (
+      this.freecamActive &&
+      this.getFreecamCursorReleaseInput() === FreecamCursorReleaseInput.rightClick
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
     }
   };
 

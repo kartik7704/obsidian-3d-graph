@@ -160,7 +160,13 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       })
       .nodeOpacity(0.9)
       .linkOpacity(0.3)
-      .onNodeHover(this.interactionManager.onNodeHover)
+      .onNodeHover((node: Node | null) => {
+        try {
+          this.interactionManager.onNodeHover(node);
+        } catch (err) {
+          console.error("[3d-graph] onNodeHover threw, render loop would have died here:", err);
+        }
+      })
       .onNodeDrag(this.interactionManager.onNodeDrag)
       .onNodeDragEnd(this.interactionManager.onNodeDragEnd)
       .onNodeRightClick(this.interactionManager.onNodeRightClick)
@@ -198,6 +204,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       rendererCanvas: renderer.domElement,
       nodes: () => this.instance.graphData().nodes as Node[],
       onNodeHover: this.interactionManager.onSpatialNoteHover,
+      panelRespawnDistance: () =>
+        this.view.plugin.settingManager.getSettings().pluginSetting.spatialNoteRespawnDistance,
     });
     this.interactionManager.bindRenderer(renderer.domElement);
     renderer.domElement.addEventListener("wheel", this.onRendererWheel);
