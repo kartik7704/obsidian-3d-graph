@@ -74,6 +74,225 @@
   visibility: visible;
 }
 
+.graph-3d-view .spatial-note-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.graph-3d-view .spatial-note-hud {
+  position: absolute;
+  left: var(--size-4-3);
+  bottom: var(--size-4-3);
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-3);
+  max-width: calc(100% - var(--size-4-6));
+  padding: var(--size-4-2) var(--size-4-3);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary-alt);
+  color: var(--text-muted);
+  font-size: var(--font-smaller);
+  pointer-events: auto;
+}
+
+.graph-3d-view .spatial-note-hud.is-freecam {
+  border-color: var(--interactive-accent);
+  color: var(--text-normal);
+}
+
+.graph-3d-view .spatial-note-status {
+  white-space: nowrap;
+}
+
+.graph-3d-view .spatial-note-hover-label {
+  position: absolute;
+  display: none;
+  padding: var(--size-4-1) var(--size-4-2);
+  border: 1px solid var(--interactive-accent);
+  border-radius: var(--radius-s);
+  background: var(--background-primary-alt);
+  color: var(--text-normal);
+  font-size: var(--font-smaller);
+  line-height: 1;
+  white-space: nowrap;
+  transform: translate(12px, 12px);
+  box-shadow: var(--shadow-s);
+  pointer-events: none;
+}
+
+.graph-3d-view .spatial-note-hover-label.is-visible {
+  display: block;
+}
+
+.graph-3d-view .spatial-note-overlay.is-pointer-locked .spatial-note-hover-label.is-visible {
+  transform: translate(-50%, 14px);
+}
+
+.graph-3d-view .spatial-note-css3d-renderer {
+  z-index: 0;
+}
+
+.graph-3d-view .spatial-note-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 720px;
+  height: 520px;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-l);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  box-shadow: var(--shadow-l);
+  backface-visibility: hidden;
+  pointer-events: auto;
+  user-select: text;
+}
+
+.graph-3d-view .spatial-note-panel.is-pinned {
+  border-color: var(--interactive-accent);
+}
+
+.graph-3d-view .spatial-note-panel-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-3);
+  padding: var(--size-4-2) var(--size-4-3);
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  cursor: grab;
+  user-select: none;
+}
+
+.graph-3d-view .spatial-note-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-1);
+}
+
+.graph-3d-view .spatial-note-pin-button.is-active {
+  color: var(--interactive-accent);
+}
+
+.graph-3d-view .spatial-note-waypoint {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--interactive-accent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--background-primary-alt) 78%, transparent);
+  box-shadow: var(--shadow-s);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: left 80ms linear, top 80ms linear, transform 80ms linear, opacity 120ms ease;
+  will-change: left, top, transform;
+}
+
+.graph-3d-view .spatial-note-waypoint.is-visible {
+  opacity: 0.82;
+  visibility: visible;
+}
+
+.graph-3d-view .spatial-note-waypoint > span {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-right: 6px solid transparent;
+  border-bottom: 10px solid var(--interactive-accent);
+  border-left: 6px solid transparent;
+  transform: translateX(-50%);
+}
+
+.graph-3d-view .spatial-note-resize-handle {
+  position: absolute;
+  z-index: 2;
+  user-select: none;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-n,
+.graph-3d-view .spatial-note-resize-handle.is-s {
+  right: 10px;
+  left: 10px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-n {
+  top: 0;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-s {
+  bottom: 0;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-e,
+.graph-3d-view .spatial-note-resize-handle.is-w {
+  top: 10px;
+  bottom: 10px;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-e {
+  right: 0;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-w {
+  left: 0;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-ne,
+.graph-3d-view .spatial-note-resize-handle.is-nw,
+.graph-3d-view .spatial-note-resize-handle.is-se,
+.graph-3d-view .spatial-note-resize-handle.is-sw {
+  width: 12px;
+  height: 12px;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-se {
+  right: 0;
+  bottom: 0;
+  cursor: nwse-resize;
+}
+
+.graph-3d-view .spatial-note-resize-handle.is-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.graph-3d-view .spatial-note-content.markdown-preview-view {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--size-4-4);
+  overflow: auto;
+  background: var(--background-primary);
+  pointer-events: auto;
+}
+
 .mod-search-input {
   width: 100%;
   padding: 0.5em;

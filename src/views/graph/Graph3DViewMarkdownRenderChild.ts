@@ -57,7 +57,7 @@ export class Graph3DViewMarkdownRenderChild extends MarkdownRenderChild {
     // console.log("unload");
     this.resizeObserver.disconnect();
     // destroy the graph and remove from the active graph views
-    this.graph3dView.getForceGraph().instance._destructor();
+    this.graph3dView.getForceGraph().destroy();
     this.plugin.activeGraphViews = this.plugin.activeGraphViews.filter(
       (view) => view !== this.graph3dView
     );

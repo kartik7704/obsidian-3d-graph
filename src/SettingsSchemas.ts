@@ -84,6 +84,16 @@ export enum CommandClickNodeAction {
   focusNode = "focusNode",
 }
 
+export enum FreecamCursorReleaseInput {
+  escape = "escape",
+  rightClick = "rightClick",
+}
+
+export const spatialNoteRespawnDistance = {
+  min: 1,
+  default: 200,
+};
+
 const commonSetting = {
   display: {
     nodeSize: nodeSize.default,
@@ -225,6 +235,10 @@ export const SettingSchema = z.object({
     commandRightClickNode: z
       .nativeEnum(CommandClickNodeAction)
       .default(CommandClickNodeAction.focusNode),
+    freecamCursorReleaseInput: z
+      .nativeEnum(FreecamCursorReleaseInput)
+      .default(FreecamCursorReleaseInput.escape),
+    spatialNoteRespawnDistance: z.number().positive().default(spatialNoteRespawnDistance.default),
   }),
 });
 

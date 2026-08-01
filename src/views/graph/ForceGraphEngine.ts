@@ -5,7 +5,7 @@ import type { Node } from "@/graph/Node";
 import type { BaseForceGraph } from "@/views/graph/ForceGraph";
 import type { Link } from "@/graph/Link";
 import { CommandModal } from "@/commands/CommandModal";
-import { CommandClickNodeAction, GraphType } from "@/SettingsSchemas";
+import { CommandClickNodeAction, FreecamCursorReleaseInput, GraphType } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import type { TFile } from "obsidian";
@@ -16,6 +16,20 @@ export const FOCAL_FROM_CAMERA = 400;
 const selectedColor = "#CCA700";
 const PARTICLE_FREQUECY = 4;
 const LINK_ARROW_WIDTH_MULTIPLIER = 5;
+const FREECAM_ACCELERATION = 1080;
+const FREECAM_FRICTION = 6;
+const FREECAM_SPEED_MULTIPLIER = 4;
+const FREECAM_MOUSE_SENSITIVITY = 0.002;
+const FREECAM_ROLL_SPEED = Math.PI / 2;
+const FREECAM_LEVEL_DURATION_MS = 350;
+export const FREECAM_TRAIL_MAX_POINTS = 240;
+const FREECAM_TRAIL_SAMPLE_DISTANCE = 6;
+export const FREECAM_TRAIL_DURATION_MS = 5_000;
+
+type TimedTrailPoint = {
+  position: THREE.Vector3;
+  sampledAt: number;
+};
 
 /**
  * this instance handle all the interaction. In other words, the interaction manager
@@ -41,6 +55,30 @@ export class ForceGraphEngine {
   private isZooming = false;
   private startZoomTimeout: Timer | undefined;
   private endZoomTimeout: Timer | undefined;
+
+  // freecam
+  private freecamActive = false;
+  private rendererDomEl: HTMLCanvasElement | null = null;
+  private readonly pressedFreecamKeys = new Set<string>();
+  private readonly freecamPosition = new THREE.Vector3();
+  private readonly freecamDirection = new THREE.Quaternion();
+  private readonly freecamUp = new THREE.Vector3(0, 1, 0);
+  private readonly freecamVelocity = new THREE.Vector3();
+  private readonly freecamMouseEuler = new THREE.Euler(0, 0, 0, "YXZ");
+  private readonly freecamMouseRotation = new THREE.Quaternion();
+  private readonly freecamRollRotation = new THREE.Quaternion();
+  private readonly freecamLevelStart = new THREE.Quaternion();
+  private readonly freecamLevelTarget = new THREE.Quaternion();
+  private freecamLevelStartTime: number | null = null;
+  private readonly freecamTrailPoints: TimedTrailPoint[] = [];
+  private freecamTrailLine: THREE.LineSegments<THREE.BufferGeometry, THREE.ShaderMaterial> | null =
+    null;
+  private freecamTrailVisible = false;
+  private freecamSpeedBoost = false;
+  private freecamLastFrameTime = performance.now();
+  private controlsWereEnabled = true;
+  private freecamKeyListenersAttached = false;
+  private pointerLockVerificationTimer: number | undefined;
 
   constructor(forceGraph: BaseForceGraph) {
     this.forceGraph = forceGraph;
@@ -222,6 +260,11 @@ export class ForceGraphEngine {
   };
 
   onNodeClick = (node: Node & Coords, event: MouseEvent) => {
+    if (this.freecamActive) {
+      void this.forceGraph.spatialNotes.toggleNode(node);
+      return;
+    }
+
     const plugin = this.forceGraph.view.plugin;
     const pluginSetting = plugin.settingManager.getSettings().pluginSetting;
     if (event.shiftKey) {
@@ -256,6 +299,15 @@ export class ForceGraphEngine {
   };
 
   onNodeHover = (node: Node | null) => {
+    if (this.freecamActive) return;
+    this.applyNodeHover(node, true);
+  };
+
+  public onSpatialNoteHover = (node: Node | null) => {
+    this.applyNodeHover(node, false);
+  };
+
+  private applyNodeHover(node: Node | null, allowPagePreview: boolean): void {
     if ((!node && !this.highlightedNodes.size) || (node && this.hoveredNode === node)) return;
 
     // set node label text
@@ -280,17 +332,22 @@ export class ForceGraphEngine {
     }
 
     const shouldUseCommand =
-      this.forceGraph.view.plugin.app.internalPlugins.getPluginById("page-preview").instance
-        .overrides["3d-graph"] !== false;
+      this.forceGraph.view.plugin.app.internalPlugins.getPluginById("page-preview")?.instance
+        ?.overrides?.["3d-graph"] !== false;
     // show the hover preview
-    if (node && node.labelEl && ((shouldUseCommand && this.commandDown) || !shouldUseCommand)) {
+    if (
+      allowPagePreview &&
+      node &&
+      node.labelEl &&
+      ((shouldUseCommand && this.commandDown) || !shouldUseCommand)
+    ) {
       this.forceGraph.view.hoverPopover?.hide();
       this.forceGraph.view.eventBus.trigger("open-node-preview", node);
     }
 
     this.hoveredNode = node ?? null;
     this.updateColor();
-  };
+  }
 
   /**
    * when hover on node or link, they are highlighted. This function will clear the highlight
@@ -302,6 +359,7 @@ export class ForceGraphEngine {
 
   updateNodeLabelDiv() {
     this.forceGraph.instance.nodeThreeObject(this.forceGraph.instance.nodeThreeObject());
+    this.forceGraph.spatialNotes.syncNodes();
   }
 
   /**
@@ -421,6 +479,17 @@ export class ForceGraphEngine {
       // this.controls.mouseButtons.LEFT = THREE.MOUSE.RIGHT;
     }
     if (e.metaKey) this.commandDown = true;
+
+    if (
+      e.code === "KeyF" &&
+      !e.repeat &&
+      !this.isTextEntryTarget(e.target) &&
+      this.isGraphInputActive()
+    ) {
+      this.setFreecamActive(!this.freecamActive);
+      e.preventDefault();
+      return;
+    }
   };
 
   private onKeyUp = (e: KeyboardEvent) => {
@@ -431,9 +500,180 @@ export class ForceGraphEngine {
     if (!e.metaKey) this.commandDown = false;
   };
 
+  private onFreecamKeyDown = (event: KeyboardEvent): void => {
+    if (
+      this.isTextEntryTarget(event.target) ||
+      !this.isFreecamInputActive() ||
+      ![
+        "KeyW",
+        "KeyA",
+        "KeyS",
+        "KeyD",
+        "KeyQ",
+        "KeyE",
+        "KeyR",
+        "KeyP",
+        "ShiftLeft",
+        "ShiftRight",
+      ].includes(event.code)
+    )
+      return;
+
+    this.freecamSpeedBoost = event.shiftKey;
+    if (event.code.startsWith("Shift")) {
+      this.freecamSpeedBoost = true;
+    } else if (event.code === "KeyR") {
+      if (!event.repeat) this.levelFreecam();
+    } else if (event.code === "KeyP") {
+      if (!event.repeat) this.toggleFreecamTrail();
+    } else {
+      this.pressedFreecamKeys.add(event.code);
+    }
+    event.preventDefault();
+  };
+
+  private onFreecamKeyUp = (event: KeyboardEvent): void => {
+    if (event.code.startsWith("Shift")) {
+      this.freecamSpeedBoost = event.shiftKey;
+      return;
+    }
+    if (!["KeyW", "KeyA", "KeyS", "KeyD", "KeyQ", "KeyE"].includes(event.code)) return;
+    this.pressedFreecamKeys.delete(event.code);
+    event.preventDefault();
+  };
+
   initListeners() {
     document.addEventListener("keydown", this.onKeyDown);
     document.addEventListener("keyup", this.onKeyUp);
+    document.addEventListener("mousemove", this.onFreecamMouseMove);
+    document.addEventListener("pointerlockchange", this.onPointerLockChange);
+    document.addEventListener("pointerlockerror", this.onPointerLockError);
+    window.addEventListener("blur", this.onWindowBlur);
+  }
+
+  /**
+   * The force-graph instance does not exist yet when ForceGraphEngine is
+   * constructed, so the renderer-specific freecam hooks are attached once
+   * ForceGraph has created its canvas.
+   */
+  public bindRenderer(rendererDomEl: HTMLCanvasElement): void {
+    this.rendererDomEl = rendererDomEl;
+    rendererDomEl.tabIndex = 0;
+    rendererDomEl.addEventListener("pointerdown", this.onFreecamPointerDown);
+    rendererDomEl.addEventListener("contextmenu", this.onFreecamContextMenu);
+
+    // TrackballControls reserves A/S/D as drag-mode modifiers at the window
+    // level. That binding is the source of the normal-camera WASD fling when
+    // a mouse button is held, so leave those keys exclusively to freecam.
+    const trackballKeys = (
+      this.forceGraph.instance.controls() as unknown as {
+        keys?: unknown;
+      }
+    ).keys;
+    if (Array.isArray(trackballKeys)) trackballKeys.length = 0;
+
+    const trailGeometry = new THREE.BufferGeometry();
+    trailGeometry.setAttribute("position", new THREE.Float32BufferAttribute([], 3));
+    trailGeometry.setAttribute("trailAlpha", new THREE.Float32BufferAttribute([], 1));
+    const trailMaterial = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      toneMapped: false,
+      uniforms: {
+        trailColor: { value: new THREE.Color(0x8f6ad8) },
+        trailOpacity: { value: 0.42 },
+      },
+      vertexShader: `
+        attribute float trailAlpha;
+        varying float vTrailAlpha;
+
+        void main() {
+          vTrailAlpha = trailAlpha;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 trailColor;
+        uniform float trailOpacity;
+        varying float vTrailAlpha;
+
+        void main() {
+          gl_FragColor = vec4(trailColor, trailOpacity * vTrailAlpha);
+        }
+      `,
+    });
+    this.freecamTrailLine = new THREE.LineSegments(trailGeometry, trailMaterial);
+    this.freecamTrailLine.name = "freecam-flight-trail";
+    this.freecamTrailLine.frustumCulled = false;
+    this.freecamTrailLine.renderOrder = 10_000;
+    this.freecamTrailLine.visible = false;
+    this.forceGraph.instance.scene().add(this.freecamTrailLine);
+  }
+
+  public updateFreecam(): void {
+    const now = performance.now();
+    const deltaSeconds = Math.min((now - this.freecamLastFrameTime) / 1000, 0.05);
+    this.freecamLastFrameTime = now;
+
+    if (!this.freecamActive) {
+      this.updateFreecamTrail(now);
+      return;
+    }
+    const camera = this.forceGraph.instance.camera() as THREE.PerspectiveCamera;
+    const localMovement = new THREE.Vector3();
+    const rollDirection =
+      Number(this.pressedFreecamKeys.has("KeyQ")) - Number(this.pressedFreecamKeys.has("KeyE"));
+
+    if (rollDirection !== 0 && this.isFreecamInputActive()) {
+      this.freecamLevelStartTime = null;
+      // Local +Z is collinear with the view axis; this sign convention makes
+      // Q roll the screen left and E roll it right.
+      this.freecamRollRotation.setFromAxisAngle(
+        new THREE.Vector3(0, 0, 1),
+        rollDirection * FREECAM_ROLL_SPEED * deltaSeconds
+      );
+      this.freecamDirection.multiply(this.freecamRollRotation).normalize();
+      this.updateFreecamUp();
+    } else {
+      this.updateFreecamLevel(now);
+    }
+
+    if (this.isFreecamInputActive()) {
+      // This deliberately mirrors player-controls.js: build movement in
+      // camera-local space, rotate it by the independently-owned freecam
+      // quaternion, then integrate velocity/position. No OrbitControls
+      // target or focused graph node participates in this calculation.
+      if (this.pressedFreecamKeys.has("KeyW")) localMovement.z -= 1;
+      if (this.pressedFreecamKeys.has("KeyS")) localMovement.z += 1;
+      if (this.pressedFreecamKeys.has("KeyD")) localMovement.x += 1;
+      if (this.pressedFreecamKeys.has("KeyA")) localMovement.x -= 1;
+    }
+
+    this.freecamVelocity.multiplyScalar(Math.exp(-FREECAM_FRICTION * deltaSeconds));
+    if (this.freecamVelocity.lengthSq() < 0.0001) this.freecamVelocity.set(0, 0, 0);
+
+    if (localMovement.lengthSq() > 0) {
+      localMovement
+        .applyQuaternion(this.freecamDirection)
+        .multiplyScalar(
+          FREECAM_ACCELERATION *
+            (this.freecamSpeedBoost ? FREECAM_SPEED_MULTIPLIER : 1) *
+            deltaSeconds
+        );
+      this.freecamVelocity.add(localMovement);
+    }
+
+    this.freecamPosition.addScaledVector(this.freecamVelocity, deltaSeconds);
+
+    // three-render-objects still calls its OrbitControls.update() every tick,
+    // even while controls.enabled is false. Reapplying this independent pose
+    // in Scene.onBeforeRender is what makes the freecam genuinely untethered.
+    camera.position.copy(this.freecamPosition);
+    camera.quaternion.copy(this.freecamDirection);
+    camera.updateMatrixWorld();
+    this.sampleFreecamTrail(now);
+    this.updateFreecamTrail(now);
   }
 
   // Every ForceGraphEngine construction (each new ForceGraph, e.g.
@@ -441,9 +681,347 @@ export class ForceGraphEngine {
   // listeners with nothing ever removing the old pair — called from
   // refreshGraph alongside the three-forcegraph instance's own _destructor().
   public destroy(): void {
+    this.setFreecamActive(false);
     document.removeEventListener("keydown", this.onKeyDown);
     document.removeEventListener("keyup", this.onKeyUp);
+    document.removeEventListener("mousemove", this.onFreecamMouseMove);
+    document.removeEventListener("pointerlockchange", this.onPointerLockChange);
+    document.removeEventListener("pointerlockerror", this.onPointerLockError);
+    window.removeEventListener("blur", this.onWindowBlur);
+    this.rendererDomEl?.removeEventListener("pointerdown", this.onFreecamPointerDown);
+    this.rendererDomEl?.removeEventListener("contextmenu", this.onFreecamContextMenu);
+    this.rendererDomEl = null;
+    this.detachFreecamKeyListeners();
+    this.clearPointerLockVerification();
+    this.pressedFreecamKeys.clear();
+    this.freecamVelocity.set(0, 0, 0);
+    if (this.freecamTrailLine) {
+      this.forceGraph.instance.scene().remove(this.freecamTrailLine);
+      this.freecamTrailLine.geometry.dispose();
+      this.freecamTrailLine.material.dispose();
+      this.freecamTrailLine = null;
+    }
+    this.freecamTrailPoints.length = 0;
   }
+
+  private updateFreecamUp(): void {
+    this.freecamUp.set(0, 1, 0).applyQuaternion(this.freecamDirection).normalize();
+  }
+
+  private levelFreecam(): void {
+    const horizontalForward = new THREE.Vector3(0, 0, -1)
+      .applyQuaternion(this.freecamDirection)
+      .setY(0);
+    if (horizontalForward.lengthSq() < 0.000001) horizontalForward.set(0, 0, -1);
+    horizontalForward.normalize();
+
+    const lookMatrix = new THREE.Matrix4().lookAt(
+      new THREE.Vector3(),
+      horizontalForward,
+      new THREE.Vector3(0, 1, 0)
+    );
+    this.freecamLevelStart.copy(this.freecamDirection);
+    this.freecamLevelTarget.setFromRotationMatrix(lookMatrix).normalize();
+    this.freecamLevelStartTime = performance.now();
+  }
+
+  private updateFreecamLevel(now: number): void {
+    if (this.freecamLevelStartTime === null) return;
+    const progress = Math.clamp(
+      (now - this.freecamLevelStartTime) / FREECAM_LEVEL_DURATION_MS,
+      0,
+      1
+    );
+    const easedProgress = progress * progress * (3 - 2 * progress);
+    this.freecamDirection
+      .slerpQuaternions(this.freecamLevelStart, this.freecamLevelTarget, easedProgress)
+      .normalize();
+    this.updateFreecamUp();
+    if (progress === 1) this.freecamLevelStartTime = null;
+  }
+
+  private toggleFreecamTrail(): void {
+    this.freecamTrailVisible = !this.freecamTrailVisible;
+    this.updateFreecamTrail(performance.now());
+  }
+
+  private sampleFreecamTrail(now: number): void {
+    const lastPoint = this.freecamTrailPoints.at(-1);
+    if (
+      lastPoint &&
+      lastPoint.position.distanceToSquared(this.freecamPosition) <
+        FREECAM_TRAIL_SAMPLE_DISTANCE * FREECAM_TRAIL_SAMPLE_DISTANCE
+    )
+      return;
+
+    this.freecamTrailPoints.push({
+      position: this.freecamPosition.clone(),
+      sampledAt: now,
+    });
+    if (this.freecamTrailPoints.length > FREECAM_TRAIL_MAX_POINTS) {
+      this.freecamTrailPoints.splice(0, this.freecamTrailPoints.length - FREECAM_TRAIL_MAX_POINTS);
+    }
+  }
+
+  private updateFreecamTrail(now: number): void {
+    while (
+      this.freecamTrailPoints.length > 0 &&
+      now - this.freecamTrailPoints[0]!.sampledAt >= FREECAM_TRAIL_DURATION_MS
+    ) {
+      this.freecamTrailPoints.shift();
+    }
+    if (!this.freecamTrailLine) return;
+
+    const positions: number[] = [];
+    const alphas: number[] = [];
+    for (let index = 1; index < this.freecamTrailPoints.length; index++) {
+      const start = this.freecamTrailPoints[index - 1]!;
+      const end = this.freecamTrailPoints[index]!;
+      positions.push(
+        start.position.x,
+        start.position.y,
+        start.position.z,
+        end.position.x,
+        end.position.y,
+        end.position.z
+      );
+      alphas.push(
+        this.getTrailPointAlpha(start.sampledAt, now),
+        this.getTrailPointAlpha(end.sampledAt, now)
+      );
+    }
+
+    this.freecamTrailLine.geometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(positions, 3)
+    );
+    this.freecamTrailLine.geometry.setAttribute(
+      "trailAlpha",
+      new THREE.Float32BufferAttribute(alphas, 1)
+    );
+    this.freecamTrailLine.visible = this.freecamTrailVisible && positions.length > 0;
+  }
+
+  private getTrailPointAlpha(sampledAt: number, now: number): number {
+    const remaining = Math.clamp(1 - (now - sampledAt) / FREECAM_TRAIL_DURATION_MS, 0, 1);
+    return remaining * remaining;
+  }
+
+  private attachFreecamKeyListeners(): void {
+    if (this.freecamKeyListenersAttached) return;
+    document.addEventListener("keydown", this.onFreecamKeyDown);
+    document.addEventListener("keyup", this.onFreecamKeyUp);
+    this.freecamKeyListenersAttached = true;
+  }
+
+  private detachFreecamKeyListeners(): void {
+    if (!this.freecamKeyListenersAttached) return;
+    document.removeEventListener("keydown", this.onFreecamKeyDown);
+    document.removeEventListener("keyup", this.onFreecamKeyUp);
+    this.freecamKeyListenersAttached = false;
+  }
+
+  private isTextEntryTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    return (
+      target instanceof HTMLInputElement ||
+      target instanceof HTMLTextAreaElement ||
+      target instanceof HTMLSelectElement ||
+      target.isContentEditable
+    );
+  }
+
+  private isGraphInputActive(): boolean {
+    if (!this.rendererDomEl) return false;
+    return (
+      document.pointerLockElement === this.rendererDomEl ||
+      this.forceGraph.view.contentEl.matches(":hover") ||
+      this.forceGraph.view.contentEl.contains(document.activeElement)
+    );
+  }
+
+  private isFreecamInputActive(): boolean {
+    return (
+      !this.forceGraph.spatialNotes.isInteracting &&
+      (document.pointerLockElement === this.rendererDomEl ||
+        this.forceGraph.view.contentEl.matches(":hover"))
+    );
+  }
+
+  private setFreecamActive(active: boolean): void {
+    if (this.freecamActive === active) return;
+
+    const camera = this.forceGraph.instance.camera() as THREE.PerspectiveCamera;
+    const controls = this.forceGraph.instance.controls() as OrbitControls;
+    this.pressedFreecamKeys.clear();
+    this.freecamSpeedBoost = false;
+    this.freecamLevelStartTime = null;
+    this.freecamLastFrameTime = performance.now();
+
+    if (active) {
+      this.onZoomStart();
+      this.controlsWereEnabled = controls.enabled;
+
+      // The visible camera pose is the source of truth on every activation.
+      // In particular, do this after any orbit/trackball session instead of
+      // reusing the quaternion left behind by the previous freecam session.
+      camera.updateMatrixWorld();
+      this.freecamPosition.copy(camera.position);
+      this.freecamDirection.copy(camera.quaternion).normalize();
+      this.updateFreecamUp();
+      this.freecamVelocity.set(0, 0, 0);
+      this.freecamTrailPoints.length = 0;
+      this.sampleFreecamTrail(this.freecamLastFrameTime);
+      this.updateFreecamTrail(this.freecamLastFrameTime);
+
+      this.freecamActive = true;
+      controls.enabled = false;
+      this.forceGraph.instance.enablePointerInteraction(false);
+      this.attachFreecamKeyListeners();
+      this.applyNodeHover(null, false);
+      this.requestPointerLock();
+    } else {
+      this.freecamActive = false;
+      this.detachFreecamKeyListeners();
+      this.clearPointerLockVerification();
+      this.forceGraph.instance.enablePointerInteraction(true);
+      if (document.pointerLockElement === this.rendererDomEl) document.exitPointerLock();
+      camera.position.copy(this.freecamPosition);
+      camera.quaternion.copy(this.freecamDirection);
+      // TrackballControls rotates camera.up as part of its pose. Keep that
+      // basis aligned with the freecam quaternion before handing control back.
+      if ("noRotate" in controls) camera.up.copy(this.freecamUp);
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.freecamDirection);
+      controls.target.copy(this.freecamPosition).addScaledVector(forward, FOCAL_FROM_CAMERA);
+      controls.enabled = this.controlsWereEnabled;
+      controls.update();
+    }
+
+    this.forceGraph.spatialNotes.setFreecamState(
+      this.freecamActive,
+      document.pointerLockElement === this.rendererDomEl
+    );
+  }
+
+  private requestPointerLock(): void {
+    if (!this.rendererDomEl || document.pointerLockElement === this.rendererDomEl) return;
+
+    this.clearPointerLockVerification();
+    this.forceGraph.spatialNotes.setPointerLockFailed(false);
+    const rendererDomEl = this.rendererDomEl;
+    if (typeof rendererDomEl.requestPointerLock !== "function") {
+      this.handlePointerLockFailure();
+      return;
+    }
+
+    try {
+      const request = (
+        rendererDomEl.requestPointerLock as unknown as () => Promise<void> | void
+      ).call(rendererDomEl);
+      this.pointerLockVerificationTimer = window.setTimeout(() => {
+        this.pointerLockVerificationTimer = undefined;
+        if (this.freecamActive && document.pointerLockElement !== rendererDomEl)
+          this.handlePointerLockFailure();
+      }, 500);
+      if (request) {
+        void request.catch(() => this.handlePointerLockFailure());
+      }
+    } catch {
+      this.handlePointerLockFailure();
+    }
+  }
+
+  private clearPointerLockVerification(): void {
+    if (this.pointerLockVerificationTimer === undefined) return;
+    window.clearTimeout(this.pointerLockVerificationTimer);
+    this.pointerLockVerificationTimer = undefined;
+  }
+
+  private handlePointerLockFailure(): void {
+    this.clearPointerLockVerification();
+    this.pressedFreecamKeys.clear();
+    this.freecamSpeedBoost = false;
+    this.freecamVelocity.set(0, 0, 0);
+    this.forceGraph.spatialNotes.setPointerLockFailed(true);
+  }
+
+  private getFreecamCursorReleaseInput(): FreecamCursorReleaseInput {
+    return this.forceGraph.view.plugin.settingManager.getSettings().pluginSetting
+      .freecamCursorReleaseInput;
+  }
+
+  private onFreecamPointerDown = (event: PointerEvent): void => {
+    this.rendererDomEl?.focus();
+    if (
+      this.freecamActive &&
+      event.button === 2 &&
+      document.pointerLockElement === this.rendererDomEl &&
+      this.getFreecamCursorReleaseInput() === FreecamCursorReleaseInput.rightClick
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      document.exitPointerLock();
+      return;
+    }
+    if (this.freecamActive && event.button === 0 && !this.forceGraph.spatialNotes.isInteracting) {
+      this.requestPointerLock();
+    }
+  };
+
+  private onFreecamContextMenu = (event: MouseEvent): void => {
+    if (
+      this.freecamActive &&
+      this.getFreecamCursorReleaseInput() === FreecamCursorReleaseInput.rightClick
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  private onFreecamMouseMove = (event: MouseEvent): void => {
+    if (
+      !this.freecamActive ||
+      !this.rendererDomEl ||
+      document.pointerLockElement !== this.rendererDomEl
+    )
+      return;
+
+    // Apply mouse deltas to the freshly captured quaternion itself. Rebuilding
+    // from world yaw/pitch would zero its roll and cause the first-move snap
+    // after returning from a tilted TrackballControls pose.
+    this.freecamMouseEuler.set(
+      -event.movementY * FREECAM_MOUSE_SENSITIVITY,
+      -event.movementX * FREECAM_MOUSE_SENSITIVITY,
+      0,
+      "YXZ"
+    );
+    this.freecamMouseRotation.setFromEuler(this.freecamMouseEuler);
+    this.freecamLevelStartTime = null;
+    this.freecamDirection.multiply(this.freecamMouseRotation).normalize();
+    this.updateFreecamUp();
+  };
+
+  private onPointerLockChange = (): void => {
+    const pointerLocked = document.pointerLockElement === this.rendererDomEl;
+    if (pointerLocked) {
+      this.clearPointerLockVerification();
+      this.forceGraph.spatialNotes.setPointerLockFailed(false);
+    }
+    this.pressedFreecamKeys.clear();
+    this.freecamSpeedBoost = false;
+    if (!pointerLocked) this.freecamVelocity.set(0, 0, 0);
+    this.forceGraph.spatialNotes.setPointerLocked(pointerLocked);
+  };
+
+  private onPointerLockError = (): void => {
+    if (this.freecamActive) this.handlePointerLockFailure();
+  };
+
+  private onWindowBlur = (): void => {
+    this.pressedFreecamKeys.clear();
+    this.freecamSpeedBoost = false;
+    this.freecamVelocity.set(0, 0, 0);
+  };
 
   /**
    *
@@ -458,6 +1036,7 @@ export class ForceGraphEngine {
     const camera = instance.camera();
     const controls = instance.controls() as OrbitControls;
     const tween = this.tween;
+    const shouldLookDirectly = () => this.freecamActive || !controls.enabled;
     if (position === undefined && lookAt === undefined && transitionDuration === undefined) {
       return {
         x: camera.position.x,
@@ -516,7 +1095,7 @@ export class ForceGraphEngine {
       // eslint-disable-next-line no-inner-declarations
       function setLookAt(lookAt: Coords) {
         const lookAtVect = new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z);
-        if (controls.target) {
+        if (controls.target && !shouldLookDirectly()) {
           controls.target = lookAtVect;
         } else {
           // Fly controls doesn't have target attribute
