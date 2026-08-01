@@ -205,9 +205,7 @@ export class SettingTab extends PluginSettingTab {
         const currentValue = pluginSetting.spatialNoteRespawnDistance;
         text
           .setPlaceholder(`${spatialNoteRespawnDistance.default}`)
-          .setValue(
-            currentValue === spatialNoteRespawnDistance.default ? "" : String(currentValue)
-          )
+          .setValue(currentValue === spatialNoteRespawnDistance.default ? "" : String(currentValue))
           .onChange((value) => {
             const trimmedValue = value.trim();
             const nextValue =
