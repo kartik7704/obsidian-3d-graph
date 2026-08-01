@@ -7,6 +7,7 @@ import type { SearchResult } from "@/views/settings/graphSettingManagers/GraphSe
 import { GlobalGraphSettingManager } from "@/views/settings/graphSettingManagers/GlobalGraphSettingManager";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 import type { Component } from "obsidian";
+import { isImageAttachment } from "@/util/isImageAttachment";
 
 const getNewGlobalGraph = (
   plugin: Graph3dPlugin,
@@ -20,6 +21,7 @@ const getNewGlobalGraph = (
     .clone()
     .filter((node) => {
       // if node is not a markdown  and show attachment is false, then we will not show it
+      if (isImageAttachment(node.path)) return false;
       if (!node.path.endsWith(".md") && !config.filterSetting.showAttachments) return false;
       //  if the search query is not empty and the search result is empty, then we don't need to filter the search result
       if (config.searchResults.length === 0 && config.filterSetting.searchQuery === "") return true;
