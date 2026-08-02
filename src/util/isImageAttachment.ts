@@ -1,13 +1,4 @@
-const IMAGE_EXTENSIONS = new Set([
-  "svg",
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "webp",
-  "bmp",
-  "avif",
-]);
+const IMAGE_EXTENSIONS = new Set(["svg", "png", "jpg", "jpeg", "gif", "webp", "bmp", "avif"]);
 
 /**
  * Image attachments (svg, png, etc.) never have their own outgoing/incoming

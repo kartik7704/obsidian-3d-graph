@@ -336,7 +336,6 @@ export abstract class GraphSettingManager<
         // snap children to their ring positions using live node coordinates
         if (forceGraph) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const liveNodes = forceGraph.instance.graphData().nodes as any[];
           const livePos: Record<string, { x: number; y: number; z: number }> = {};
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

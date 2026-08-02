@@ -751,7 +751,6 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       if (setting.display.dontMoveWhenDrag) {
         const posManager = this.view.plugin.nodePositionManager;
         const saved = posManager.getAll();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const newNodePaths = new Set(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           graph.nodes.filter((n) => !saved[(n as any).path]).map((n) => (n as any).path)

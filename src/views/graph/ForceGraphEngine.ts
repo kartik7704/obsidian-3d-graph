@@ -1084,7 +1084,6 @@ export class ForceGraphEngine {
           .start();
       }
 
-      // eslint-disable-next-line no-inner-declarations
       function setCameraPos(pos: Partial<Coords>) {
         const { x, y, z } = pos;
         if (x !== undefined) camera.position.x = x;
@@ -1092,7 +1091,6 @@ export class ForceGraphEngine {
         if (z !== undefined) camera.position.z = z;
       }
 
-      // eslint-disable-next-line no-inner-declarations
       function setLookAt(lookAt: Coords) {
         const lookAtVect = new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z);
         if (controls.target && !shouldLookDirectly()) {
@@ -1103,7 +1101,6 @@ export class ForceGraphEngine {
         }
       }
 
-      // eslint-disable-next-line no-inner-declarations
       function getLookAt() {
         return Object.assign(
           new THREE.Vector3(0, 0, -1000).applyQuaternion(camera.quaternion).add(camera.position)
