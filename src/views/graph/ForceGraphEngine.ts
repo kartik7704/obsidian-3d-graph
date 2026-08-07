@@ -1205,6 +1205,11 @@ export class ForceGraphEngine {
   }
 
   public openFileInNewTab(file: TFile) {
-    this.forceGraph.view.plugin.app.workspace.getLeaf(false).openFile(file);
+    // getLeaf(false) reuses whatever leaf is currently active instead of actually opening
+    // a new tab (per Obsidian's own docs) - despite the name, this was silently swapping
+    // the active pane's content in place, which is a very plausible way to leave a
+    // third-party plugin's editor state (e.g. Ink's CodeMirror extensions) torn down
+    // incorrectly on the reused leaf. getLeaf(true) actually creates a new leaf.
+    this.forceGraph.view.plugin.app.workspace.getLeaf(true).openFile(file);
   }
 }
