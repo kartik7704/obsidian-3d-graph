@@ -10,10 +10,10 @@ export class TreeItem {
   constructor($inner: HTMLElement, children: HtmlBuilder[]) {
     this.$inner = $inner;
     this.childrenBuilders = children;
-    this.$treeItem = document.createElement("div");
+    this.$treeItem = createDiv();
     this.toggleCollapse(true);
-    this.$self = document.createElement("div");
-    this.$innerWrapper = document.createElement("div");
+    this.$self = createDiv();
+    this.$innerWrapper = createDiv();
   }
 
   async render(containerEl: HTMLElement) {
@@ -34,7 +34,7 @@ export class TreeItem {
   }
 
   private async renderChildren() {
-    const $children = document.createElement("div");
+    const $children = createDiv();
     $children.classList.add("tree-item-children");
     this.$treeItem.appendChild($children);
 

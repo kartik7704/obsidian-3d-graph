@@ -12,7 +12,7 @@ export const addColorPicker = (
    */
   onChange: (value: string) => void
 ) => {
-  const input = document.createElement("input");
+  const input = createEl("input");
   input.type = "color";
   input.value = value;
   input.addEventListener("input", () => {

@@ -3,7 +3,7 @@ export const addTextInput = (
   value: string,
   onChange: (value: string) => void
 ) => {
-  const inputEl = document.createElement("input");
+  const inputEl = createEl("input");
   inputEl.value = value;
   inputEl.addEventListener("change", () => {
     onChange(inputEl.value);

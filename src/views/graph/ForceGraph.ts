@@ -235,7 +235,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     // add node label
     this.instance
       .nodeThreeObject((node: Node) => {
-        const nodeEl = document.createElement("div");
+        const nodeEl = createDiv();
 
         if (this.view.plugin.ringManager.isRing(node.path)) {
           nodeEl.style.display = "none";
@@ -637,7 +637,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   }
 
   private createNodeLabel() {
-    const divEl = document.createElement("div");
+    const divEl = createDiv();
     divEl.style.zIndex = "2";
     const nodeLabelEl = divEl.createDiv({
       cls: "node-label",

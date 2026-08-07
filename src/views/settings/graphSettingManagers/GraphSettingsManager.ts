@@ -60,7 +60,7 @@ export abstract class GraphSettingManager<
     super();
     this.graphView = graphView;
     // create a div for the setting
-    this.containerEl = document.createElement("div");
+    this.containerEl = createDiv();
     this.containerEl.classList.add("graph-settings-view");
 
     // add the setting button to this div
@@ -109,7 +109,7 @@ export abstract class GraphSettingManager<
       .querySelectorAll(".search-result-container")
       .forEach((el) => el.remove());
 
-    this.graphControlsEl = document.createElement("div");
+    this.graphControlsEl = createDiv();
     this.graphControlsEl.classList.add("graph-controls");
 
     this.containerEl.appendChild(this.graphControlsEl);
@@ -429,7 +429,7 @@ export abstract class GraphSettingManager<
     title: string,
     view: (setting: S, containerEl: HTMLElement) => void
   ) {
-    const header = document.createElement("header");
+    const header = createEl("header");
     header.classList.add("graph-control-section-header");
     header.innerHTML = title;
     const item = new TreeItem(header, [(containerEl: HTMLElement) => view(setting, containerEl)]);

@@ -137,19 +137,19 @@ export class SpatialNoteManager {
     this.onNodeHover = options.onNodeHover;
     this.getPanelRespawnDistance = options.panelRespawnDistance;
 
-    this.overlayRootEl = document.createElement("div");
+    this.overlayRootEl = createDiv();
     this.overlayRootEl.className = "spatial-note-overlay";
 
-    this.hudEl = document.createElement("div");
+    this.hudEl = createDiv();
     this.hudEl.className = "spatial-note-hud";
     this.hudEl.addEventListener("pointerdown", this.stopHudEvent);
     this.hudEl.addEventListener("click", this.stopHudEvent);
 
-    this.statusEl = document.createElement("span");
+    this.statusEl = createSpan();
     this.statusEl.className = "spatial-note-status";
     this.hudEl.appendChild(this.statusEl);
 
-    this.hoverLabelEl = document.createElement("div");
+    this.hoverLabelEl = createDiv();
     this.hoverLabelEl.className = "spatial-note-hover-label";
     this.hoverLabelEl.textContent = "Expand";
 
@@ -299,11 +299,11 @@ export class SpatialNoteManager {
     depthMask.name = `spatial-note-depth-mask:${path}`;
     depthMask.renderOrder = NOTE_PANEL_DEPTH_RENDER_ORDER;
 
-    const waypointElement = document.createElement("div");
+    const waypointElement = createDiv();
     waypointElement.className = "spatial-note-waypoint";
     waypointElement.setAttribute("aria-hidden", "true");
     waypointElement.title = file.basename;
-    waypointElement.appendChild(document.createElement("span"));
+    waypointElement.appendChild(createSpan());
     this.overlayRootEl.appendChild(waypointElement);
 
     const expanded: ExpandedNote = {
@@ -327,7 +327,7 @@ export class SpatialNoteManager {
 
       const resizeDirections: ResizeDirection[] = ["n", "s", "e", "w", "ne", "nw", "se", "sw"];
       for (const direction of resizeDirections) {
-        const handleEl = document.createElement("div");
+        const handleEl = createDiv();
         handleEl.className = `spatial-note-resize-handle is-${direction}`;
         handleEl.setAttribute("aria-hidden", "true");
         handleEl.addEventListener("pointerdown", (event) => {
@@ -370,7 +370,7 @@ export class SpatialNoteManager {
   }
 
   private createPanelSide(file: TFile, path: string, sideName: "front" | "back"): PanelSide {
-    const panelElement = document.createElement("div");
+    const panelElement = createDiv();
     panelElement.className = "spatial-note-panel";
     panelElement.dataset.spatialNotePath = path;
     panelElement.dataset.spatialNoteSide = sideName;
@@ -382,17 +382,17 @@ export class SpatialNoteManager {
     panelElement.addEventListener("click", (event) => event.stopPropagation());
     panelElement.addEventListener("wheel", (event) => event.stopPropagation());
 
-    const headerElement = document.createElement("div");
+    const headerElement = createDiv();
     headerElement.className = "spatial-note-panel-header";
 
-    const titleElement = document.createElement("strong");
+    const titleElement = createEl("strong");
     titleElement.textContent = file.basename;
     headerElement.appendChild(titleElement);
 
-    const headerControlsElement = document.createElement("div");
+    const headerControlsElement = createDiv();
     headerControlsElement.className = "spatial-note-panel-controls";
 
-    const pinButtonElement = document.createElement("button");
+    const pinButtonElement = createEl("button");
     pinButtonElement.type = "button";
     pinButtonElement.className = "clickable-icon spatial-note-pin-button";
     pinButtonElement.setAttribute("aria-label", "Pin spatial note panel");
@@ -400,7 +400,7 @@ export class SpatialNoteManager {
     setIcon(pinButtonElement, "pin");
     headerControlsElement.appendChild(pinButtonElement);
 
-    const closeButtonElement = document.createElement("button");
+    const closeButtonElement = createEl("button");
     closeButtonElement.type = "button";
     closeButtonElement.textContent = "Close";
     closeButtonElement.addEventListener("click", () => this.collapseNote(path));
@@ -408,7 +408,7 @@ export class SpatialNoteManager {
     headerElement.appendChild(headerControlsElement);
     panelElement.appendChild(headerElement);
 
-    const contentElement = document.createElement("div");
+    const contentElement = createDiv();
     contentElement.className = "spatial-note-content markdown-preview-view markdown-rendered";
     contentElement.textContent = "Loading note...";
     panelElement.appendChild(contentElement);
