@@ -116,6 +116,14 @@ export default defineConfig([
       // deliberate, dedicated pass audits every call site properly.
       "obsidianmd/prefer-window-timers": "off",
       "obsidianmd/prefer-instanceof": "off",
+      // Text-matches the identifier "global" with no type awareness, so
+      // GraphType.global (an enum property, unrelated to the JS global
+      // object this rule actually targets) is a false positive - its
+      // --fix rewrote it to the nonexistent GraphType.window on every
+      // push (SettingManager.ts, GraphItemView.ts), confirmed by checking
+      // the real enum in SettingsSchemas.ts (global/local/postProcessor,
+      // no window member). Off, same reasoning as the two rules above.
+      "obsidianmd/no-global-this": "off",
       "eslint-comments/require-description": "warn",
       "eslint-comments/no-restricted-disable": "warn",
       "eslint-comments/disable-enable-pair": "warn",
