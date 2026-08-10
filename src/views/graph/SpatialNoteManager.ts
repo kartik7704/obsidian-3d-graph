@@ -80,6 +80,8 @@ type SpatialNoteManagerOptions = {
   rendererCanvas: HTMLCanvasElement;
   nodes: () => RenderedNode[];
   onNodeHover: (node: RenderedNode | null) => void;
+  freecamCursorReleaseLabel: string;
+  panelRespawnDistance: () => number;
 };
 
 /**
@@ -95,6 +97,8 @@ export class SpatialNoteManager {
   private readonly rendererCanvas: HTMLCanvasElement;
   private readonly getNodes: () => RenderedNode[];
   private readonly onNodeHover: (node: RenderedNode | null) => void;
+  private readonly freecamCursorReleaseLabel: string;
+  private readonly getPanelRespawnDistance: () => number;
   private readonly raycaster = new THREE.Raycaster();
   private readonly pointerClient = new THREE.Vector2();
   private readonly pointerNdc = new THREE.Vector2();
@@ -107,6 +111,12 @@ export class SpatialNoteManager {
     depthWrite: true,
     depthTest: true,
     side: THREE.DoubleSide,
+    stencilWrite: true,
+    stencilRef: 1,
+    stencilFunc: THREE.AlwaysStencilFunc,
+    stencilFail: THREE.KeepStencilOp,
+    stencilZFail: THREE.KeepStencilOp,
+    stencilZPass: THREE.ReplaceStencilOp,
   });
   private readonly expandedNotes = new Map<string, ExpandedNote>();
   private readonly occludedNodePaths = new Set<string>();
@@ -122,6 +132,7 @@ export class SpatialNoteManager {
   private hoveredNode: RenderedNode | null = null;
   private panelInteraction: PanelInteraction | null = null;
   private pendingNodeClick: PendingNodeClick | null = null;
+  private hasPointerClient = false;
   private readonly originalCanvasPointerEvents: string;
 
   constructor(options: SpatialNoteManagerOptions) {
@@ -133,6 +144,8 @@ export class SpatialNoteManager {
     this.originalCanvasPointerEvents = options.rendererCanvas.style.pointerEvents;
     this.getNodes = options.nodes;
     this.onNodeHover = options.onNodeHover;
+    this.freecamCursorReleaseLabel = options.freecamCursorReleaseLabel;
+    this.getPanelRespawnDistance = options.panelRespawnDistance;
 
     this.overlayRootEl = document.createElement("div");
     this.overlayRootEl.className = "spatial-note-overlay";
@@ -176,6 +189,21 @@ export class SpatialNoteManager {
         (activeElement instanceof HTMLElement &&
           note.sides.some((side) => side.element.contains(activeElement)))
     );
+  }
+
+  public get isKeyboardInteractionActive(): boolean {
+    if (this.panelInteraction || this.pendingNodeClick) return true;
+    const activeElement = document.activeElement;
+    return (
+      activeElement instanceof HTMLElement &&
+      [...this.expandedNotes.values()].some((note) =>
+        note.sides.some((side) => side.element.contains(activeElement))
+      )
+    );
+  }
+
+  public get hasExpandedNotes(): boolean {
+    return this.expandedNotes.size > 0;
   }
 
   public setFreecamState(active: boolean, pointerLocked = this.pointerLocked): void {
@@ -242,6 +270,17 @@ export class SpatialNoteManager {
       this.updatePinnedWaypoint(expanded, camera);
     }
     this.updateNodeLabelOcclusion(camera);
+    // The CSS3D panel moves on screen when only the camera moves, without
+    // producing a pointermove event. Re-run the existing depth-aware routing
+    // at the last real cursor position so the overlaid WebGL canvas cannot
+    // retain stale hit-testing and strand the panel underneath it.
+    if (
+      this.hasPointerClient &&
+      !this.panelInteraction &&
+      document.pointerLockElement !== this.rendererCanvas
+    ) {
+      this.routePointerEvents(this.pointerClient.x, this.pointerClient.y);
+    }
 
     if (!this.freecamActive || this.isInteracting) {
       this.setHoveredNode(null);
@@ -308,6 +347,20 @@ export class SpatialNoteManager {
       heightPx: NOTE_PANEL_DEFAULT_HEIGHT,
       pinned: false,
     };
+
+    frontSide.headerElement.addEventListener("dblclick", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      this.endPanelInteraction(event.clientX, event.clientY);
+      const activeElement = document.activeElement;
+      if (
+        activeElement instanceof HTMLElement &&
+        expanded.sides.some((side) => side.element.contains(activeElement))
+      ) {
+        activeElement.blur();
+      }
+      this.respawnPanelInFrontOfCamera(expanded);
+    });
 
     for (const side of expanded.sides) {
       side.headerElement.addEventListener("pointerdown", (event) => {
@@ -460,8 +513,7 @@ export class SpatialNoteManager {
     if (!this.freecamActive) {
       this.statusEl.textContent = "F - Freecam";
     } else if (this.pointerLocked) {
-      this.statusEl.textContent =
-        "Freecam - WASD - Q/E roll - R level - P trail - Shift boost - Esc releases mouse";
+      this.statusEl.textContent = `Freecam - WASD - Q/E roll - R level - P trail - Shift boost - ${this.freecamCursorReleaseLabel} releases mouse`;
     } else if (this.pointerLockFailed) {
       this.statusEl.textContent = "Freecam - pointer lock failed - click scene to retry";
     } else {
@@ -594,6 +646,32 @@ export class SpatialNoteManager {
     this.updatePinnedWaypoint(note, this.getCamera());
   }
 
+  private respawnPanelInFrontOfCamera(note: ExpandedNote): void {
+    const camera = this.getCamera();
+    camera.updateWorldMatrix(true, false);
+    const cameraPosition = camera.getWorldPosition(new THREE.Vector3());
+    const cameraForward = camera.getWorldDirection(new THREE.Vector3());
+    const cameraQuaternion = camera.getWorldQuaternion(new THREE.Quaternion());
+    const cameraUp = new THREE.Vector3(0, 1, 0).applyQuaternion(cameraQuaternion).normalize();
+
+    note.object.position
+      .copy(cameraPosition)
+      .addScaledVector(cameraForward, this.getPanelRespawnDistance());
+    // CSS3DObject's readable front is local +Z. Point that axis directly back
+    // at the camera instead of inferring the face from a copied camera
+    // quaternion, and retain the camera's current roll through its world-up.
+    note.object.up.copy(cameraUp);
+    note.object.lookAt(cameraPosition);
+    note.object.updateMatrixWorld();
+    this.updateNodeOffset(note);
+    this.syncDepthMask(note);
+    this.updatePinnedWaypoint(note, camera);
+
+    // Session-only today. If panel transforms gain an opt-in persistence
+    // setting later, this explicit reposition should count as the new saved
+    // transform rather than remaining a special transient override.
+  }
+
   private beginPanelDrag(note: ExpandedNote, event: PointerEvent): void {
     if (event.button !== 0) return;
 
@@ -647,6 +725,11 @@ export class SpatialNoteManager {
   }
 
   private onDocumentPointerMove = (event: PointerEvent): void => {
+    if (document.pointerLockElement !== this.rendererCanvas) {
+      this.pointerClient.set(event.clientX, event.clientY);
+      this.hasPointerClient = true;
+    }
+
     const pendingNodeClick = this.pendingNodeClick;
     if (pendingNodeClick?.pointerId === event.pointerId) {
       const distance = Math.hypot(
@@ -687,11 +770,13 @@ export class SpatialNoteManager {
       }
     }
 
-    if (this.panelInteraction) {
-      this.panelInteraction = null;
-      this.routePointerEvents(event.clientX, event.clientY);
-    }
+    if (this.panelInteraction) this.endPanelInteraction(event.clientX, event.clientY);
   };
+
+  private endPanelInteraction(clientX: number, clientY: number): void {
+    this.panelInteraction = null;
+    this.routePointerEvents(clientX, clientY);
+  }
 
   private resizePanel(interaction: PanelResizeInteraction, clientX: number, clientY: number): void {
     const { note, direction } = interaction;
@@ -907,12 +992,14 @@ export class SpatialNoteManager {
   private onCanvasPointerEnter = (event: PointerEvent): void => {
     this.pointerInsideCanvas = true;
     this.pointerClient.set(event.clientX, event.clientY);
+    this.hasPointerClient = true;
   };
 
   private onCanvasPointerMove = (event: PointerEvent): void => {
     this.pointerInsideCanvas = true;
     if (document.pointerLockElement !== this.rendererCanvas) {
       this.pointerClient.set(event.clientX, event.clientY);
+      this.hasPointerClient = true;
     }
   };
 
@@ -928,6 +1015,7 @@ export class SpatialNoteManager {
     this.pointerInsideCanvas = true;
     if (document.pointerLockElement !== this.rendererCanvas) {
       this.pointerClient.set(event.clientX, event.clientY);
+      this.hasPointerClient = true;
     }
 
     // nodeThreeObject() builds its Three.js roots after the graph setter

@@ -49,6 +49,18 @@ export const centerCoordinatesLength = {
   default: 100,
 };
 
+export const freecamTrailDuration = {
+  min: 5,
+  max: 60,
+  step: 5,
+  default: 20,
+};
+
+export const spatialNoteRespawnDistance = {
+  min: 1,
+  default: 200,
+};
+
 export enum GraphType {
   /**
    * the global graph
@@ -84,6 +96,11 @@ export enum CommandClickNodeAction {
   focusNode = "focusNode",
 }
 
+export enum FreecamCursorReleaseInput {
+  escape = "escape",
+  rightClick = "rightClick",
+}
+
 const commonSetting = {
   display: {
     nodeSize: nodeSize.default,
@@ -102,10 +119,12 @@ const commonSetting = {
     showCenterCoordinates: true,
     centerCoordinatesLength: centerCoordinatesLength.default,
     showLinkArrow: true,
+    panelSupersedesNodeLinks: false,
     dontMoveWhenDrag: false,
     saveCoordinatesToFrontmatter: false,
     showRing: true,
     ringTubeRadius: ringTubeRadius.default,
+    freecamTrailDuration: freecamTrailDuration.default,
   },
 };
 
@@ -125,12 +144,14 @@ export const BaseDisplaySettingsSchema = z.object({
   showCenterCoordinates: z.boolean().default(commonSetting.display.showCenterCoordinates),
   centerCoordinatesLength: z.number().default(commonSetting.display.centerCoordinatesLength),
   showLinkArrow: z.boolean().default(commonSetting.display.showLinkArrow),
+  panelSupersedesNodeLinks: z.boolean().default(commonSetting.display.panelSupersedesNodeLinks),
   dontMoveWhenDrag: z.boolean().default(commonSetting.display.dontMoveWhenDrag),
   saveCoordinatesToFrontmatter: z
     .boolean()
     .default(commonSetting.display.saveCoordinatesToFrontmatter),
   showRing: z.boolean().default(commonSetting.display.showRing),
   ringTubeRadius: z.number().default(commonSetting.display.ringTubeRadius),
+  freecamTrailDuration: z.number().default(commonSetting.display.freecamTrailDuration),
   dagOrientation: z.undefined().or(z.nativeEnum(DagOrientation)).default(DagOrientation.null),
 });
 
@@ -225,6 +246,10 @@ export const SettingSchema = z.object({
     commandRightClickNode: z
       .nativeEnum(CommandClickNodeAction)
       .default(CommandClickNodeAction.focusNode),
+    freecamCursorReleaseInput: z
+      .nativeEnum(FreecamCursorReleaseInput)
+      .default(FreecamCursorReleaseInput.escape),
+    spatialNoteRespawnDistance: z.number().positive().default(spatialNoteRespawnDistance.default),
   }),
 });
 

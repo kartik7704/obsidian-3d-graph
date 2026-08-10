@@ -5,7 +5,7 @@ import type { Node } from "@/graph/Node";
 import type { BaseForceGraph } from "@/views/graph/ForceGraph";
 import type { Link } from "@/graph/Link";
 import { CommandModal } from "@/commands/CommandModal";
-import { CommandClickNodeAction, GraphType } from "@/SettingsSchemas";
+import { CommandClickNodeAction, FreecamCursorReleaseInput, GraphType } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { hexToRGBA } from "@/util/hexToRGBA";
 import type { TFile } from "obsidian";
@@ -22,9 +22,10 @@ const FREECAM_SPEED_MULTIPLIER = 4;
 const FREECAM_MOUSE_SENSITIVITY = 0.002;
 const FREECAM_ROLL_SPEED = Math.PI / 2;
 const FREECAM_LEVEL_DURATION_MS = 350;
-export const FREECAM_TRAIL_MAX_POINTS = 240;
+// Covers the longest 60-second slider value even on a 120 Hz display; the
+// time-window pruning remains the normal bound.
+export const FREECAM_TRAIL_MAX_POINTS = 7_200;
 const FREECAM_TRAIL_SAMPLE_DISTANCE = 6;
-export const FREECAM_TRAIL_DURATION_MS = 5_000;
 
 type TimedTrailPoint = {
   position: THREE.Vector3;
@@ -560,6 +561,7 @@ export class ForceGraphEngine {
     this.rendererDomEl = rendererDomEl;
     rendererDomEl.tabIndex = 0;
     rendererDomEl.addEventListener("pointerdown", this.onFreecamPointerDown);
+    rendererDomEl.addEventListener("contextmenu", this.onFreecamContextMenu);
 
     // TrackballControls reserves A/S/D as drag-mode modifiers at the window
     // level. That binding is the source of the normal-camera WASD fling when
@@ -688,6 +690,7 @@ export class ForceGraphEngine {
     document.removeEventListener("pointerlockerror", this.onPointerLockError);
     window.removeEventListener("blur", this.onWindowBlur);
     this.rendererDomEl?.removeEventListener("pointerdown", this.onFreecamPointerDown);
+    this.rendererDomEl?.removeEventListener("contextmenu", this.onFreecamContextMenu);
     this.rendererDomEl = null;
     this.detachFreecamKeyListeners();
     this.clearPointerLockVerification();
@@ -762,9 +765,10 @@ export class ForceGraphEngine {
   }
 
   private updateFreecamTrail(now: number): void {
+    const durationMs = this.getFreecamTrailDurationMs();
     while (
       this.freecamTrailPoints.length > 0 &&
-      now - this.freecamTrailPoints[0]!.sampledAt >= FREECAM_TRAIL_DURATION_MS
+      now - this.freecamTrailPoints[0]!.sampledAt >= durationMs
     ) {
       this.freecamTrailPoints.shift();
     }
@@ -784,8 +788,8 @@ export class ForceGraphEngine {
         end.position.z
       );
       alphas.push(
-        this.getTrailPointAlpha(start.sampledAt, now),
-        this.getTrailPointAlpha(end.sampledAt, now)
+        this.getTrailPointAlpha(start.sampledAt, now, durationMs),
+        this.getTrailPointAlpha(end.sampledAt, now, durationMs)
       );
     }
 
@@ -800,9 +804,15 @@ export class ForceGraphEngine {
     this.freecamTrailLine.visible = this.freecamTrailVisible && positions.length > 0;
   }
 
-  private getTrailPointAlpha(sampledAt: number, now: number): number {
-    const remaining = Math.clamp(1 - (now - sampledAt) / FREECAM_TRAIL_DURATION_MS, 0, 1);
+  private getTrailPointAlpha(sampledAt: number, now: number, durationMs: number): number {
+    const remaining = Math.clamp(1 - (now - sampledAt) / durationMs, 0, 1);
     return remaining * remaining;
+  }
+
+  private getFreecamTrailDurationMs(): number {
+    return (
+      this.forceGraph.view.settingManager.getCurrentSetting().display.freecamTrailDuration * 1_000
+    );
   }
 
   private attachFreecamKeyListeners(): void {
@@ -840,7 +850,7 @@ export class ForceGraphEngine {
 
   private isFreecamInputActive(): boolean {
     return (
-      !this.forceGraph.spatialNotes.isInteracting &&
+      !this.forceGraph.spatialNotes.isKeyboardInteractionActive &&
       (document.pointerLockElement === this.rendererDomEl ||
         this.forceGraph.view.contentEl.matches(":hover"))
     );
@@ -945,10 +955,36 @@ export class ForceGraphEngine {
 
   private onFreecamPointerDown = (event: PointerEvent): void => {
     this.rendererDomEl?.focus();
+    if (
+      this.freecamActive &&
+      event.button === 2 &&
+      document.pointerLockElement === this.rendererDomEl &&
+      this.getFreecamCursorReleaseInput() === FreecamCursorReleaseInput.rightClick
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      document.exitPointerLock();
+      return;
+    }
     if (this.freecamActive && event.button === 0 && !this.forceGraph.spatialNotes.isInteracting) {
       this.requestPointerLock();
     }
   };
+
+  private onFreecamContextMenu = (event: MouseEvent): void => {
+    if (
+      this.freecamActive &&
+      this.getFreecamCursorReleaseInput() === FreecamCursorReleaseInput.rightClick
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  private getFreecamCursorReleaseInput(): FreecamCursorReleaseInput {
+    return this.forceGraph.view.plugin.settingManager.getSettings().pluginSetting
+      .freecamCursorReleaseInput;
+  }
 
   private onFreecamMouseMove = (event: MouseEvent): void => {
     if (

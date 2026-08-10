@@ -10,11 +10,12 @@ import { CSS3DRenderer } from "three/examples/jsm/renderers/CSS3DRenderer.js";
 import { FOCAL_FROM_CAMERA, ForceGraphEngine } from "@/views/graph/ForceGraphEngine";
 import type { DeepPartial } from "ts-essentials";
 import type { Node } from "@/graph/Node";
+import type { Link } from "@/graph/Link";
 
 import { rgba } from "polished";
 import { createNotice } from "@/util/createNotice";
 import type { GlobalGraphSettings, GraphSetting, LocalGraphSettings } from "@/SettingsSchemas";
-import { DagOrientation } from "@/SettingsSchemas";
+import { DagOrientation, FreecamCursorReleaseInput } from "@/SettingsSchemas";
 import type { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import type { BaseGraph3dView, Graph3dView } from "@/views/graph/3dView/Graph3dView";
 import type { ItemView, TFile } from "obsidian";
@@ -30,6 +31,21 @@ export const getTooManyNodeMessage = (nodeNumber: number) =>
 // (dontMoveWhenDrag) so it doesn't keep drifting once fixed - long enough for
 // the initial hot-alpha layout burst to settle.
 const NEW_NODE_SETTLE_MS = 2000;
+type LinkMaterialStencilState = {
+  stencilWrite: boolean;
+  stencilWriteMask: number;
+  stencilRef: number;
+  stencilFunc: THREE.StencilFunc;
+  stencilFuncMask: number;
+  stencilFail: THREE.StencilOp;
+  stencilZFail: THREE.StencilOp;
+  stencilZPass: THREE.StencilOp;
+};
+
+type RenderedLink = Link & {
+  __lineObj?: THREE.Object3D;
+  __arrowObj?: THREE.Object3D;
+};
 
 // Deterministic string -> [0, 1) hash (FNV-1a), used to seed a stable,
 // spread-out starting position for nodes with no saved position — same
@@ -84,6 +100,8 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   private readonly ringMeshes: Map<string, THREE.Mesh> = new Map();
   private readonly ringHandles: Map<string, { green: THREE.Mesh; blue: THREE.Mesh }> = new Map();
   private readonly raycaster = new THREE.Raycaster();
+  private readonly linkMaterialStencilStates = new Map<THREE.Material, LinkMaterialStencilState>();
+  private linkPanelStencilSupported = false;
   // Absolute angle-tracking, same technique every 3D tool with a rotation
   // gizmo uses (Roblox, Unity, Blender, Unreal): each frame, raycast from the
   // camera through the mouse, intersect a plane perpendicular to a FIXED
@@ -140,6 +158,9 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     // these config will not changed by user
     this.instance = ForceGraph3D({
       controlType: pluginSetting.rightClickToPan ? undefined : "orbit",
+      // The link-only panel overlap mask uses stencil; Three r184 no
+      // longer allocates that buffer unless it is requested explicitly.
+      rendererConfig: { stencil: true },
       extraRenderers: [
         // @ts-ignore https://github.com/vasturiano/3d-force-graph/blob/522d19a831e92015ff77fb18574c6b79acfc89ba/example/html-nodes/index.html#L27C9-L29
         new CSS2DRenderer({
@@ -182,6 +203,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
     const scene = this.instance.scene();
     const renderer = this.instance.renderer();
+    this.linkPanelStencilSupported = renderer.getContextAttributes().stencil === true;
     renderer.setClearColor(new THREE.Color(0x000000), 0);
     renderer.domElement.style.position = "relative";
     renderer.domElement.style.zIndex = "1";
@@ -198,6 +220,12 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       rendererCanvas: renderer.domElement,
       nodes: () => this.instance.graphData().nodes as Node[],
       onNodeHover: this.interactionManager.onSpatialNoteHover,
+      freecamCursorReleaseLabel:
+        pluginSetting.freecamCursorReleaseInput === FreecamCursorReleaseInput.rightClick
+          ? "Right-click"
+          : "Esc",
+      panelRespawnDistance: () =>
+        this.view.plugin.settingManager.getSettings().pluginSetting.spatialNoteRespawnDistance,
     });
     this.interactionManager.bindRenderer(renderer.domElement);
     renderer.domElement.addEventListener("wheel", this.onRendererWheel);
@@ -303,6 +331,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     rendererDomEl.removeEventListener("pointerup", this.onHandleMouseUp, { capture: true });
 
     this.interactionManager.destroy();
+    this.restoreAllLinkMaterialStencilStates();
     this.spatialNotes.destroy();
     this.instance._destructor();
   }
@@ -684,6 +713,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
 
       this.interactionManager.updateFreecam();
       this.spatialNotes.update(camera as THREE.PerspectiveCamera);
+      this.syncLinkPanelStencil();
 
       const cwd = new THREE.Vector3();
       camera.getWorldDirection(cwd);
@@ -704,6 +734,90 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     };
     myCube.visible = false;
     return myCube;
+  }
+
+  private syncLinkPanelStencil(): void {
+    if (
+      !this.linkPanelStencilSupported ||
+      !this.spatialNotes.hasExpandedNotes ||
+      !this.view.settingManager.getCurrentSetting().display.panelSupersedesNodeLinks
+    ) {
+      this.restoreAllLinkMaterialStencilStates();
+      return;
+    }
+
+    const activeMaterials = new Set<THREE.Material>();
+    for (const link of this.instance.graphData().links as RenderedLink[]) {
+      for (const object of [link.__lineObj, link.__arrowObj]) {
+        if (!object) continue;
+        object.traverse((child) => {
+          const material = (
+            child as THREE.Object3D & {
+              material?: THREE.Material | THREE.Material[];
+            }
+          ).material;
+          if (!material) return;
+          for (const entry of Array.isArray(material) ? material : [material]) {
+            activeMaterials.add(entry);
+          }
+        });
+      }
+    }
+
+    for (const material of activeMaterials) {
+      if (!this.linkMaterialStencilStates.has(material)) {
+        this.linkMaterialStencilStates.set(material, {
+          stencilWrite: material.stencilWrite,
+          stencilWriteMask: material.stencilWriteMask,
+          stencilRef: material.stencilRef,
+          stencilFunc: material.stencilFunc,
+          stencilFuncMask: material.stencilFuncMask,
+          stencilFail: material.stencilFail,
+          stencilZFail: material.stencilZFail,
+          stencilZPass: material.stencilZPass,
+        });
+      }
+
+      // Depth masks write stencil only over their projected panel pixels.
+      // Link lines and arrowheads keep their normal transparent/depth-tested
+      // materials everywhere else, but reject those marked pixels so the
+      // panel wins locally regardless of the link's true depth.
+      material.stencilWrite = true;
+      material.stencilWriteMask = 0;
+      material.stencilRef = 1;
+      material.stencilFunc = THREE.NotEqualStencilFunc;
+      material.stencilFuncMask = 0xff;
+      material.stencilFail = THREE.KeepStencilOp;
+      material.stencilZFail = THREE.KeepStencilOp;
+      material.stencilZPass = THREE.KeepStencilOp;
+    }
+
+    for (const [material, state] of this.linkMaterialStencilStates) {
+      if (activeMaterials.has(material)) continue;
+      this.restoreLinkMaterialStencilState(material, state);
+      this.linkMaterialStencilStates.delete(material);
+    }
+  }
+
+  private restoreAllLinkMaterialStencilStates(): void {
+    for (const [material, state] of this.linkMaterialStencilStates) {
+      this.restoreLinkMaterialStencilState(material, state);
+    }
+    this.linkMaterialStencilStates.clear();
+  }
+
+  private restoreLinkMaterialStencilState(
+    material: THREE.Material,
+    state: LinkMaterialStencilState
+  ): void {
+    material.stencilWrite = state.stencilWrite;
+    material.stencilWriteMask = state.stencilWriteMask;
+    material.stencilRef = state.stencilRef;
+    material.stencilFunc = state.stencilFunc;
+    material.stencilFuncMask = state.stencilFuncMask;
+    material.stencilFail = state.stencilFail;
+    material.stencilZFail = state.stencilZFail;
+    material.stencilZPass = state.stencilZPass;
   }
 
   /**

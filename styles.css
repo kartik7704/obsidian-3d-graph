@@ -59,10 +59,22 @@
   margin: 0;
 }
 
+.graph-3d-view .graph-settings-view {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
 .graph-3d-view .graph-settings-view > .clickable-icon {
   position: absolute;
   top: 8px;
   right: 8px;
+  pointer-events: auto;
+}
+
+.graph-3d-view .graph-controls {
+  pointer-events: auto;
 }
 
 .graph-3d-view .node-label {

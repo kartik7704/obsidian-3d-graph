@@ -11,6 +11,7 @@ import {
   centerCoordinatesLength,
   DagOrientation,
   distanceFromFocal,
+  freecamTrailDuration,
   linkDistance,
   linkThickness,
   nodeRepulsion,
@@ -96,6 +97,20 @@ export const DisplaySettingsView = (
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.display.distanceFromFocal = value;
+      });
+    }
+  );
+
+  addSimpleSliderSetting(
+    containerEl,
+    {
+      name: "Freecam trail fade (seconds)",
+      value: displaySettings.freecamTrailDuration,
+      stepOptions: freecamTrailDuration,
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.freecamTrailDuration = value;
       });
     }
   );
@@ -231,6 +246,19 @@ export const DisplaySettingsView = (
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.display.showLinkArrow = value;
+      });
+    }
+  );
+
+  addToggle(
+    containerEl,
+    {
+      name: "Panel supersedes node links",
+      value: displaySettings.panelSupersedesNodeLinks,
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.panelSupersedesNodeLinks = value;
       });
     }
   );

@@ -1,7 +1,12 @@
 import type { App } from "obsidian";
 import { PluginSettingTab, Setting } from "obsidian";
 import type Graph3dPlugin from "@/main";
-import { CommandClickNodeAction, SearchEngineType } from "@/SettingsSchemas";
+import {
+  CommandClickNodeAction,
+  FreecamCursorReleaseInput,
+  SearchEngineType,
+  spatialNoteRespawnDistance,
+} from "@/SettingsSchemas";
 import { DEFAULT_SETTING } from "@/SettingManager";
 
 const DEFAULT_NUMBER = DEFAULT_SETTING.pluginSetting.maxNodeNumber;
@@ -96,6 +101,58 @@ export class SettingTab extends PluginSettingTab {
           // force all the graph view to reset their settings
           this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
         });
+      });
+
+    new Setting(containerEl)
+      .setName("Release freecam cursor")
+      .setDesc(
+        "Choose the freecam input that releases pointer lock. Escape remains Electron's built-in safety release even when right-click is selected."
+      )
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOptions({
+            [FreecamCursorReleaseInput.escape]: "Escape",
+            [FreecamCursorReleaseInput.rightClick]: "Right-click",
+          })
+          .setValue(pluginSetting.freecamCursorReleaseInput)
+          .onChange(async (value: string) => {
+            this.plugin.settingManager.updateSettings((setting) => {
+              setting.value.pluginSetting.freecamCursorReleaseInput =
+                value as FreecamCursorReleaseInput;
+            });
+
+            this.plugin.activeGraphViews.forEach((view) => view.refreshGraph());
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Panel respawn distance")
+      .setDesc("Distance in graph units used when double-clicking a panel header.")
+      .addText((text) => {
+        const currentValue = pluginSetting.spatialNoteRespawnDistance;
+        text
+          .setPlaceholder(`${spatialNoteRespawnDistance.default}`)
+          .setValue(currentValue === spatialNoteRespawnDistance.default ? "" : String(currentValue))
+          .onChange((value) => {
+            const trimmedValue = value.trim();
+            const nextValue =
+              trimmedValue === "" ? spatialNoteRespawnDistance.default : Number(trimmedValue);
+            if (!Number.isFinite(nextValue) || nextValue < spatialNoteRespawnDistance.min) {
+              text.inputEl.setCustomValidity(
+                `Enter a distance of at least ${spatialNoteRespawnDistance.min}`
+              );
+              text.inputEl.reportValidity();
+              return;
+            }
+
+            text.inputEl.setCustomValidity("");
+            this.plugin.settingManager.updateSettings((setting) => {
+              setting.value.pluginSetting.spatialNoteRespawnDistance = nextValue;
+            });
+          });
+        text.inputEl.type = "number";
+        text.inputEl.min = `${spatialNoteRespawnDistance.min}`;
+        text.inputEl.step = "1";
       });
 
     new Setting(containerEl)
