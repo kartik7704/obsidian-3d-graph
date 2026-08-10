@@ -8,6 +8,7 @@ import { LocalGraphSettingManager } from "@/views/settings/graphSettingManagers/
 import type { Component, TAbstractFile, TFile } from "obsidian";
 import { type LocalGraphItemView } from "@/views/graph/LocalGraphItemView";
 import type { LocalGraphSettings } from "@/SettingsSchemas";
+import { isImageAttachment } from "@/util/isImageAttachment";
 import { GraphType } from "@/SettingsSchemas";
 import { ForceGraph } from "@/views/graph/ForceGraph";
 
@@ -138,6 +139,7 @@ export const getNewLocalGraph = (
     .filter((node) => {
       // the center file, which must be shown
       if (node.path === centerFile.path) return true;
+      if (isImageAttachment(node.path)) return false;
       // if node is not a markdown  and show attachment is false, then we will not show it
       if (!node.path.endsWith(".md") && !config.filterSetting.showAttachments) return false;
       //  if the search query is not empty and the search result is empty, then we don't need to filter the search result

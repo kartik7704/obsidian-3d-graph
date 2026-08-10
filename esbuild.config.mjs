@@ -16,10 +16,16 @@ const context = await esbuild.context({
   },
   entryPoints: ["src/main.ts"],
   bundle: true,
+  // `three/webgpu` is aliased below instead of left external: Obsidian plugins ship no
+  // node_modules, so an external require for it can never resolve at runtime, and
+  // three-render-objects imports it unconditionally at the top of its module even though
+  // this plugin never actually requests the WebGPU renderer.
+  alias: {
+    "three/webgpu": "./stubs/three-webgpu-stub.js",
+  },
   external: [
     "obsidian",
     "electron",
-    "three/webgpu",
     "@codemirror/autocomplete",
     "@codemirror/collab",
     "@codemirror/commands",

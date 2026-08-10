@@ -59,11 +59,24 @@
   margin: 0;
 }
 
+/* Same regression as 2026-07-28 (see that day's log): once anything in the
+   view (the WebGL/CSS3D canvases, the spatial-note overlay) becomes a
+   positioned element, unpositioned content is pushed into a categorically
+   lower paint layer regardless of z-index - not just a lower z-index
+   number. The whole settings container has to be promoted into the
+   positioned layer itself, with pointer-events opted back in only on the
+   icon and the panel, or the icon alone "works" while the panel underneath
+   stays dead. Do not narrow this back down to just the icon rule. */
 .graph-3d-view .graph-settings-view {
   position: absolute;
   inset: 0;
   z-index: 5;
   pointer-events: none;
+}
+
+.graph-3d-view .graph-settings-view > .clickable-icon,
+.graph-3d-view .graph-controls {
+  pointer-events: auto;
 }
 
 .graph-3d-view .graph-settings-view > .clickable-icon {

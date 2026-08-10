@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import "obsidian";
-import type { EphemeralState, SuggestModal, TFile, View, WorkspaceLeaf } from "obsidian";
+import type { App, SuggestModal, TFile, View, WorkspaceLeaf } from "obsidian";
 import type { EmbeddedViewParent } from "@/views/leafView";
 
 interface InternalPlugins {
@@ -15,12 +15,6 @@ interface GlobalSearchPlugin extends Plugin {
     getGlobalSearchQuery: () => string;
     openGlobalSearch: (query: string) => void;
   };
-}
-
-interface OpenViewState {
-  eState?: EphemeralState;
-  state?: { mode: string };
-  active?: boolean;
 }
 
 type SwitcherReturnType =
@@ -70,9 +64,14 @@ declare global {
     t(id: string): string;
   };
 
+  // Obsidian exposes this on window at runtime; the packaged obsidian.d.ts
+  // doesn't declare it (never has, across the versions checked).
+  const app: App;
+
   interface Window {
     activeWindow: Window;
     activeDocument: Document;
+    app: App;
   }
 }
 
@@ -267,6 +266,10 @@ declare module "obsidian" {
     startLoc?: Loc;
     endLoc?: Loc;
     scroll?: number;
+    // different view types (image, canvas, etc.) carry their own additional
+    // ephemeral-state fields; matches the real OpenViewState.eState shape
+    // (Record<string, unknown>).
+    [key: string]: unknown;
   }
 
   interface HoverParent {

@@ -333,8 +333,8 @@ export class ForceGraphEngine {
     }
 
     const shouldUseCommand =
-      this.forceGraph.view.plugin.app.internalPlugins.getPluginById("page-preview").instance
-        .overrides["3d-graph"] !== false;
+      this.forceGraph.view.plugin.app.internalPlugins.getPluginById("page-preview")?.instance
+        ?.overrides?.["3d-graph"] !== false;
     // show the hover preview
     if (
       allowPagePreview &&
@@ -953,6 +953,11 @@ export class ForceGraphEngine {
     this.forceGraph.spatialNotes.setPointerLockFailed(true);
   }
 
+  private getFreecamCursorReleaseInput(): FreecamCursorReleaseInput {
+    return this.forceGraph.view.plugin.settingManager.getSettings().pluginSetting
+      .freecamCursorReleaseInput;
+  }
+
   private onFreecamPointerDown = (event: PointerEvent): void => {
     this.rendererDomEl?.focus();
     if (
@@ -980,11 +985,6 @@ export class ForceGraphEngine {
       event.stopPropagation();
     }
   };
-
-  private getFreecamCursorReleaseInput(): FreecamCursorReleaseInput {
-    return this.forceGraph.view.plugin.settingManager.getSettings().pluginSetting
-      .freecamCursorReleaseInput;
-  }
 
   private onFreecamMouseMove = (event: MouseEvent): void => {
     if (
@@ -1092,7 +1092,6 @@ export class ForceGraphEngine {
           .start();
       }
 
-      // eslint-disable-next-line no-inner-declarations
       function setCameraPos(pos: Partial<Coords>) {
         const { x, y, z } = pos;
         if (x !== undefined) camera.position.x = x;
@@ -1100,7 +1099,6 @@ export class ForceGraphEngine {
         if (z !== undefined) camera.position.z = z;
       }
 
-      // eslint-disable-next-line no-inner-declarations
       function setLookAt(lookAt: Coords) {
         const lookAtVect = new THREE.Vector3(lookAt.x, lookAt.y, lookAt.z);
         if (controls.target && !shouldLookDirectly()) {
@@ -1111,7 +1109,6 @@ export class ForceGraphEngine {
         }
       }
 
-      // eslint-disable-next-line no-inner-declarations
       function getLookAt() {
         return Object.assign(
           new THREE.Vector3(0, 0, -1000).applyQuaternion(camera.quaternion).add(camera.position)
@@ -1216,6 +1213,11 @@ export class ForceGraphEngine {
   }
 
   public openFileInNewTab(file: TFile) {
-    this.forceGraph.view.plugin.app.workspace.getLeaf(false).openFile(file);
+    // getLeaf(false) reuses whatever leaf is currently active instead of actually opening
+    // a new tab (per Obsidian's own docs) - despite the name, this was silently swapping
+    // the active pane's content in place, which is a very plausible way to leave a
+    // third-party plugin's editor state (e.g. Ink's CodeMirror extensions) torn down
+    // incorrectly on the reused leaf. getLeaf(true) actually creates a new leaf.
+    this.forceGraph.view.plugin.app.workspace.getLeaf(true).openFile(file);
   }
 }

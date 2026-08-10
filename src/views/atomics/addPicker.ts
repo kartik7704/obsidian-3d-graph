@@ -9,7 +9,7 @@ export const addPicker = (
    */
   onChange: (value: string) => void
 ) => {
-  const input = document.createElement("input");
+  const input = createEl("input");
   input.value = value;
   input.addEventListener("change", () => {
     onChange(input.value);

@@ -84,7 +84,7 @@ export const addSearchInput = async (
   settingIconEl?.remove();
   matchCaseIconEl?.remove();
   inputEl.value = value;
-  inputEl.oninput = async (e: Event<HTMLInputElement>) => {
+  inputEl.oninput = async (e: Event) => {
     // @ts-ignore
     onChange(e.currentTarget?.value);
   };

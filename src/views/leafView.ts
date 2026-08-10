@@ -6,6 +6,7 @@
 import type {
   EphemeralState,
   MarkdownEditView,
+  OpenViewState,
   Plugin,
   TFile,
   View,
@@ -22,7 +23,6 @@ import {
   WorkspaceSplit,
   WorkspaceTabs,
 } from "obsidian";
-import type { OpenViewState } from "@/typings/types-obsidian";
 
 const PREFIX = "graph-3d";
 

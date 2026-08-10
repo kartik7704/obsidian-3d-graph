@@ -181,7 +181,13 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       })
       .nodeOpacity(0.9)
       .linkOpacity(0.3)
-      .onNodeHover(this.interactionManager.onNodeHover)
+      .onNodeHover((node: Node | null) => {
+        try {
+          this.interactionManager.onNodeHover(node);
+        } catch (err) {
+          console.error("[3d-graph] onNodeHover threw, render loop would have died here:", err);
+        }
+      })
       .onNodeDrag(this.interactionManager.onNodeDrag)
       .onNodeDragEnd(this.interactionManager.onNodeDragEnd)
       .onNodeRightClick(this.interactionManager.onNodeRightClick)
@@ -255,7 +261,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
     // add node label
     this.instance
       .nodeThreeObject((node: Node) => {
-        const nodeEl = document.createElement("div");
+        const nodeEl = createDiv();
 
         if (this.view.plugin.ringManager.isRing(node.path)) {
           nodeEl.style.display = "none";
@@ -658,7 +664,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
   }
 
   private createNodeLabel() {
-    const divEl = document.createElement("div");
+    const divEl = createDiv();
     divEl.style.zIndex = "2";
     const nodeLabelEl = divEl.createDiv({
       cls: "node-label",
@@ -857,7 +863,6 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       if (setting.display.dontMoveWhenDrag) {
         const posManager = this.view.plugin.nodePositionManager;
         const saved = posManager.getAll();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const newNodePaths = new Set(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           graph.nodes.filter((n) => !saved[(n as any).path]).map((n) => (n as any).path)
