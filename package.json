@@ -10,7 +10,8 @@
     "release": "bash ./release.sh",
     "prepare": "husky install",
     "typecheck": "tsc -noEmit -skipLibCheck &&  bunx dpdm -T --exit-code circular:1 --warning false --tree false src/main.ts",
-    "lint": "eslint . --ext .ts --fix --format unix"
+    "lint": "eslint . --ext .ts --fix --format unix",
+    "test": "bun test"
   },
   "keywords": [
     "obsidian",
