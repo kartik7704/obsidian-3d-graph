@@ -1,7 +1,7 @@
 {
 	"id": "3d-graph-new",
 	"name": "3D Graph New",
-	"version": "1.4.0",
+	"version": "1.5.0",
 	"description": "A 3D Graph for Obsidian - fork of Hananoshika Yomaru's original, with a ring system and frontmatter position tools added.",
 	"minAppVersion": "1.13.0",
 	"author": "kartik7704 (fork of Hananoshika Yomaru)",
