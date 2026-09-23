@@ -186,7 +186,14 @@ export abstract class Graph3dView<
     if (path.some((p) => p.startsWith("groups"))) {
       this.forceGraph?.interactionManager.updateColor();
     }
-    if (path.includes("display.linkArrowColor")) {
+    if (path.includes("display.linkOpacity")) {
+      this.forceGraph?.updateConfig({
+        display: {
+          linkOpacity: newSetting.display.linkOpacity,
+        },
+      });
+    }
+    if (path.includes("display.linkColor")) {
       this.forceGraph?.interactionManager.updateColor();
     }
     if (path.includes("display.nodeSize")) {

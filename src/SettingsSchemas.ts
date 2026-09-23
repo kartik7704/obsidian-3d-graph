@@ -14,6 +14,14 @@ export const linkThickness = {
   default: 2, // 3
 };
 
+// 0.3 is the value that was hard-coded before this became a setting
+export const linkOpacity = {
+  min: 0.05,
+  max: 1,
+  step: 0.05,
+  default: 0.3,
+};
+
 export const linkDistance = {
   min: 10,
   max: 200,
@@ -105,6 +113,7 @@ const commonSetting = {
   display: {
     nodeSize: nodeSize.default,
     linkThickness: linkThickness.default,
+    linkOpacity: linkOpacity.default,
     linkDistance: linkDistance.default,
     nodeRepulsion: nodeRepulsion.default,
     distanceFromFocal: 300,
@@ -114,8 +123,8 @@ const commonSetting = {
     nodeHoverNeighbourColor: "#00ff00",
     // link hover color is blue
     linkHoverColor: "#0000ff",
-    // empty means the arrowheads follow the link color, a hex overrides just the arrowheads
-    linkArrowColor: "",
+    // empty means links follow the Obsidian theme's graph line color, a hex overrides lines and arrowheads
+    linkColor: "",
     showExtension: false,
     showFullPath: false,
     showCenterCoordinates: true,
@@ -135,13 +144,14 @@ const commonSetting = {
 export const BaseDisplaySettingsSchema = z.object({
   nodeSize: z.number().default(commonSetting.display.nodeSize),
   linkThickness: z.number().default(commonSetting.display.linkThickness),
+  linkOpacity: z.number().default(commonSetting.display.linkOpacity),
   linkDistance: z.number().default(commonSetting.display.linkDistance),
   nodeRepulsion: z.number().default(commonSetting.display.nodeRepulsion),
   distanceFromFocal: z.number().default(commonSetting.display.distanceFromFocal),
   nodeHoverColor: z.string().default(commonSetting.display.nodeHoverColor),
   nodeHoverNeighbourColor: z.string().default(commonSetting.display.nodeHoverNeighbourColor),
   linkHoverColor: z.string().default(commonSetting.display.linkHoverColor),
-  linkArrowColor: z.string().default(commonSetting.display.linkArrowColor),
+  linkColor: z.string().default(commonSetting.display.linkColor),
   showExtension: z.boolean().default(commonSetting.display.showExtension),
   showFullPath: z.boolean().default(commonSetting.display.showFullPath),
   showCenterCoordinates: z.boolean().default(commonSetting.display.showCenterCoordinates),

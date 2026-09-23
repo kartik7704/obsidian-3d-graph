@@ -180,7 +180,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
         this.interactionManager.removeSelection();
       })
       .nodeOpacity(0.9)
-      .linkOpacity(0.3)
+      .linkOpacity(this.view.settingManager.getCurrentSetting().display.linkOpacity)
       .onNodeHover((node: Node | null) => {
         try {
           this.interactionManager.onNodeHover(node);
@@ -200,7 +200,6 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       .linkDirectionalParticleWidth(this.interactionManager.getLinkDirectionalParticleWidth)
       .linkDirectionalArrowLength(this.interactionManager.getLinkDirectionalArrowLength)
       .linkDirectionalArrowRelPos(1)
-      .linkDirectionalArrowColor(this.interactionManager.getLinkArrowColor)
       // the options here are auto
       .width(this.view.contentEl.innerWidth)
       .height(this.view.contentEl.innerHeight)
@@ -972,6 +971,9 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       this.instance.nodeRelSize(config.display?.nodeSize);
     if (config?.display?.linkDistance !== undefined) {
       this.instance.d3Force("link")?.distance(config.display?.linkDistance);
+    }
+    if (config?.display?.linkOpacity !== undefined) {
+      this.instance.linkOpacity(config.display.linkOpacity);
     }
     if (config?.display?.nodeRepulsion !== undefined) {
       this.instance.d3Force("charge")?.strength(-config.display?.nodeRepulsion);

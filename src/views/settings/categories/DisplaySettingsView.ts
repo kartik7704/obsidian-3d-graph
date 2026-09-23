@@ -13,6 +13,7 @@ import {
   distanceFromFocal,
   freecamTrailDuration,
   linkDistance,
+  linkOpacity,
   linkThickness,
   nodeRepulsion,
   nodeSize,
@@ -54,6 +55,21 @@ export const DisplaySettingsView = (
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
         setting.value.display.linkThickness = value;
+      });
+    }
+  );
+
+  // add link opacity setting (lines and arrowheads)
+  addSimpleSliderSetting(
+    containerEl,
+    {
+      name: "Link opacity",
+      value: displaySettings.linkOpacity,
+      stepOptions: linkOpacity,
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.linkOpacity = value;
       });
     }
   );
@@ -194,16 +210,16 @@ export const DisplaySettingsView = (
     }
   );
 
-  // add link arrow color setting (unset = arrowheads follow the link color)
+  // add link color setting (unset = follow the Obsidian theme's graph line color)
   addColorPickerSetting(
     containerEl,
     {
-      name: "Link arrow color",
-      value: displaySettings.linkArrowColor || "#ffffff",
+      name: "Link color",
+      value: displaySettings.linkColor || "#ffffff",
     },
     (value) => {
       settingManager.updateCurrentSettings((setting) => {
-        setting.value.display.linkArrowColor = value;
+        setting.value.display.linkColor = value;
       });
     }
   );
