@@ -114,6 +114,8 @@ const commonSetting = {
     nodeHoverNeighbourColor: "#00ff00",
     // link hover color is blue
     linkHoverColor: "#0000ff",
+    // empty means the arrowheads follow the link color, a hex overrides just the arrowheads
+    linkArrowColor: "",
     showExtension: false,
     showFullPath: false,
     showCenterCoordinates: true,
@@ -139,6 +141,7 @@ export const BaseDisplaySettingsSchema = z.object({
   nodeHoverColor: z.string().default(commonSetting.display.nodeHoverColor),
   nodeHoverNeighbourColor: z.string().default(commonSetting.display.nodeHoverNeighbourColor),
   linkHoverColor: z.string().default(commonSetting.display.linkHoverColor),
+  linkArrowColor: z.string().default(commonSetting.display.linkArrowColor),
   showExtension: z.boolean().default(commonSetting.display.showExtension),
   showFullPath: z.boolean().default(commonSetting.display.showFullPath),
   showCenterCoordinates: z.boolean().default(commonSetting.display.showCenterCoordinates),

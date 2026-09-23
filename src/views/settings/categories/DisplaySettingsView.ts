@@ -194,6 +194,20 @@ export const DisplaySettingsView = (
     }
   );
 
+  // add link arrow color setting (unset = arrowheads follow the link color)
+  addColorPickerSetting(
+    containerEl,
+    {
+      name: "Link arrow color",
+      value: displaySettings.linkArrowColor || "#ffffff",
+    },
+    (value) => {
+      settingManager.updateCurrentSettings((setting) => {
+        setting.value.display.linkArrowColor = value;
+      });
+    }
+  );
+
   // add show extension setting
   addToggle(
     containerEl,

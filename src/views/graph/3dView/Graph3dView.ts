@@ -186,6 +186,9 @@ export abstract class Graph3dView<
     if (path.some((p) => p.startsWith("groups"))) {
       this.forceGraph?.interactionManager.updateColor();
     }
+    if (path.includes("display.linkArrowColor")) {
+      this.forceGraph?.interactionManager.updateColor();
+    }
     if (path.includes("display.nodeSize")) {
       this.forceGraph?.updateConfig({
         display: {

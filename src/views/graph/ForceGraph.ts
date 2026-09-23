@@ -200,6 +200,7 @@ export class ForceGraph<V extends Graph3dView<GraphSettingManager<GraphSetting, 
       .linkDirectionalParticleWidth(this.interactionManager.getLinkDirectionalParticleWidth)
       .linkDirectionalArrowLength(this.interactionManager.getLinkDirectionalArrowLength)
       .linkDirectionalArrowRelPos(1)
+      .linkDirectionalArrowColor(this.interactionManager.getLinkArrowColor)
       // the options here are auto
       .width(this.view.contentEl.innerWidth)
       .height(this.view.contentEl.innerHeight)

@@ -8,6 +8,7 @@ import { CommandModal } from "@/commands/CommandModal";
 import { CommandClickNodeAction, FreecamCursorReleaseInput, GraphType } from "@/SettingsSchemas";
 import { createNotice } from "@/util/createNotice";
 import { hexToRGBA } from "@/util/hexToRGBA";
+import { resolveLinkArrowColor } from "@/util/resolveLinkArrowColor";
 import type { TFile } from "obsidian";
 
 const cameraLookAtCenterTransitionDuration = 1000;
@@ -371,6 +372,7 @@ export class ForceGraphEngine {
     this.forceGraph.instance
       .nodeColor(this.forceGraph.instance.nodeColor())
       .linkColor(this.forceGraph.instance.linkColor())
+      .linkDirectionalArrowColor(this.forceGraph.instance.linkDirectionalArrowColor())
       .linkDirectionalParticles(this.forceGraph.instance.linkDirectionalParticles());
   }
 
@@ -380,6 +382,12 @@ export class ForceGraphEngine {
       : this.forceGraph.view.theme.graphLine;
     return hexToRGBA(color, this.getIsAnyHighlighted() && !this.isHighlightedLink(link) ? 0.2 : 1);
   };
+
+  getLinkArrowColor = (link: Link) =>
+    resolveLinkArrowColor(
+      this.forceGraph.view.settingManager.getCurrentSetting().display.linkArrowColor,
+      this.isHighlightedLink(link)
+    );
 
   getLinkWidth = (link: Link) => {
     const setting = this.forceGraph.view.settingManager.getCurrentSetting();
